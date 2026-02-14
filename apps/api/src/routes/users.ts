@@ -7,7 +7,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     "/v1/users/:id",
     {
       schema: {
-        summary: "Get a user by ID",
+        summary: "Get user by ID",
         tags: ["Identity & Access"],
         params: {
           type: "object",
@@ -31,9 +31,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       const params = request.params as { id: string };
       return {
         id: params.id,
-        displayName: "Ada Lovelace",
+        fullName: "Ada Lovelace",
         email: "ada@datastack.dev",
         avatarUrl: "https://api.datastack.dev/avatars/ada.png",
+        department: "Engineering",
         createdAt: "2024-01-15T10:00:00Z",
         updatedAt: "2024-06-01T15:30:00Z",
         role: "admin",
@@ -77,9 +78,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
         data: [
           {
             id: "u1",
-            displayName: "Ada Lovelace",
+            fullName: "Ada Lovelace",
             email: "ada@datastack.dev",
             avatarUrl: "https://api.datastack.dev/avatars/ada.png",
+            department: "Engineering",
             createdAt: "2024-01-15T10:00:00Z",
             updatedAt: "2024-06-01T15:30:00Z",
             role: "admin",
@@ -106,11 +108,11 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
         body: {
           type: "object",
           properties: {
-            displayName: { type: "string" },
+            fullName: { type: "string" },
             email: { type: "string", format: "email" },
             role: { type: "string", enum: ["admin", "editor", "viewer"] },
           },
-          required: ["displayName", "email", "role"],
+          required: ["fullName", "email", "role"],
         },
         headers: {
           type: "object",
@@ -126,10 +128,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     async (request) => {
-      const body = request.body as { displayName: string; email: string; role: string };
+      const body = request.body as { fullName: string; email: string; role: string };
       return {
         id: "u-new",
-        displayName: body.displayName,
+        fullName: body.fullName,
         email: body.email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -153,7 +155,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
         body: {
           type: "object",
           properties: {
-            displayName: { type: "string" },
+            fullName: { type: "string" },
             role: { type: "string", enum: ["admin", "editor", "viewer"] },
             status: { type: "string", enum: ["active", "suspended"] },
           },
@@ -175,9 +177,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       const params = request.params as { id: string };
       return {
         id: params.id,
-        displayName: "Ada Lovelace",
+        fullName: "Ada Lovelace",
         email: "ada@datastack.dev",
         avatarUrl: "https://api.datastack.dev/avatars/ada.png",
+        department: "Engineering",
         createdAt: "2024-01-15T10:00:00Z",
         updatedAt: new Date().toISOString(),
         role: "admin",
