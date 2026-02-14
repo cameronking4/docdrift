@@ -6,6 +6,7 @@ import { buildDriftReport } from "./detect";
 import { buildEvidenceBundle, writeMetrics } from "./evidence/bundle";
 import {
   createIssue,
+  findExistingDocdriftPrForSource,
   listOpenPrsWithLabel,
   postCommitComment,
   postPrComment,
@@ -83,6 +84,7 @@ async function executeSessionSingle(input: {
   runGate: import("./detect").RunGate;
   trigger: import("./model/types").TriggerKind;
   prNumber?: number;
+  existingDocdriftPr?: { number: number; url: string; headRef: string };
 }): Promise<SessionOutcome> {
   const attachmentUrls: string[] = [];
   for (const attachmentPath of input.attachmentPaths) {
@@ -97,6 +99,7 @@ async function executeSessionSingle(input: {
     runGate: input.runGate,
     trigger: input.trigger,
     prNumber: input.prNumber,
+    existingDocdriftPr: input.existingDocdriftPr,
   });
 
   const session = await devinCreateSession(input.apiKey, {
@@ -276,6 +279,17 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
   const bundle = await buildEvidenceBundle({ runInfo, item, evidenceRoot });
   const attachmentPaths = [...new Set([bundle.archivePath, ...bundle.attachmentPaths])];
 
+  let existingDocdriftPr: { number: number; url: string; headRef: string } | undefined;
+  if (githubToken && runInfo.trigger === "pull_request" && runInfo.prNumber) {
+    existingDocdriftPr = (await findExistingDocdriftPrForSource(githubToken, repo, runInfo.prNumber)) ?? undefined;
+    if (existingDocdriftPr) {
+      logInfo("Found existing docdrift PR for source PR; will instruct Devin to update it", {
+        existingPr: existingDocdriftPr.number,
+        headRef: existingDocdriftPr.headRef,
+      });
+    }
+  }
+
   let sessionOutcome: SessionOutcome = {
     outcome: "NO_CHANGE",
     summary: "Skipped Devin session",
@@ -297,6 +311,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       runGate,
       trigger: runInfo.trigger,
       prNumber: runInfo.prNumber,
+      existingDocdriftPr,
     });
     metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
   } else {
@@ -319,7 +334,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     state.lastDocDriftPrUrl = sessionOutcome.prUrl;
     state.lastDocDriftPrOpenedAt = new Date().toISOString();
 
-    if (githubToken && runInfo.trigger === "pull_request" && runInfo.prNumber) {
+    if (githubToken && runInfo.trigger === "pull_request" && runInfo.prNumber && !existingDocdriftPr) {
       await postPrComment({
         token: githubToken,
         repository: repo,

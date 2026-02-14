@@ -9,6 +9,8 @@ on:
 
 jobs:
   docdrift:
+    # Skip when the triggering PR is itself a docdrift PR (avoids feedback loop)
+    if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -42,6 +44,15 @@ jobs:
           echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
           echo "pr_number=${{ github.event.pull_request.number || '' }}" >> $GITHUB_OUTPUT
 
+      - name: Restore docdrift state
+        uses: actions/cache/restore@v4
+        id: docdrift-cache
+        with:
+          path: .docdrift
+          key: docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
+          restore-keys: |
+            docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-
+
       - name: Validate config
         run: npx tsx src/cli.ts validate
 
@@ -67,6 +78,13 @@ jobs:
             const r = require('./.docdrift/run-output.json');
             if (Array.isArray(r)) r.forEach((x, i) => console.log('Doc area:', x.docArea, '| Session:', x.sessionUrl || '(none)', '| Outcome:', x.outcome));
           "
+
+      - name: Save docdrift state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .docdrift
+          key: docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
 
       - name: Upload artifacts
         if: always()

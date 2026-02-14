@@ -224,3 +224,30 @@ export async function listOpenPrsWithLabel(
     created_at: pr.created_at ?? "",
   }));
 }
+
+/** Find an existing open docdrift PR for a given source PR number.
+ * Looks for PRs from branch docdrift/pr-{sourcePrNumber} (Devin's convention).
+ * Returns the first match so we can instruct Devin to update it instead of creating a new one.
+ */
+export async function findExistingDocdriftPrForSource(
+  token: string,
+  repository: string,
+  sourcePrNumber: number
+): Promise<{ number: number; url: string; headRef: string } | null> {
+  const octokit = new Octokit({ auth: token });
+  const { owner, repo } = parseRepo(repository);
+  const branchName = `docdrift/pr-${sourcePrNumber}`;
+  const { data } = await octokit.pulls.list({
+    owner,
+    repo,
+    state: "open",
+    head: branchName,
+  });
+  const pr = data[0];
+  if (!pr) return null;
+  return {
+    number: pr.number,
+    url: pr.html_url ?? "",
+    headRef: pr.head?.ref ?? branchName,
+  };
+}

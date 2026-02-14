@@ -80,6 +80,8 @@ export function buildWholeDocsitePrompt(input: {
   runGate?: "spec_drift" | "conceptual_only" | "infer" | "none";
   trigger?: "push" | "manual" | "schedule" | "pull_request";
   prNumber?: number;
+  /** When set, Devin must UPDATE this existing PR instead of opening a new one */
+  existingDocdriftPr?: { number: number; url: string; headRef: string };
 }): string {
   const excludeNote =
     input.config.exclude?.length > 0
@@ -121,16 +123,28 @@ export function buildWholeDocsitePrompt(input: {
         ].join("\n")
       : "";
 
-  const draftPrBlock =
-    input.trigger === "pull_request" && input.prNumber
-      ? [
-          "",
-          "This run was triggered by an open API PR. Open a **draft** pull request.",
-          `In the PR description, link to the API PR (#${input.prNumber}) and state: "Merge the API PR first, then review this doc PR."`,
-          "Use a branch name like docdrift/pr-" + input.prNumber + " or docdrift/preview-<short-sha>.",
-          "",
-        ].join("\n")
-      : "";
+  const draftPrBlock = (() => {
+    if (input.trigger !== "pull_request" || !input.prNumber) return "";
+    if (input.existingDocdriftPr) {
+      return [
+        "",
+        "CRITICAL: An existing doc-drift PR already exists for this API PR.",
+        `You MUST UPDATE that PR — do NOT create a new one.`,
+        `- Existing PR: #${input.existingDocdriftPr.number} (${input.existingDocdriftPr.url})`,
+        `- Branch to update: ${input.existingDocdriftPr.headRef}`,
+        "Checkout that branch, pull latest main, apply your doc changes, push. The existing PR will update.",
+        "Do NOT open a new pull request.",
+        "",
+      ].join("\n");
+    }
+    return [
+      "",
+      "This run was triggered by an open API PR. Open a **draft** pull request.",
+      `In the PR description, link to the API PR (#${input.prNumber}) and state: "Merge the API PR first, then review this doc PR."`,
+      "Use branch name docdrift/pr-" + input.prNumber + " (required for future runs to update this PR).",
+      "",
+    ].join("\n");
+  })();
 
   const pathMappings = input.config.pathMappings ?? [];
   const pathMappingsBlock =
