@@ -105,19 +105,43 @@ function writeCache(cwd: string, fingerprintHash: string, inference: ConfigInfer
 
 function heuristicInference(fingerprint: RepoFingerprint): ConfigInference {
   const scripts = fingerprint.rootPackage.scripts || {};
-  const openapiExport = scripts["openapi:export"] ?? scripts["openapi:generate"] ?? "npm run openapi:export";
+  const scriptNames = Object.keys(scripts);
+  const openapiScriptName = scriptNames.find((s) => s === "openapi:export" || s === "openapi:generate");
+  const openapiExport = openapiScriptName ? `npm run ${openapiScriptName}` : "npm run openapi:export";
+
   const firstOpenapi = fingerprint.foundPaths.openapi[0];
   const firstDocsite = fingerprint.foundPaths.docusaurusConfig[0]
     ? path.dirname(fingerprint.foundPaths.docusaurusConfig[0]).replace(/\\/g, "/")
     : fingerprint.foundPaths.docsDirs[0]
       ? path.dirname(fingerprint.foundPaths.docsDirs[0]).replace(/\\/g, "/")
       : "apps/docs-site";
-  const published = firstOpenapi ?? `${firstDocsite}/openapi/openapi.json`;
-  const generated = firstOpenapi ?? "openapi/generated.json";
+
+  const published =
+    firstOpenapi && firstOpenapi.includes(firstDocsite)
+      ? firstOpenapi
+      : `${firstDocsite}/openapi/openapi.json`;
+  const generated =
+    firstOpenapi && !firstOpenapi.includes(firstDocsite)
+      ? firstOpenapi
+      : "openapi/generated.json";
+
   const verificationCommands: string[] = [];
   if (scripts["docs:gen"]) verificationCommands.push("npm run docs:gen");
   if (scripts["docs:build"]) verificationCommands.push("npm run docs:build");
   if (verificationCommands.length === 0) verificationCommands.push("npm run build");
+
+  const treeKeys = Object.keys(fingerprint.fileTree);
+  const hasAppsApi =
+    treeKeys.some((k) => k === "apps/api" || k.startsWith("apps/api/"));
+  const matchGlob = hasAppsApi ? "apps/api/**" : "**/api/**";
+  const allowlist = treeKeys.some((k) => k === "apps" || k.startsWith("apps/"))
+    ? ["openapi/**", "apps/**"]
+    : ["openapi/**", `${firstDocsite}/**`];
+
+  const requireHumanReview =
+    fingerprint.foundPaths.docsDirs.length > 0
+      ? [`${firstDocsite}/docs/guides/**`]
+      : [];
 
   return {
     suggestedConfig: {
@@ -125,13 +149,13 @@ function heuristicInference(fingerprint: RepoFingerprint): ConfigInference {
       openapi: { export: openapiExport, generated, published },
       docsite: firstDocsite,
       exclude: ["**/CHANGELOG*", "**/blog/**"],
-      requireHumanReview: [],
-      pathMappings: [{ match: "**/api/**", impacts: [`${firstDocsite}/docs/**`, `${firstDocsite}/openapi/**`] }],
+      requireHumanReview,
+      pathMappings: [{ match: matchGlob, impacts: [`${firstDocsite}/docs/**`, `${firstDocsite}/openapi/**`] }],
       devin: { apiVersion: "v1", unlisted: true, maxAcuLimit: 2, tags: ["docdrift"] },
       policy: {
         prCaps: { maxPrsPerDay: 5, maxFilesTouched: 30 },
         confidence: { autopatchThreshold: 0.8 },
-        allowlist: ["openapi/**", firstDocsite + "/**"],
+        allowlist,
         verification: { commands: verificationCommands },
         slaDays: 7,
         slaLabel: "docdrift",
@@ -144,7 +168,7 @@ function heuristicInference(fingerprint: RepoFingerprint): ConfigInference {
         question: "OpenAPI export command",
         options: [{ value: openapiExport, label: openapiExport, recommended: true }],
         defaultIndex: 0,
-        help: "Command that generates the OpenAPI spec.",
+        help: "Use the npm script that generates the spec (e.g. npm run openapi:export).",
         confidence: "medium",
       },
       {
