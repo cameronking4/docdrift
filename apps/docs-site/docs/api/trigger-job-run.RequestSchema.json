@@ -1,1 +1,1 @@
-{"title":"Body","body":{"content":{"application/json":{"schema":{"type":"object","properties":{"pythonParams":{"type":"array","items":{"type":"string"}},"idempotencyKey":{"type":"string"}}}}}}}
+{"title":"Body","body":{"content":{"application/json":{"schema":{"type":"object","properties":{"pythonParams":{"type":"array","items":{"type":"string"}},"sparkSubmitParams":{"type":"array","items":{"type":"string"}},"idempotencyKey":{"type":"string"}}}}}}}
