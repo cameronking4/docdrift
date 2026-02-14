@@ -1,0 +1,47 @@
+version: 1
+
+devin:
+  apiVersion: v1
+  unlisted: true
+  maxAcuLimit: 2
+  tags:
+    - docdrift
+
+policy:
+  prCaps:
+    maxPrsPerDay: 3
+    maxFilesTouched: 30
+  confidence:
+    autopatchThreshold: 0.8
+  allowlist:
+    - "docs/**"
+    - "openapi/**"
+  verification:
+    commands:
+      - "npm run docs:check"
+
+docAreas:
+  - name: api_reference
+    mode: autogen
+    owners:
+      reviewers: ["datastack/api-owners"]
+    detect:
+      openapi:
+        exportCmd: "npm run openapi:export"
+        generatedPath: "openapi/generated.json"
+        publishedPath: "docs/reference/openapi.json"
+    patch:
+      targets:
+        - "docs/reference/openapi.json"
+        - "docs/reference/api.md"
+
+  - name: auth_guide
+    mode: conceptual
+    owners:
+      reviewers: ["datastack/platform", "datastack/security"]
+    detect:
+      paths:
+        - match: "apps/api/src/auth/**"
+          impacts: ["docs/guides/auth.md"]
+    patch:
+      requireHumanConfirmation: true

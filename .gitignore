@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.docdrift/evidence
+.docdrift/*.log
+.docdrift/state.json
+*.tgz
+.DS_Store
+.env
+.env.*

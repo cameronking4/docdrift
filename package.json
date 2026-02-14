@@ -1,0 +1,38 @@
+{
+  "name": "docdrift",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Detect and remediate documentation drift with Devin sessions",
+  "main": "dist/src/index.js",
+  "bin": {
+    "docdrift": "dist/src/cli.js"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier -w .",
+    "openapi:export": "tsx apps/api/scripts/export-openapi.ts",
+    "docs:check": "node scripts/docs-check.js",
+    "docdrift": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "fastify": "^5.2.1",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.4",
+    "eslint": "^9.20.1",
+    "prettier": "^3.5.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

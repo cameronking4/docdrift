@@ -1,0 +1,57 @@
+name: devin-doc-drift
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  docdrift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install
+
+      - name: Determine SHAs
+        id: shas
+        run: |
+          HEAD_SHA="${GITHUB_SHA}"
+          BASE_SHA="${{ github.event.before }}"
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+          echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
+          echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Validate config
+        run: npx tsx src/cli.ts validate
+
+      - name: Run Doc Drift
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docdrift-artifacts
+          path: |
+            drift_report.json
+            metrics.json
+            .docdrift/evidence/**
+            .docdrift/state.json
