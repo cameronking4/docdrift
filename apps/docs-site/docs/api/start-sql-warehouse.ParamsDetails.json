@@ -1,0 +1,1 @@
+{"parameters":[{"name":"warehouseId","in":"path","required":true,"schema":{"type":"string"}}]}

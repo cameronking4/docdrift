@@ -14,11 +14,12 @@ policy:
   confidence:
     autopatchThreshold: 0.8
   allowlist:
-    - "docs/**"
     - "openapi/**"
+    - "apps/docs-site/**"
   verification:
     commands:
-      - "npm run docs:check"
+      - "npm run docs:gen"
+      - "npm run docs:build"
 
 docAreas:
   - name: api_reference
@@ -29,11 +30,10 @@ docAreas:
       openapi:
         exportCmd: "npm run openapi:export"
         generatedPath: "openapi/generated.json"
-        publishedPath: "docs/reference/openapi.json"
+        publishedPath: "apps/docs-site/openapi/openapi.json"
     patch:
       targets:
-        - "docs/reference/openapi.json"
-        - "docs/reference/api.md"
+        - "apps/docs-site/openapi/openapi.json"
 
   - name: auth_guide
     mode: conceptual
@@ -42,6 +42,6 @@ docAreas:
     detect:
       paths:
         - match: "apps/api/src/auth/**"
-          impacts: ["docs/guides/auth.md"]
+          impacts: ["apps/docs-site/docs/guides/authentication.md"]
     patch:
       requireHumanConfirmation: true

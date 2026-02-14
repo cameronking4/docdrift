@@ -8,6 +8,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     {
       schema: {
         summary: "Get a user by ID",
+        tags: ["Identity & Access"],
         params: {
           type: "object",
           properties: { id: { type: "string" } },
@@ -41,6 +42,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
     {
       schema: {
         summary: "List users with pagination",
+        tags: ["Identity & Access"],
         querystring: {
           type: "object",
           properties: {

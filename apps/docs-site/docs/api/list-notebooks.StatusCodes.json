@@ -1,0 +1,1 @@
+{"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"notebooks":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string"},"language":{"type":"string"},"modifiedAt":{"type":"string"}}}},"totalCount":{"type":"number"}},"required":["notebooks","totalCount"]}}}}}}

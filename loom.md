@@ -35,3 +35,9 @@
 ## 9:00-10:00 - Close
 
 - Recap: accurate docs, low noise, human-in-loop where needed.
+
+## Optional Loom add-ons (enterprise story)
+
+- **Mintlify**: Same idea — spec lives in the docs repo and is wired into nav; docdrift keeps that spec (and any Mintlify metadata) in sync. Mention as “works with Mintlify-style docs repos.”
+- **Fern**: “Docdrift creates the PR; Fern can generate a preview deployment so reviewers see before/after; optionally Fern SDK generation keeps docs and SDK in lockstep.”
+- **Mendable**: After docs merge, trigger re-ingestion so the internal assistant stops returning stale answers — “closing the loop from docs wrong to people stop pinging engineers.”

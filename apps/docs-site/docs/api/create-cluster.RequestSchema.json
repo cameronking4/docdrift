@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string"},"sparkVersion":{"type":"string"},"nodeType":{"type":"string"},"numWorkers":{"type":"integer"},"autoTerminationMinutes":{"type":"integer"}},"required":["name","sparkVersion","nodeType"]}}}}}

@@ -24,9 +24,9 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
 
 ## Detection tiers
 
-- Tier 0: docs checks (`npm run docs:check`)
-- Tier 1: OpenAPI drift (`openapi/generated.json` vs `docs/reference/openapi.json`)
-- Tier 2: heuristic path impacts (e.g. `apps/api/src/auth/**` -> `docs/guides/auth.md`)
+- Tier 0: docsite verification (`npm run docs:gen` then `npm run docs:build`)
+- Tier 1: OpenAPI drift (`openapi/generated.json` vs `apps/docs-site/openapi/openapi.json`)
+- Tier 2: heuristic path impacts (e.g. `apps/api/src/auth/**` -> `apps/docs-site/docs/guides/auth.md`)
 
 Output artifacts (under `.docdrift/`):
 
@@ -48,19 +48,19 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 
 ## Where the docs are (this repo)
 
-| Path                          | Purpose                                                               |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `docs/reference/openapi.json` | Published OpenAPI spec (source of truth for docs; should match code). |
-| `docs/reference/api.md`       | Human-readable API reference (endpoints, request/response).           |
-| `docs/guides/auth.md`         | Conceptual auth guide (updated only for conceptual drift).            |
+| Path                                       | Purpose                                                                 |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| `apps/docs-site/openapi/openapi.json`      | Published OpenAPI spec (docdrift updates this when drift is detected).  |
+| `apps/docs-site/docs/api/`                 | API reference MDX generated from the spec (`npm run docs:gen`).        |
+| `apps/docs-site/docs/guides/auth.md`       | Conceptual auth guide (updated only for conceptual drift).              |
 
-`docdrift.yaml` defines **patch targets** per doc area. For `api_reference` (autogen), the targets are `docs/reference/openapi.json` and `docs/reference/api.md`. The **generated** spec from code lives at `openapi/generated.json` (from `npm run openapi:export`). Drift = generated vs published differ.
+The docsite is a Docusaurus app with `docusaurus-plugin-openapi-docs`. The **generated** spec from code lives at `openapi/generated.json` (from `npm run openapi:export`). Drift = generated vs published differ. Verification runs `docs:gen` and `docs:build` so the docsite actually builds.
 
 ## How Devin updates them
 
 1. **Evidence bundle** — Docdrift builds a tarball with the drift report, OpenAPI diff, and impacted doc snippets, and uploads it to the Devin API as session attachments.
-2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`docs/**`, `openapi/**`), make minimal correct edits, run verification (`npm run docs:check`), and open **one PR** per doc area with a clear description.
-3. **PR** — Devin (via the Devin product) edits the repo: updates `docs/reference/openapi.json` and `docs/reference/api.md` to match the current API, then opens a pull request. You review and merge; the docs are updated.
+2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`openapi/**`, `apps/docs-site/**`), make minimal correct edits, run verification (`npm run docs:gen`, `npm run docs:build`), and open **one PR** per doc area with a clear description.
+3. **PR** — Devin updates `apps/docs-site/openapi/openapi.json` to match the current API, runs `docs:gen` to regenerate API reference MDX, and opens a pull request. You review and merge; the docsite builds and the docs are updated.
 
 So the “fix” is a **PR opened by Devin** that you merge; the repo’s docs don’t change until that PR is merged.
 
