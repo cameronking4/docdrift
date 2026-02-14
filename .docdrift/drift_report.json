@@ -4,11 +4,11 @@
     "baseSha": "HEAD~1",
     "headSha": "HEAD",
     "trigger": "manual",
-    "timestamp": "2026-02-14T07:18:21.619Z"
+    "timestamp": "2026-02-14T09:12:40.553Z"
   },
   "items": [
     {
-      "docArea": "api_reference",
+      "docArea": "docsite",
       "mode": "autogen",
       "signals": [
         {
@@ -16,7 +16,7 @@
           "tier": 1,
           "confidence": 0.95,
           "evidence": [
-            "/Users/cameronking/Desktop/sideproject/docdrift/.docdrift/evidence/1771053501619/api_reference.openapi.diff.txt"
+            "/Users/cameronking/Desktop/sideproject/docdrift/.docdrift/evidence/1771060360553/openapi.diff.txt"
           ]
         }
       ],
@@ -24,7 +24,7 @@
         "apps/docs-site/openapi/openapi.json"
       ],
       "recommendedAction": "OPEN_PR",
-      "summary": "Added response fields (6):\n+ GET /v1/users/{id}: avatarUrl\n+ GET /v1/users/{id}: createdAt\n+ GET /v1/users/{id}: fullName\n+ GET /v1/users/{id}: role\n+ GET /v1/users: totalCount\n+ GET /v1/users: users\nRemoved response fields (1):\n- GET /v1/users/{id}: name"
+      "summary": "Added response fields (1):\n+ GET /v1/clusters/{clusterId}: region"
     }
   ]
 }

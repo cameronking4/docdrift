@@ -10,6 +10,11 @@ export interface StateStore {
   dailyPrCount: Record<string, number>;
   areaDailyPrOpened: Record<string, string>;
   areaLatestPr: Record<string, string>;
+  /** Single-session: last doc-drift PR we opened (for SLA check) */
+  lastDocDriftPrUrl?: string;
+  lastDocDriftPrOpenedAt?: string;
+  /** Idempotency for SLA issues (avoid duplicate "merge doc drift PR" issues) */
+  lastSlaIssueOpenedAt?: string;
 }
 
 export const emptyState = (): StateStore => ({

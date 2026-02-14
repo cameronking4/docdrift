@@ -1,0 +1,31 @@
+name: docdrift-sla-check
+
+on:
+  schedule:
+    # Run daily at 09:00 UTC (checks for doc-drift PRs open 7+ days)
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  sla-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install
+
+      - name: Validate config
+        run: npx tsx src/cli.ts validate
+
+      - name: Run SLA check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: npx tsx src/cli.ts sla-check

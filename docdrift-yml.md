@@ -6,12 +6,17 @@ This document describes every field in the repo-local config file `docdrift.yaml
 
 ## Top-level
 
-| Field      | Required | Type   | Description                                                           |
-| ---------- | -------- | ------ | --------------------------------------------------------------------- |
-| `version`  | **Yes**  | number | Must be `1`. Reserved for future config schema versions.              |
-| `devin`    | **Yes**  | object | Devin API and session settings.                                       |
-| `policy`   | **Yes**  | object | PR caps, confidence, allowlist, and verification.                     |
-| `docAreas` | **Yes**  | array  | One or more doc areas (each defines what to detect and how to patch). |
+| Field               | Required | Type   | Description                                                                 |
+| ------------------- | -------- | ------ | --------------------------------------------------------------------------- |
+| `version`           | **Yes**  | number | Must be `1`. Reserved for future config schema versions.                     |
+| `devin`             | **Yes**  | object | Devin API and session settings.                                              |
+| `policy`            | **Yes**  | object | PR caps, confidence, allowlist, verification, slaDays, slaLabel.             |
+| `openapi` + `docsite` | **Yes*** | object + string | **Simple config**: API spec (gate) and docsite path. Required if no docAreas. |
+| `exclude`           | No       | array  | Glob paths we never touch. Default `[]`.                                    |
+| `requireHumanReview`| No       | array  | Glob paths that trigger a review issue when the PR touches them. Default `[]`. |
+| `docAreas`          | **Yes*** | array  | **Legacy**: One or more doc areas. Required if no openapi+docsite.           |
+
+\* Config must include either `(openapi + docsite)` or `docAreas` (at least one area).
 
 ---
 
@@ -19,12 +24,13 @@ This document describes every field in the repo-local config file `docdrift.yaml
 
 Settings for Devin API (sessions, ACU limits, visibility).
 
-| Field         | Required | Type    | Default        | Description                                                                                                     |
-| ------------- | -------- | ------- | -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `apiVersion`  | **Yes**  | string  | —              | Must be `"v1"`.                                                                                                 |
-| `unlisted`    | No       | boolean | `true`         | If `true`, sessions are unlisted.                                                                               |
-| `maxAcuLimit` | No       | integer | `2`            | Max ACU (compute) limit for a session. Must be a positive integer.                                              |
-| `tags`        | No       | array   | `["docdrift"]` | Tags attached to Devin sessions (e.g. for filtering in `docdrift status`). Each tag must be a non-empty string. |
+| Field                  | Required | Type    | Default        | Description                                                                                                                                                                      |
+| ---------------------- | -------- | ------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiVersion`           | **Yes**  | string  | —              | Must be `"v1"`.                                                                                                                                                                  |
+| `unlisted`             | No       | boolean | `true`         | If `true`, sessions are unlisted.                                                                                                                                               |
+| `maxAcuLimit`          | No       | integer | `2`            | Max ACU (compute) limit for a session. Must be a positive integer.                                                                                                               |
+| `tags`                 | No       | array   | `["docdrift"]` | Tags attached to Devin sessions (e.g. for filtering in `docdrift status`). Each tag must be a non-empty string.                                                                  |
+| `customInstructions`   | No       | array   | —              | Paths to markdown (or other) files, relative to the directory of `docdrift.yaml`. Contents are concatenated and appended to both autogen and conceptual Devin prompts. Missing files cause config load to fail. |
 
 **Example:**
 
@@ -35,6 +41,9 @@ devin:
   maxAcuLimit: 2
   tags:
     - docdrift
+  customInstructions:
+    - "./docs/devin-instructions.md"
+    - ".docdrift/prompt-append.md"
 ```
 
 ---
@@ -83,11 +92,79 @@ policy:
   verification:
     commands:
       - "npm run docs:check"
+  slaDays: 7
+  slaLabel: docdrift
+```
+
+### `policy.slaDays` and `policy.slaLabel`
+
+| Field       | Required | Type   | Default | Description                                                                                                                                 |
+| ----------- | -------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `slaDays`   | No       | number | `7`     | Days before opening an issue to nudge merging doc-drift PRs. Set to `0` to disable.                                                         |
+| `slaLabel`  | No       | string | `"docdrift"` | Label used to identify doc-drift PRs for the SLA check. Only these PRs are considered (no other open PRs count).                         |
+| `allowNewFiles` | No    | boolean| `false` | If `false`: Devin may only edit existing files (no new articles, folders, or IA changes). If `true`: Devin may add articles, create folders, change information architecture. Mainly for conceptual/guides. |
+
+---
+
+## Simple config (`openapi` + `docsite`)
+
+When you provide `openapi` and `docsite`, docdrift runs in **single-session mode**: one Devin session for the whole docsite, one PR, and an optional issue for human review or SLA.
+
+| Field              | Required | Type   | Description                                                                 |
+| ------------------ | -------- | ------ | --------------------------------------------------------------------------- |
+| `openapi`          | **Yes**  | object | How to detect API drift. `export`, `generated`, `published`.                 |
+| `docsite`          | **Yes**  | string | Root path(s) of the docsite.                                                 |
+| `exclude`          | No       | array  | Glob paths we never touch.                                                   |
+| `requireHumanReview` | No     | array  | When the PR touches these paths, we open an issue to direct human attention. |
+
+**Example:**
+
+```yaml
+openapi:
+  export: "npm run openapi:export"
+  generated: "openapi/generated.json"
+  published: "apps/docs-site/openapi/openapi.json"
+docsite: "apps/docs-site"
+exclude: ["apps/docs-site/blog/**"]
+requireHumanReview: ["apps/docs-site/docs/guides/**"]
 ```
 
 ---
 
-## `docAreas`
+## Blocked runs and issues
+
+Issues are created **only** when:
+
+1. **`requireHumanReview`** — A PR was opened and it touches paths matched by `requireHumanReview`. We open a *review* issue to direct human attention to that PR.
+2. **Blocked or no-PR runs** — The Devin session did **not** open a PR (blocked or finished with no change). We open an issue titled `[docdrift] docsite: docs drift requires input` so a human can decide next steps.
+
+### What is a blocked run?
+
+A **blocked run** means the Devin session ended without opening a PR. We treat that as "docs drift requires input" and create an issue.
+
+### How runs get blocked
+
+| Cause | Description |
+| ----- | ----------- |
+| **Devin reports blocked** | Devin hits a blocker (ambiguous requirements, unclear policy, needs human input) and sets `status: "BLOCKED"` in its structured output. `blocked.questions` populate the issue body. |
+| **Session completed with no PR** | Devin finished but didn't open a PR (e.g. `NO_CHANGE`). We treat that as blocked and open an issue. |
+| **Policy: PR cap reached** | The policy returns `UPDATE_EXISTING_PR` but there is no existing doc-drift PR to update. Outcome is **BLOCKED** ("PR cap reached"). |
+| **API key missing** | If `DEVIN_API_KEY` is not set, we don't start a session, treat it as blocked, and create an issue asking to set `DEVIN_API_KEY`. |
+
+### When issues are created
+
+| Condition | Issue created? |
+| --------- | --------------- |
+| **PR opened** and touches `requireHumanReview` paths | Yes — "review doc drift PR" |
+| **PR opened** and no `requireHumanReview` paths touched | No |
+| **Policy `OPEN_ISSUE`** (policy chose issue instead of PR) | Yes — "docs drift requires input" |
+| **Session `BLOCKED`** (Devin reported blocked) | Yes — "docs drift requires input" |
+| **Session `NO_CHANGE`** (finished but didn't open PR) | Yes — "docs drift requires input" |
+| **`DEVIN_API_KEY` missing** | Yes — "docs drift requires input" |
+
+---
+
+## `docAreas` (legacy)
 
 Array of **doc areas**. Each area has a name, a mode, owners, detection rules, and patch behavior. At least one doc area is required.
 

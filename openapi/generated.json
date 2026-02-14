@@ -389,6 +389,10 @@
                           "clusterSize": {
                             "type": "string"
                           },
+                          "region": {
+                            "type": "string",
+                            "description": "Cloud region where the cluster runs (e.g. us-east-1)"
+                          },
                           "state": {
                             "type": "string",
                             "enum": [
@@ -419,6 +423,7 @@
                         "required": [
                           "id",
                           "name",
+                          "region",
                           "state",
                           "createdAt"
                         ]
@@ -491,6 +496,10 @@
                     "clusterSize": {
                       "type": "string"
                     },
+                    "region": {
+                      "type": "string",
+                      "description": "Cloud region where the cluster runs (e.g. us-east-1)"
+                    },
                     "state": {
                       "type": "string",
                       "enum": [
@@ -521,6 +530,7 @@
                   "required": [
                     "id",
                     "name",
+                    "region",
                     "state",
                     "createdAt"
                   ]
@@ -564,6 +574,10 @@
                     "clusterSize": {
                       "type": "string"
                     },
+                    "region": {
+                      "type": "string",
+                      "description": "Cloud region where the cluster runs (e.g. us-east-1)"
+                    },
                     "state": {
                       "type": "string",
                       "enum": [
@@ -594,6 +608,7 @@
                   "required": [
                     "id",
                     "name",
+                    "region",
                     "state",
                     "createdAt"
                   ]

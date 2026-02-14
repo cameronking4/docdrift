@@ -1,7 +1,7 @@
 import { DocAreaConfig, DocDriftConfig } from "../config/schema";
 import { IdempotencyRecord, StateStore } from "../model/state";
 import { DriftItem, PolicyAction, PolicyDecision } from "../model/types";
-import { isPathAllowed } from "../utils/glob";
+import { isPathAllowedAndNotExcluded } from "../utils/glob";
 import { sha256 } from "../utils/hash";
 import { scoreSignals } from "./confidence";
 
@@ -37,8 +37,10 @@ export function decidePolicy(input: {
   const capReached = prCountToday >= config.policy.prCaps.maxPrsPerDay;
   const areaDailyKey = `${today}:${item.docArea}`;
   const exceedsFileCap = item.impactedDocs.length > config.policy.prCaps.maxFilesTouched;
+  const exclude = "exclude" in config && Array.isArray(config.exclude) ? config.exclude : [];
   const hasPathOutsideAllowlist = item.impactedDocs.some(
-    (filePath) => filePath && !isPathAllowed(filePath, config.policy.allowlist)
+    (filePath) =>
+      filePath && !isPathAllowedAndNotExcluded(filePath, config.policy.allowlist, exclude)
   );
 
   let action: PolicyAction = "NOOP";

@@ -69,6 +69,7 @@ export function buildClusterSchema() {
       id: { type: "string" },
       name: { type: "string" },
       clusterSize: { type: "string" },
+      region: { type: "string", description: "Cloud region where the cluster runs (e.g. us-east-1)" },
       state: {
         type: "string",
         enum: ["PENDING", "RUNNING", "TERMINATING", "TERMINATED", "ERROR"],
@@ -79,7 +80,7 @@ export function buildClusterSchema() {
       autoTerminationMinutes: { type: "integer" },
       createdAt: { type: "string", format: "date-time" },
     },
-    required: ["id", "name", "state", "createdAt"],
+    required: ["id", "name", "region", "state", "createdAt"],
   };
 }
 

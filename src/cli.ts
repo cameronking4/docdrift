@@ -7,6 +7,7 @@ import {
   resolveTrigger,
   runDetect,
   runDocDrift,
+  runSlaCheck,
   runStatus,
   runValidate,
 } from "./index";
@@ -23,7 +24,7 @@ async function main(): Promise<void> {
   const [, , command, ...args] = process.argv;
 
   if (!command) {
-    throw new Error("Usage: docdrift <validate|detect|run|status> [options]");
+    throw new Error("Usage: docdrift <validate|detect|run|status|sla-check> [options]");
   }
 
   switch (command) {
@@ -57,6 +58,11 @@ async function main(): Promise<void> {
       const since = getArg(args, "--since");
       const sinceHours = parseDurationHours(since);
       await runStatus(sinceHours);
+      return;
+    }
+
+    case "sla-check": {
+      await runSlaCheck();
       return;
     }
 

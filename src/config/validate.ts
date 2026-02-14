@@ -20,9 +20,10 @@ export async function validateRuntimeConfig(config: DocDriftConfig): Promise<Val
 
   const commandSet = new Set<string>([
     ...config.policy.verification.commands,
-    ...config.docAreas
-      .map((area) => area.detect.openapi?.exportCmd)
-      .filter((value): value is string => Boolean(value)),
+    ...(config.openapi ? [config.openapi.export] : []),
+    ...(config.docAreas ?? []).map((area) => area.detect.openapi?.exportCmd).filter(
+      (value): value is string => Boolean(value)
+    ),
   ]);
 
   for (const command of commandSet) {
@@ -33,7 +34,7 @@ export async function validateRuntimeConfig(config: DocDriftConfig): Promise<Val
     }
   }
 
-  for (const area of config.docAreas) {
+  for (const area of config.docAreas ?? []) {
     if (area.mode === "autogen" && !area.patch.targets?.length) {
       warnings.push(`docArea '${area.name}' is autogen but has no patch.targets`);
     }

@@ -1,4 +1,19 @@
+# 10x simple config: openapi + docsite. Legacy docAreas also supported (see comment below).
 version: 1
+
+openapi:
+  export: "npm run openapi:export"
+  generated: "openapi/generated.json"
+  published: "apps/docs-site/openapi/openapi.json"
+
+docsite: "apps/docs-site"
+
+exclude:
+  - "apps/docs-site/blog/**"
+  - "**/CHANGELOG*"
+
+requireHumanReview:
+  - "apps/docs-site/docs/guides/**"
 
 devin:
   apiVersion: v1
@@ -6,10 +21,12 @@ devin:
   maxAcuLimit: 2
   tags:
     - docdrift
+  customInstructions:
+    - "DocDrift.md"
 
 policy:
   prCaps:
-    maxPrsPerDay: 3
+    maxPrsPerDay: 5
     maxFilesTouched: 30
   confidence:
     autopatchThreshold: 0.8
@@ -20,28 +37,29 @@ policy:
     commands:
       - "npm run docs:gen"
       - "npm run docs:build"
+  slaDays: 7
+  slaLabel: docdrift
+  # If false (default): Devin may only edit existing files; no new articles or folders.
+  # If true: Devin may add articles, create folders, change IA (conceptual scenarios).
+  allowNewFiles: true
 
-docAreas:
-  - name: api_reference
-    mode: autogen
-    owners:
-      reviewers: ["datastack/api-owners"]
-    detect:
-      openapi:
-        exportCmd: "npm run openapi:export"
-        generatedPath: "openapi/generated.json"
-        publishedPath: "apps/docs-site/openapi/openapi.json"
-    patch:
-      targets:
-        - "apps/docs-site/openapi/openapi.json"
-
-  - name: auth_guide
-    mode: conceptual
-    owners:
-      reviewers: ["datastack/platform", "datastack/security"]
-    detect:
-      paths:
-        - match: "apps/api/src/auth/**"
-          impacts: ["apps/docs-site/docs/guides/authentication.md"]
-    patch:
-      requireHumanConfirmation: true
+# Legacy docAreas (optional when openapi+docsite present).
+# If you use docAreas only, we derive openapi/docsite/requireHumanReview from them.
+# docAreas:
+#   - name: api_reference
+#     mode: autogen
+#     owners: { reviewers: ["cameronking4"] }
+#     detect:
+#       openapi:
+#         exportCmd: "npm run openapi:export"
+#         generatedPath: "openapi/generated.json"
+#         publishedPath: "apps/docs-site/openapi/openapi.json"
+#     patch: { targets: ["apps/docs-site/openapi/openapi.json"] }
+#   - name: auth_guide
+#     mode: conceptual
+#     owners: { reviewers: ["cameronking4"] }
+#     detect:
+#       paths:
+#         - match: "apps/api/src/auth/**"
+#           impacts: ["apps/docs-site/docs/guides/authentication.md"]
+#     patch: { requireHumanConfirmation: true }

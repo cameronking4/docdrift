@@ -9,6 +9,7 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
   - `detect --base <sha> --head <sha>`
   - `run --base <sha> --head <sha>`
   - `status --since 24h`
+  - `sla-check` — Check for doc-drift PRs open 7+ days and open a reminder issue
 - GitHub Action: `/Users/cameronking/Desktop/sideproject/docdrift/.github/workflows/devin-doc-drift.yml`
 - Repo-local config: `/Users/cameronking/Desktop/sideproject/docdrift/docdrift.yaml`
 - Demo API + OpenAPI exporter + driftable docs
@@ -16,17 +17,18 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
 
 ## Why this is low-noise
 
-- One PR per doc area per day (bundling rule).
-- Global PR/day cap.
-- Confidence gating and allowlist enforcement.
-- Conceptual docs default to issue escalation with targeted questions.
+- **Single session, single PR** — One Devin session handles the whole docsite (API reference + guides).
+- **Gate on API spec diff** — We only run when OpenAPI drift is detected; no session for docs-check-only failures.
+- **requireHumanReview** — When the PR touches guides/prose, we open an issue after the PR to direct attention.
+- **7-day SLA** — If a doc-drift PR is open 7+ days, we open a reminder issue (configurable `slaDays`; use `sla-check` CLI or cron workflow).
+- Confidence gating and allowlist/exclude enforcement.
 - Idempotency key prevents duplicate actions for same repo/SHAs/action.
 
-## Detection tiers
+## Detection and gate
 
-- Tier 0: docsite verification (`npm run docs:gen` then `npm run docs:build`)
-- Tier 1: OpenAPI drift (`openapi/generated.json` vs `apps/docs-site/openapi/openapi.json`)
-- Tier 2: heuristic path impacts (e.g. `apps/api/src/auth/**` -> `apps/docs-site/docs/guides/auth.md`)
+- **Gate:** We only run a Devin session when **OpenAPI drift** is detected. No drift → no session.
+- Tier 1: OpenAPI drift (`openapi/generated.json` vs published spec)
+- Tier 2: Heuristic path impacts from docAreas (e.g. `apps/api/src/auth/**` → guides)
 
 Output artifacts (under `.docdrift/`):
 
@@ -38,13 +40,13 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 ## Core flow (`docdrift run`)
 
 1. Validate config and command availability.
-2. Build drift report.
+2. Build drift report. **Gate:** If no OpenAPI drift, exit (no session).
 3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`).
-4. Build evidence bundle (`.docdrift/evidence/<runId>/<docArea>` + tarball).
-5. Upload attachments to Devin v1 and create session.
-6. Poll session to terminal status.
+4. Build one aggregated evidence bundle for the whole docsite.
+5. One Devin session with whole-docsite prompt; poll to terminal status.
+6. If PR opened and touches `requireHumanReview` paths → create issue to direct attention.
 7. Surface result via GitHub commit comment; open issue on blocked/low-confidence paths.
-8. Persist state in `.docdrift/state.json` and write `.docdrift/metrics.json`.
+8. Persist state (including `lastDocDriftPrUrl` for SLA); write `.docdrift/metrics.json`.
 
 ## Where the docs are (this repo)
 

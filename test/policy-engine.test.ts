@@ -5,6 +5,12 @@ import { DocDriftConfig } from "../src/config/schema";
 
 const baseConfig: DocDriftConfig = {
   version: 1,
+  openapi: {
+    export: "npm run openapi:export",
+    generated: "openapi/generated.json",
+    published: "docs/reference/openapi.json",
+  },
+  docsite: "docs",
   devin: {
     apiVersion: "v1",
     unlisted: true,
