@@ -176,7 +176,7 @@ const paths: Record<string, object> = {
             schema: {
               type: "object",
               properties: {
-                displayName: { type: "string" },
+                fullName: { type: "string" },
                 role: { type: "string", enum: ["admin", "editor", "viewer"] },
                 status: { type: "string", enum: ["active", "suspended"] },
               },
@@ -218,11 +218,11 @@ const paths: Record<string, object> = {
             schema: {
               type: "object",
               properties: {
-                displayName: { type: "string" },
+                fullName: { type: "string" },
                 email: { type: "string", format: "email" },
                 role: { type: "string", enum: ["admin", "editor", "viewer"] },
               },
-              required: ["displayName", "email", "role"],
+              required: ["fullName", "email", "role"],
             },
           },
         },

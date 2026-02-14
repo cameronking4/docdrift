@@ -583,7 +583,7 @@
                     "id": {
                       "type": "string"
                     },
-                    "displayName": {
+                    "fullName": {
                       "type": "string"
                     },
                     "email": {
@@ -591,6 +591,9 @@
                       "format": "email"
                     },
                     "avatarUrl": {
+                      "type": "string"
+                    },
+                    "department": {
                       "type": "string"
                     },
                     "createdAt": {
@@ -624,7 +627,7 @@
                   },
                   "required": [
                     "id",
-                    "displayName",
+                    "fullName",
                     "email",
                     "createdAt",
                     "role",
@@ -682,7 +685,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "displayName": {
+                  "fullName": {
                     "type": "string"
                   },
                   "role": {
@@ -716,7 +719,7 @@
                     "id": {
                       "type": "string"
                     },
-                    "displayName": {
+                    "fullName": {
                       "type": "string"
                     },
                     "email": {
@@ -724,6 +727,9 @@
                       "format": "email"
                     },
                     "avatarUrl": {
+                      "type": "string"
+                    },
+                    "department": {
                       "type": "string"
                     },
                     "createdAt": {
@@ -757,7 +763,7 @@
                   },
                   "required": [
                     "id",
-                    "displayName",
+                    "fullName",
                     "email",
                     "createdAt",
                     "role",
@@ -912,7 +918,7 @@
                           "id": {
                             "type": "string"
                           },
-                          "displayName": {
+                          "fullName": {
                             "type": "string"
                           },
                           "email": {
@@ -920,6 +926,9 @@
                             "format": "email"
                           },
                           "avatarUrl": {
+                            "type": "string"
+                          },
+                          "department": {
                             "type": "string"
                           },
                           "createdAt": {
@@ -953,7 +962,7 @@
                         },
                         "required": [
                           "id",
-                          "displayName",
+                          "fullName",
                           "email",
                           "createdAt",
                           "role",
@@ -1006,7 +1015,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "displayName": {
+                  "fullName": {
                     "type": "string"
                   },
                   "email": {
@@ -1023,7 +1032,7 @@
                   }
                 },
                 "required": [
-                  "displayName",
+                  "fullName",
                   "email",
                   "role"
                 ]
@@ -1042,7 +1051,7 @@
                     "id": {
                       "type": "string"
                     },
-                    "displayName": {
+                    "fullName": {
                       "type": "string"
                     },
                     "email": {
@@ -1050,6 +1059,9 @@
                       "format": "email"
                     },
                     "avatarUrl": {
+                      "type": "string"
+                    },
+                    "department": {
                       "type": "string"
                     },
                     "createdAt": {
@@ -1083,7 +1095,7 @@
                   },
                   "required": [
                     "id",
-                    "displayName",
+                    "fullName",
                     "email",
                     "createdAt",
                     "role",
