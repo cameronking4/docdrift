@@ -163,7 +163,7 @@ This repo has **intentional drift**: the API has been expanded (new fields `full
 
 Once published to npm, any repo can use the CLI locally or in GitHub Actions.
 
-1. **In the consuming repo** add a `docdrift.yaml` at the root (see this repo’s `docdrift.yaml` and `docdrift-yml.md`).
+1. **Setup** — `npx @devinnn/docdrift setup` (requires `DEVIN_API_KEY`). Devin generates `docdrift.yaml`, `.docdrift/DocDrift.md`, and `.github/workflows/docdrift.yml`. Prerequisite: add your repo in Devin's Machine first. Or add `docdrift.yaml` manually (see `docdrift-yml.md`).
 2. **CLI**
    ```bash
    npx @devinnn/docdrift validate

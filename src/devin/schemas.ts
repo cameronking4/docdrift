@@ -57,6 +57,30 @@ export const PatchPlanSchema = {
   },
 } as const;
 
+/** Structured output for docdrift setup (Devin generates config files) */
+export const SetupOutputSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["docdriftYaml", "summary"],
+  properties: {
+    docdriftYaml: { type: "string", description: "Full docdrift.yaml content, valid per schema" },
+    docDriftMd: {
+      type: "string",
+      description:
+        "Content for .docdrift/DocDrift.md custom instructions (project-specific guidance for Devin)",
+    },
+    workflowYml: {
+      type: "string",
+      description:
+        "Content for .github/workflows/docdrift.yml — must use npx @devinnn/docdrift for validate and run",
+    },
+    summary: {
+      type: "string",
+      description: "Brief summary of what you inferred (openapi paths, docsite, verification commands)",
+    },
+  },
+} as const;
+
 export const PatchResultSchema = {
   type: "object",
   additionalProperties: false,
