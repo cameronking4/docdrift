@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"type":"object","properties":{"token":{"type":"string"},"tokenTypeHint":{"type":"string","enum":["access_token","refresh_token"]}},"required":["token"]}}}}}

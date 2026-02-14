@@ -47,7 +47,7 @@ const config = {
                 const desc =
                   pageData?.info?.description ||
                   "REST API for DataStack: workspaces, compute clusters, jobs, notebooks, and SQL warehouses.";
-                return `${desc}\n\nBrowse endpoints by category in the sidebar: **Identity & Access**, **Workspaces**, **Compute / Clusters**, **Jobs**, **Notebooks**, and **SQL Warehouses**.`;
+                return `${desc}\n\nBrowse endpoints by category in the sidebar: **Authentication**, **Identity & Access**, **Workspaces**, **Compute / Clusters**, **Jobs**, **Notebooks**, **Pipelines**, **SQL Warehouses**, and **Webhooks**.`;
               },
             },
           },

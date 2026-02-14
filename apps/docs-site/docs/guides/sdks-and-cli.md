@@ -13,7 +13,7 @@ DataStack provides official SDKs and a CLI so you can automate workspace managem
 | Python | `datastack-sdk` | [PyPI](https://pypi.org/project/datastack-sdk/) — install: `pip install datastack-sdk` |
 | TypeScript/Node | `@datastack/sdk` | [npm](https://www.npmjs.com/package/@datastack/sdk) — install: `npm i @datastack/sdk` |
 
-Both SDKs support the same operations as the REST API: workspaces, clusters, jobs, notebooks, and SQL warehouses. Authentication is via environment variables (`DATASTACK_HOST`, `DATASTACK_TOKEN`) or explicit config.
+Both SDKs support the same operations as the REST API: authentication, workspaces, clusters, jobs, notebooks, pipelines, SQL warehouses, and webhooks. Authentication is via environment variables (`DATASTACK_HOST`, `DATASTACK_TOKEN`) or explicit config.
 
 ### Python example
 
