@@ -3,7 +3,7 @@
 Docs that never lie: detect drift between merged code and docs, then open low-noise, evidence-grounded remediation via Devin sessions.
 
 ## Deliverables
-- TypeScript CLI package (`docdrift`)
+- **npm package**: [@devinnn/docdrift](https://www.npmjs.com/package/@devinnn/docdrift) — TypeScript CLI (`docdrift`)
   - `validate`
   - `detect --base <sha> --head <sha>`
   - `run --base <sha> --head <sha>`
@@ -116,14 +116,14 @@ Once published to npm, any repo can use the CLI locally or in GitHub Actions.
 1. **In the consuming repo** add a `docdrift.yaml` at the root (see this repo’s `docdrift.yaml` and `docdrift-yml.md`).
 2. **CLI**
    ```bash
-   npx docdrift@latest validate
-   npx docdrift@latest detect --base <base-sha> --head <head-sha>
+   npx @devinnn/docdrift validate
+   npx @devinnn/docdrift detect --base <base-sha> --head <head-sha>
    # With env for run:
-   DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> npx docdrift@latest run --base <base-sha> --head <head-sha>
+   DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> npx @devinnn/docdrift run --base <base-sha> --head <head-sha>
    ```
 3. **GitHub Actions** — add a step that runs the CLI (e.g. after checkout and setting base/head):
    ```yaml
-   - run: npx docdrift@latest run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+   - run: npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
      env:
        DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
