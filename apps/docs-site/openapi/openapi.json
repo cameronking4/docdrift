@@ -681,6 +681,14 @@
               "type": "integer",
               "default": 0
             }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated: runs, tasks"
           }
         ],
         "responses": {
@@ -691,7 +699,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "jobs": {
+                    "jobs":{
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -865,6 +873,12 @@
                 "type": "object",
                 "properties": {
                   "pythonParams": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sparkSubmitParams": {
                     "type": "array",
                     "items": {
                       "type": "string"
