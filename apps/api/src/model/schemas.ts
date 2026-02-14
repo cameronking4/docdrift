@@ -5,20 +5,31 @@
 
 export const USER_RESPONSE_FIELDS = [
   "id",
-  "fullName",
+  "displayName",
   "email",
   "avatarUrl",
   "createdAt",
+  "updatedAt",
   "role",
+  "status",
+  "lastLoginAt",
 ] as const;
 
 export function buildUserSchema() {
   return {
     type: "object" as const,
-    properties: Object.fromEntries(
-      USER_RESPONSE_FIELDS.map((f) => [f, { type: "string" as const }])
-    ),
-    required: [...USER_RESPONSE_FIELDS],
+    properties: {
+      id: { type: "string" as const },
+      displayName: { type: "string" as const },
+      email: { type: "string" as const, format: "email" },
+      avatarUrl: { type: "string" as const },
+      createdAt: { type: "string" as const, format: "date-time" },
+      updatedAt: { type: "string" as const, format: "date-time" },
+      role: { type: "string" as const, enum: ["admin", "editor", "viewer"] },
+      status: { type: "string" as const, enum: ["active", "suspended", "pending_verification"] },
+      lastLoginAt: { type: "string" as const, format: "date-time" },
+    },
+    required: ["id", "displayName", "email", "createdAt", "role", "status"] as const,
   };
 }
 
@@ -26,10 +37,19 @@ export function buildUserListSchema() {
   return {
     type: "object" as const,
     properties: {
-      users: { type: "array" as const, items: buildUserSchema() },
-      totalCount: { type: "number" as const },
+      data: { type: "array" as const, items: buildUserSchema() },
+      pagination: {
+        type: "object" as const,
+        properties: {
+          total: { type: "integer" as const },
+          page: { type: "integer" as const },
+          perPage: { type: "integer" as const },
+          hasMore: { type: "boolean" as const },
+        },
+        required: ["total", "page", "perPage", "hasMore"] as const,
+      },
     },
-    required: ["users", "totalCount"] as const,
+    required: ["data", "pagination"] as const,
   };
 }
 
@@ -68,19 +88,25 @@ export function buildClusterSchema() {
     properties: {
       id: { type: "string" },
       name: { type: "string" },
+      workspaceId: { type: "string" },
       clusterSize: { type: "string" },
       region: { type: "string", description: "Cloud region where the cluster runs (e.g. us-east-1)" },
       state: {
         type: "string",
-        enum: ["PENDING", "RUNNING", "TERMINATING", "TERMINATED", "ERROR"],
+        enum: ["PENDING", "RUNNING", "RESIZING", "TERMINATING", "TERMINATED", "ERROR"],
       },
       sparkVersion: { type: "string" },
       nodeType: { type: "string" },
-      numWorkers: { type: "integer" },
+      workerCount: { type: "integer" },
+      minWorkers: { type: "integer" },
+      maxWorkers: { type: "integer" },
+      enableAutoscaling: { type: "boolean" },
       autoTerminationMinutes: { type: "integer" },
+      tags: { type: "object", additionalProperties: { type: "string" } },
       createdAt: { type: "string", format: "date-time" },
+      createdBy: { type: "string" },
     },
-    required: ["id", "name", "region", "state", "createdAt"],
+    required: ["id", "name", "workspaceId", "region", "state", "createdAt"],
   };
 }
 
@@ -128,11 +154,21 @@ export function buildJobRunSchema() {
       jobId: { type: "integer" },
       state: {
         type: "string",
-        enum: ["PENDING", "RUNNING", "SUCCESS", "FAILED", "CANCELED", "TIMED_OUT"],
+        enum: ["QUEUED", "PENDING", "RUNNING", "SUCCESS", "FAILED", "CANCELED", "TIMED_OUT", "SKIPPED"],
       },
       startTime: { type: "string", format: "date-time" },
       endTime: { type: "string", format: "date-time" },
+      duration: { type: "integer", description: "Run duration in seconds" },
       triggeredBy: { type: "string" },
+      attempt: { type: "integer" },
+      clusterSpec: {
+        type: "object",
+        properties: {
+          clusterId: { type: "string" },
+          nodeType: { type: "string" },
+          workerCount: { type: "integer" },
+        },
+      },
     },
     required: ["runId", "jobId", "state"],
   };
@@ -186,6 +222,121 @@ export function buildNotebookListSchema() {
   };
 }
 
+// --- Pipeline ---
+export function buildPipelineSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      name: { type: "string" },
+      workspaceId: { type: "string" },
+      state: {
+        type: "string",
+        enum: ["IDLE", "RUNNING", "FAILED", "STOPPING", "DELETED"],
+      },
+      target: { type: "string", enum: ["DEVELOPMENT", "PRODUCTION"] },
+      catalog: { type: "string" },
+      schema: { type: "string" },
+      continuous: { type: "boolean" },
+      photon: { type: "boolean" },
+      edition: { type: "string", enum: ["CORE", "PRO", "ADVANCED"] },
+      clusters: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            nodeType: { type: "string" },
+            workerCount: { type: "integer" },
+            enableAutoscaling: { type: "boolean" },
+          },
+        },
+      },
+      createdAt: { type: "string", format: "date-time" },
+      createdBy: { type: "string" },
+      lastRunAt: { type: "string", format: "date-time" },
+    },
+    required: ["id", "name", "workspaceId", "state", "target", "createdAt"],
+  };
+}
+
+export function buildPipelineListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      pipelines: { type: "array", items: buildPipelineSchema() },
+      totalCount: { type: "number" },
+      nextPageToken: { type: "string" },
+    },
+    required: ["pipelines", "totalCount"],
+  };
+}
+
+export function buildPipelineEventSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      pipelineId: { type: "string" },
+      eventType: { type: "string", enum: ["STARTED", "COMPLETED", "FAILED", "RETRYING"] },
+      message: { type: "string" },
+      timestamp: { type: "string", format: "date-time" },
+      details: { type: "object" },
+    },
+    required: ["id", "pipelineId", "eventType", "timestamp"],
+  };
+}
+
+// --- Webhook ---
+export function buildWebhookSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      url: { type: "string", format: "uri" },
+      events: { type: "array", items: { type: "string" } },
+      secret: { type: "string" },
+      active: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+      lastTriggeredAt: { type: "string", format: "date-time" },
+      failureCount: { type: "integer" },
+    },
+    required: ["id", "url", "events", "active", "createdAt"],
+  };
+}
+
+export function buildWebhookListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      webhooks: { type: "array", items: buildWebhookSchema() },
+      totalCount: { type: "number" },
+    },
+    required: ["webhooks", "totalCount"],
+  };
+}
+
+export function buildWebhookDeliverySchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      webhookId: { type: "string" },
+      event: { type: "string" },
+      requestUrl: { type: "string" },
+      requestHeaders: { type: "object" },
+      requestBody: { type: "string" },
+      responseStatus: { type: "integer" },
+      responseBody: { type: "string" },
+      success: { type: "boolean" },
+      duration: { type: "integer" },
+      timestamp: { type: "string", format: "date-time" },
+    },
+    required: ["id", "webhookId", "event", "success", "timestamp"],
+  };
+}
+
 // --- SQL Warehouse ---
 export function buildSqlWarehouseSchema() {
   return {
@@ -193,16 +344,24 @@ export function buildSqlWarehouseSchema() {
     properties: {
       id: { type: "string" },
       name: { type: "string" },
+      workspaceId: { type: "string" },
       clusterSize: { type: "string" },
+      warehouseType: { type: "string", enum: ["CLASSIC", "PRO", "SERVERLESS"] },
       state: {
         type: "string",
-        enum: ["STARTING", "RUNNING", "STOPPING", "STOPPED", "DELETED"],
+        enum: ["STARTING", "RUNNING", "STOPPING", "STOPPED", "DELETED", "DEGRADED"],
       },
+      maxNumClusters: { type: "integer" },
+      minNumClusters: { type: "integer" },
+      enableServerlessCompute: { type: "boolean" },
       jdbcUrl: { type: "string" },
       odbcUrl: { type: "string" },
+      httpPath: { type: "string" },
+      tags: { type: "object", additionalProperties: { type: "string" } },
       createdAt: { type: "string", format: "date-time" },
+      createdBy: { type: "string" },
     },
-    required: ["id", "name", "state", "createdAt"],
+    required: ["id", "name", "workspaceId", "state", "warehouseType", "createdAt"],
   };
 }
 

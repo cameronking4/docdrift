@@ -128,17 +128,22 @@ export async function registerClusterRoutes(
         summary: "Create cluster",
         description: "Creates a new compute cluster with the given configuration.",
         tags: ["Compute / Clusters"],
-        body: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            sparkVersion: { type: "string" },
-            nodeType: { type: "string" },
-            numWorkers: { type: "integer" },
-            autoTerminationMinutes: { type: "integer" },
-          },
-          required: ["name", "sparkVersion", "nodeType"],
-        },
+            body: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                workspaceId: { type: "string" },
+                sparkVersion: { type: "string" },
+                nodeType: { type: "string" },
+                workerCount: { type: "integer" },
+                enableAutoscaling: { type: "boolean" },
+                minWorkers: { type: "integer" },
+                maxWorkers: { type: "integer" },
+                autoTerminationMinutes: { type: "integer" },
+                tags: { type: "object", additionalProperties: { type: "string" } },
+              },
+              required: ["name", "workspaceId", "sparkVersion", "nodeType"],
+            },
         headers: {
           type: "object",
           properties: { [AUTH_SCOPE_HEADER]: { type: "string" } },
@@ -153,22 +158,33 @@ export async function registerClusterRoutes(
     async (request) => {
       const body = request.body as {
         name: string;
+        workspaceId: string;
         sparkVersion: string;
         nodeType: string;
-        numWorkers?: number;
+        workerCount?: number;
+        enableAutoscaling?: boolean;
+        minWorkers?: number;
+        maxWorkers?: number;
         autoTerminationMinutes?: number;
+        tags?: Record<string, string>;
       };
       return {
         id: "cluster-new",
         name: body.name,
+        workspaceId: body.workspaceId,
         clusterSize: "Medium",
         region: "us-east-1",
         state: "PENDING",
         sparkVersion: body.sparkVersion,
         nodeType: body.nodeType,
-        numWorkers: body.numWorkers ?? 2,
+        workerCount: body.workerCount ?? 2,
+        enableAutoscaling: body.enableAutoscaling ?? false,
+        minWorkers: body.minWorkers ?? 1,
+        maxWorkers: body.maxWorkers ?? 8,
         autoTerminationMinutes: body.autoTerminationMinutes ?? 30,
+        tags: body.tags ?? {},
         createdAt: new Date().toISOString(),
+        createdBy: "api",
       };
     }
   );
@@ -199,6 +215,58 @@ export async function registerClusterRoutes(
     async (request) => {
       const params = request.params as { clusterId: string };
       return { message: `Cluster ${params.clusterId} termination initiated.` };
+    }
+  );
+
+  app.post(
+    "/v1/clusters/{clusterId}/resize",
+    {
+      schema: {
+        summary: "Resize cluster",
+        description: "Changes the number of workers on a running cluster.",
+        tags: ["Compute / Clusters"],
+        params: {
+          type: "object",
+          properties: { clusterId: { type: "string" } },
+          required: ["clusterId"],
+        },
+        body: {
+          type: "object",
+          properties: {
+            workerCount: { type: "integer" },
+            minWorkers: { type: "integer" },
+            maxWorkers: { type: "integer" },
+          },
+          required: ["workerCount"],
+        },
+        headers: {
+          type: "object",
+          properties: { [AUTH_SCOPE_HEADER]: { type: "string" } },
+          required: [AUTH_SCOPE_HEADER],
+        },
+        response: {
+          200: buildClusterSchema(),
+          404: buildErrorSchema(),
+        },
+      },
+    },
+    async (request) => {
+      const params = request.params as { clusterId: string };
+      const body = request.body as { workerCount: number };
+      return {
+        id: params.clusterId,
+        name: "Analytics Cluster",
+        workspaceId: "ws-001",
+        clusterSize: "Medium",
+        region: "us-east-1",
+        state: "RESIZING",
+        sparkVersion: "3.5.x-scala2.12",
+        nodeType: "i3.xlarge",
+        workerCount: body.workerCount,
+        autoTerminationMinutes: 30,
+        createdAt: "2024-03-01T09:00:00Z",
+        createdBy: "ada@datastack.dev",
+      };
     }
   );
 }
