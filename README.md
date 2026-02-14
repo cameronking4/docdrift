@@ -41,6 +41,24 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 7. Surface result via GitHub commit comment; open issue on blocked/low-confidence paths.
 8. Persist state in `.docdrift/state.json` and write `.docdrift/metrics.json`.
 
+## Where the docs are (this repo)
+
+| Path | Purpose |
+|------|--------|
+| `docs/reference/openapi.json` | Published OpenAPI spec (source of truth for docs; should match code). |
+| `docs/reference/api.md` | Human-readable API reference (endpoints, request/response). |
+| `docs/guides/auth.md` | Conceptual auth guide (updated only for conceptual drift). |
+
+`docdrift.yaml` defines **patch targets** per doc area. For `api_reference` (autogen), the targets are `docs/reference/openapi.json` and `docs/reference/api.md`. The **generated** spec from code lives at `openapi/generated.json` (from `npm run openapi:export`). Drift = generated vs published differ.
+
+## How Devin updates them
+
+1. **Evidence bundle** — Docdrift builds a tarball with the drift report, OpenAPI diff, and impacted doc snippets, and uploads it to the Devin API as session attachments.
+2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`docs/**`, `openapi/**`), make minimal correct edits, run verification (`npm run docs:check`), and open **one PR** per doc area with a clear description.
+3. **PR** — Devin (via the Devin product) edits the repo: updates `docs/reference/openapi.json` and `docs/reference/api.md` to match the current API, then opens a pull request. You review and merge; the docs are updated.
+
+So the “fix” is a **PR opened by Devin** that you merge; the repo’s docs don’t change until that PR is merged.
+
 ## Local usage
 ```bash
 npm install
@@ -111,7 +129,7 @@ You can run a full end-to-end demo locally with no remote repo. Ensure `.env` ha
 
 ## See it work (demo on GitHub)
 
-This repo already has **intentional drift** (two commits: baseline with docs in sync, then `name` → `fullName` in the API without updating docs). To see Devin sessions and the full flow:
+This repo has **intentional drift**: the API has been expanded (new fields `fullName`, `avatarUrl`, `createdAt`, `role` and new endpoint `GET /v1/users` with pagination), but **docs are unchanged** (`docs/reference/openapi.json` and `docs/reference/api.md` still describe the old single-endpoint, `id`/`name`/`email` only). Running docdrift will detect that and hand a large diff to Devin to fix via a PR. To see it:
 
 1. **Create a new GitHub repo** (e.g. `docdrift-demo`) so you have a clean place to run the workflow.
 2. **Push this project with full history** (so both commits are on `main`):
