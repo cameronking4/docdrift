@@ -1,7 +1,7 @@
 {
   "name": "docdrift",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Detect and remediate documentation drift with Devin sessions",
   "main": "dist/src/index.js",
   "bin": {
@@ -11,6 +11,10 @@
   "engines": {
     "node": ">=20"
   },
+  "files": ["dist"],
+  "repository": { "type": "git", "url": "" },
+  "keywords": ["docs", "drift", "openapi", "devin", "github-actions"],
+  "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",

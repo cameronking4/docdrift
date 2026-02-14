@@ -109,6 +109,36 @@ You can run a full end-to-end demo locally with no remote repo. Ensure `.env` ha
    - **Push to `main`** — runs on every push (compares previous commit vs current).
    - **Manual run** — **Actions** tab → **devin-doc-drift** → **Run workflow** (uses `HEAD` and `HEAD^` as head/base).
 
+## Using in another repo (published package)
+
+Once published to npm, any repo can use the CLI locally or in GitHub Actions.
+
+1. **In the consuming repo** add a `docdrift.yaml` at the root (see this repo’s `docdrift.yaml` and `docdrift-yml.md`).
+2. **CLI**
+   ```bash
+   npx docdrift@latest validate
+   npx docdrift@latest detect --base <base-sha> --head <head-sha>
+   # With env for run:
+   DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> npx docdrift@latest run --base <base-sha> --head <head-sha>
+   ```
+3. **GitHub Actions** — add a step that runs the CLI (e.g. after checkout and setting base/head):
+   ```yaml
+   - run: npx docdrift@latest run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+     env:
+       DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       GITHUB_REPOSITORY: ${{ github.repository }}
+       GITHUB_SHA: ${{ github.sha }}
+   ```
+   Add repo secret `DEVIN_API_KEY`; `GITHUB_TOKEN` is provided by the runner.
+
+## Publishing the package
+
+- Set `"private": false` in `package.json` (or omit it).
+- Set `"repository": { "type": "git", "url": "https://github.com/your-org/docdrift.git" }`.
+- Run `pnpm build` (or `npm run build`), then `npm publish` (for a scoped package use `npm publish --access public`).
+- Only the `dist/` directory is included (`files` in `package.json`). Consumers get the built CLI; they provide their own `docdrift.yaml` in their repo.
+
 ## Demo scenario
 - Autogen drift: rename a field in `apps/api/src/model.ts`, merge to `main`, observe docs PR path.
 - Conceptual drift: change auth behavior under `apps/api/src/auth/**`, merge to `main`, observe single escalation issue.
