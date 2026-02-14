@@ -3,6 +3,8 @@ name: devin-doc-drift
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -26,13 +28,19 @@ jobs:
       - name: Determine SHAs
         id: shas
         run: |
-          HEAD_SHA="${GITHUB_SHA}"
-          BASE_SHA="${{ github.event.before }}"
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA="$(git rev-parse HEAD^)"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            HEAD_SHA="${GITHUB_SHA}"
+            BASE_SHA="${{ github.event.before }}"
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="$(git rev-parse HEAD^)"
+            fi
           fi
           echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
           echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
+          echo "pr_number=${{ github.event.pull_request.number || '' }}" >> $GITHUB_OUTPUT
 
       - name: Validate config
         run: npx tsx src/cli.ts validate
@@ -44,7 +52,13 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-        run: npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+          GITHUB_PR_NUMBER: ${{ steps.shas.outputs.pr_number }}
+        run: |
+          PR_ARGS=""
+          if [ -n "$GITHUB_PR_NUMBER" ]; then
+            PR_ARGS="--trigger pull_request --pr-number $GITHUB_PR_NUMBER"
+          fi
+          npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} $PR_ARGS
 
       - name: Show Devin session URLs
         if: success()

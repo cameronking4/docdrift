@@ -18,13 +18,17 @@ export async function validateRuntimeConfig(config: DocDriftConfig): Promise<Val
     errors.push("policy.prCaps.maxFilesTouched must be >= 1");
   }
 
-  const commandSet = new Set<string>([
+  const exportCommands: string[] = [
     ...config.policy.verification.commands,
     ...(config.openapi ? [config.openapi.export] : []),
     ...(config.docAreas ?? []).map((area) => area.detect.openapi?.exportCmd).filter(
       (value): value is string => Boolean(value)
     ),
-  ]);
+    ...(config.specProviders ?? [])
+      .filter((p) => p.current.type === "export")
+      .map((p) => (p.current as { type: "export"; command: string; outputPath: string }).command),
+  ];
+  const commandSet = new Set<string>(exportCommands);
 
   for (const command of commandSet) {
     const binary = commandBinary(command);

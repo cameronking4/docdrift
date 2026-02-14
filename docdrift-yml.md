@@ -4,6 +4,37 @@ This document describes every field in the repo-local config file `docdrift.yaml
 
 ---
 
+## IDE support (autocomplete, validation)
+
+Add at the top of `docdrift.yaml`:
+
+```yaml
+# yaml-language-server: $schema=./docdrift.schema.json
+```
+
+Or in consuming repos, reference the published schema:
+
+```yaml
+# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift/docdrift.schema.json
+```
+
+Requires the [Red Hat YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) (commonly bundled in Cursor/VS Code).
+
+---
+
+## CLI
+
+The config is used by `docdrift detect` and `docdrift run`. Both commands accept optional `--base` and `--head` SHAs:
+
+| Option   | Required | Default |
+| -------- | -------- | ------- |
+| `--base` | No       | In CI: `GITHUB_BASE_SHA`. Else: `git merge-base origin/main HEAD` (or `main`/`master`). |
+| `--head` | No       | `GITHUB_SHA` in CI, else `HEAD`. |
+
+You can run `docdrift run` or `docdrift detect` with no arguments; base and head are resolved automatically.
+
+---
+
 ## Top-level
 
 | Field               | Required | Type   | Description                                                                 |
@@ -116,6 +147,7 @@ When you provide `openapi` and `docsite`, docdrift runs in **single-session mode
 | `docsite`          | **Yes**  | string | Root path(s) of the docsite.                                                 |
 | `exclude`          | No       | array  | Glob paths we never touch.                                                   |
 | `requireHumanReview` | No     | array  | When the PR touches these paths, we open an issue to direct human attention. |
+| `pathMappings`     | No       | array  | When these **code** paths change, these **doc** paths may need updates (heuristic). See [pathMappings (heuristic)](#pathmappings-heuristic) below. |
 
 **Example:**
 
@@ -128,6 +160,126 @@ docsite: "apps/docs-site"
 exclude: ["apps/docs-site/blog/**"]
 requireHumanReview: ["apps/docs-site/docs/guides/**"]
 ```
+
+### `pathMappings` (heuristic)
+
+#### Why `pathMappings` and `docsite` serve different roles
+
+| Field           | Role                  | What it does                                                                 |
+| --------------- | --------------------- | ---------------------------------------------------------------------------- |
+| **`docsite`**   | Scope                 | Tells Devin *where* the docs live (root path). Used for prompt scope.        |
+| **`pathMappings`** | Targeted mapping  | Tells docdrift *which* docs to consider when *which* code changes.           |
+
+Without `pathMappings`, Devin gets OpenAPI drift and the docsite root. It does *not* get explicit hints about conceptual docs (guides, MDX, tutorials) that may be stale when non-API code changes. With `pathMappings`, when changed files match a `match` pattern, we add the corresponding `impacts` to the evidence bundle and include the mappings in the prompt. Devin then knows: "When `definition/users.yml` changed, consider `pages/guides/users.mdx`."
+
+#### How it works
+
+1. OpenAPI drift is detected (gate passes).
+2. We compute changed files between base and head SHAs.
+3. For each `pathMappings` rule, if any changed file matches `match`, we add `impacts` to the evidence.
+4. The mappings are injected into the Devin prompt so they are visible up front.
+5. All `impacts` are automatically added to `requireHumanReview`, so a follow-up issue is opened when Devin touches them.
+
+#### Schema
+
+| Field     | Required | Description                                                             |
+| --------- | -------- | ----------------------------------------------------------------------- |
+| `match`   | **Yes**  | Glob pattern for **code** paths that, when changed, may impact docs.   |
+| `impacts` | **Yes**  | **Doc** paths that may need updates when `match` changes. At least one. |
+
+---
+
+#### Best practices
+
+- **Be specific.** Prefer `src/auth/**` over `src/**` so you only surface docs when auth-related code changes.
+- **Group related impacts.** One `match` can have multiple `impacts`; list all docs that logically depend on that code.
+- **Align with repo layout.** Match how your API, SDK, or feature code is organized; paths should reflect real coupling.
+- **Start small.** Add a few high-value mappings first (e.g. auth, billing, core APIs), then expand.
+- **Use globs consistently.** Both `match` and `impacts` support globs (`**`, `*`); ensure paths are relative to the repo root.
+
+---
+
+#### Fern
+
+Fern projects typically have: `definition/` (API defs), `generators.yml`, `pages/` (MDX guides). API reference comes from OpenAPI or Fern Definition; guides are hand-written. When definition files or generated SDK code change, guides may be stale.
+
+**Example:**
+
+```yaml
+pathMappings:
+  - match: "definition/**"
+    impacts: ["pages/getting-started.mdx", "pages/guides/**", "pages/api/**"]
+  - match: "packages/api/**"
+    impacts: ["pages/api/**", "pages/guides/*.mdx"]
+  - match: "generators.yml"
+    impacts: ["pages/getting-started.mdx", "pages/sdks/**"]
+```
+
+**Power user:** If you split APIs (`apis/` in multi-API workspaces), map each API definition path to its docs:
+
+```yaml
+pathMappings:
+  - match: "apis/rest/**"
+    impacts: ["pages/api/rest/**", "pages/guides/rest-*.mdx"]
+  - match: "apis/events/**"
+    impacts: ["pages/api/events/**", "pages/guides/events.mdx"]
+```
+
+---
+
+#### Mintlify
+
+Mintlify uses `docs/` (MDX), `mint.json`, and often OpenAPI for API reference. Feature code in `src/` or `api/` drives guides and examples.
+
+**Example:**
+
+```yaml
+pathMappings:
+  - match: "src/features/**"
+    impacts: ["docs/guides/**"]
+  - match: "api/**"
+    impacts: ["docs/api/**", "docs/guides/*.mdx"]
+  - match: "src/lib/**"
+    impacts: ["docs/guides/integration.mdx", "docs/reference/**"]
+```
+
+**Power user:** Map SDK or client packages to their usage docs:
+
+```yaml
+pathMappings:
+  - match: "packages/sdk-typescript/**"
+    impacts: ["docs/sdks/typescript.mdx", "docs/guides/quickstart.mdx"]
+  - match: "packages/sdk-python/**"
+    impacts: ["docs/sdks/python.mdx"]
+```
+
+---
+
+#### Power user: Monorepo with multiple doc surfaces
+
+When docs and code live in different packages, map by package:
+
+```yaml
+pathMappings:
+  - match: "packages/core/**"
+    impacts: ["docs/core/**", "docs/guides/architecture.mdx"]
+  - match: "packages/api-gateway/**"
+    impacts: ["docs/api/**", "docs/guides/authentication.mdx"]
+  - match: "apps/admin/**"
+    impacts: ["docs/guides/admin/**"]
+```
+
+#### `apps/` monorepo (API + docsite)
+
+When API and docsite live under `apps/` (e.g. `apps/api`, `apps/docs-site`), map API changes to doc impacts:
+
+```yaml
+pathMappings:
+  - match: "apps/api/**"
+    impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
+```
+
+Use `apps/**` in `policy.allowlist` so Devin can modify both docsite and published OpenAPI under `apps/`.
 
 ---
 

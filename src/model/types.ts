@@ -1,4 +1,4 @@
-export type TriggerKind = "push" | "manual" | "schedule";
+export type TriggerKind = "push" | "manual" | "schedule" | "pull_request";
 
 export interface RunInfo {
   runId: string;
@@ -7,6 +7,8 @@ export interface RunInfo {
   headSha: string;
   trigger: TriggerKind;
   timestamp: string;
+  /** Set when trigger is pull_request */
+  prNumber?: number;
 }
 
 export interface ChangeSet {
@@ -18,6 +20,11 @@ export interface ChangeSet {
 export type SignalKind =
   | "docs_check_failed"
   | "openapi_diff"
+  | "swagger2_diff"
+  | "graphql_diff"
+  | "fern_diff"
+  | "postman_diff"
+  | "infer_mode"
   | "heuristic_path_impact"
   | "weak_evidence";
 

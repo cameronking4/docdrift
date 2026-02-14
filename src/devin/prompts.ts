@@ -77,6 +77,9 @@ export function buildWholeDocsitePrompt(input: {
   aggregated: AggregatedDriftResult;
   config: NormalizedDocDriftConfig;
   attachmentUrls: string[];
+  runGate?: "spec_drift" | "conceptual_only" | "infer" | "none";
+  trigger?: "push" | "manual" | "schedule" | "pull_request";
+  prNumber?: number;
 }): string {
   const excludeNote =
     input.config.exclude?.length > 0
@@ -90,9 +93,63 @@ export function buildWholeDocsitePrompt(input: {
   const newFilesRule = allowNewFiles
     ? "8) You MAY add new articles, create new folders, and change information architecture when warranted."
     : "8) You may ONLY edit existing files. Do NOT create new files, new articles, or new folders. Do NOT change information architecture.";
+  const driftSummary = input.aggregated.summary?.trim();
+  const openapiPublished = input.config.openapi?.published;
+  const openapiGenerated = input.config.openapi?.generated;
+  const specLine =
+    openapiPublished && openapiGenerated
+      ? `Update ${openapiPublished} to match the generated spec (${openapiGenerated}). The attachments contain the full diff.`
+      : "Update published docs to match the evidence (attachments).";
+  const driftBlock =
+    driftSummary &&
+    [
+      "DRIFT DETECTED (you must fix this):",
+      "---",
+      driftSummary,
+      "---",
+      specLine,
+      "",
+    ].join("\n");
+
+  const inferBlock =
+    input.runGate === "infer"
+      ? [
+          "INFER MODE: No API spec diff was available. These file changes may impact docs.",
+          "Infer what documentation might need updates from the changed files. Update or create docs as needed.",
+          "Do NOT invent APIs; only document what you can infer from the code changes.",
+          "",
+        ].join("\n")
+      : "";
+
+  const draftPrBlock =
+    input.trigger === "pull_request" && input.prNumber
+      ? [
+          "",
+          "This run was triggered by an open API PR. Open a **draft** pull request.",
+          `In the PR description, link to the API PR (#${input.prNumber}) and state: "Merge the API PR first, then review this doc PR."`,
+          "Use a branch name like docdrift/pr-" + input.prNumber + " or docdrift/preview-<short-sha>.",
+          "",
+        ].join("\n")
+      : "";
+
+  const pathMappings = input.config.pathMappings ?? [];
+  const pathMappingsBlock =
+    pathMappings.length > 0
+      ? [
+          "PATH MAPPINGS (when these code paths change, consider these docs for updates):",
+          ...pathMappings.map(
+            (p) => `- ${p.match} → ${p.impacts.join(", ")}`
+          ),
+          "",
+        ].join("\n")
+      : "";
+
   const base = [
     "You are Devin. Task: update the entire docsite to match the API and code changes.",
     "",
+    driftBlock ?? "",
+    inferBlock,
+    pathMappingsBlock,
     "EVIDENCE (attachments):",
     input.attachmentUrls.map((url, i) => `- ATTACHMENT ${i + 1}: ${url}`).join("\n"),
     "",
@@ -102,7 +159,8 @@ export function buildWholeDocsitePrompt(input: {
     "3) Update API reference (OpenAPI) and any impacted guides in one PR.",
     "4) Run verification commands and record results:",
     ...input.config.policy.verification.commands.map((c) => `   - ${c}`),
-    "5) Open exactly ONE pull request with a clear title and reviewer-friendly description.",
+    "5) Open exactly ONE pull request with a clear title and reviewer-friendly description." +
+      draftPrBlock,
     `6) Docsite scope: ${input.config.docsite.join(", ")}` +
       excludeNote +
       requireReviewNote +

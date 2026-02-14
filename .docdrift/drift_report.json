@@ -1,10 +1,10 @@
 {
   "run": {
     "repo": "local/docdrift",
-    "baseSha": "HEAD~1",
+    "baseSha": "b15d0bd789e3ab773978cb3c368dc11ce21bfc34",
     "headSha": "HEAD",
     "trigger": "manual",
-    "timestamp": "2026-02-14T09:12:40.553Z"
+    "timestamp": "2026-02-14T10:29:58.619Z"
   },
   "items": [
     {
@@ -16,7 +16,7 @@
           "tier": 1,
           "confidence": 0.95,
           "evidence": [
-            "/Users/cameronking/Desktop/sideproject/docdrift/.docdrift/evidence/1771060360553/openapi.diff.txt"
+            "/Users/cameronking/Desktop/sideproject/docdrift/.docdrift/evidence/1771064998619/openapi3.diff.txt"
           ]
         }
       ],

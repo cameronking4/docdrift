@@ -76,6 +76,30 @@ describe("docDriftConfigSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("accepts simple config with pathMappings (openapi + docsite + pathMappings)", () => {
+    const parsed = docDriftConfigSchema.safeParse({
+      version: 1,
+      openapi: {
+        export: "npm run openapi:export",
+        generated: "openapi/generated.json",
+        published: "apps/docs-site/openapi/openapi.json",
+      },
+      docsite: "apps/docs-site",
+      pathMappings: [
+        { match: "definition/**", impacts: ["pages/guides/**"] },
+      ],
+      devin: { apiVersion: "v1" },
+      policy: {
+        prCaps: { maxPrsPerDay: 1, maxFilesTouched: 12 },
+        confidence: { autopatchThreshold: 0.8 },
+        allowlist: ["apps/docs-site/**", "openapi/**"],
+        verification: { commands: ["npm run docs:build"] },
+        slaDays: 7,
+      },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
   it("accepts simple config (openapi + docsite)", () => {
     const parsed = docDriftConfigSchema.safeParse({
       version: 1,
@@ -94,6 +118,59 @@ describe("docDriftConfigSchema", () => {
         allowlist: ["apps/docs-site/**", "openapi/**"],
         verification: { commands: ["npm run docs:build"] },
         slaDays: 7,
+      },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("normalize synthesizes virtual docArea from pathMappings block (simple config)", () => {
+    const config = {
+      version: 1,
+      openapi: {
+        export: "npm run openapi:export",
+        generated: "openapi/generated.json",
+        published: "apps/docs-site/openapi/openapi.json",
+      },
+      docsite: "apps/docs-site",
+      pathMappings: [
+        { match: "definition/**", impacts: ["pages/guides/**"] },
+        { match: "packages/api/**", impacts: ["pages/api.mdx"] },
+      ],
+      devin: { apiVersion: "v1" },
+      policy: {
+        allowlist: ["apps/docs-site/**", "openapi/**"],
+        verification: { commands: ["npm run docs:build"] },
+      },
+    };
+    const normalized = normalizeConfig(config as any);
+    expect(normalized.docAreas).toHaveLength(1);
+    expect(normalized.docAreas![0]!.name).toBe("pathMappings");
+    expect(normalized.docAreas![0]!.mode).toBe("conceptual");
+    expect(normalized.docAreas![0]!.detect.paths).toEqual(config.pathMappings);
+    expect(normalized.docAreas![0]!.patch.requireHumanConfirmation).toBe(true);
+    expect(normalized.requireHumanReview).toContain("pages/guides/**");
+    expect(normalized.requireHumanReview).toContain("pages/api.mdx");
+  });
+
+  it("accepts v2 config with specProviders, allowConceptualOnlyRun, inferMode", () => {
+    const parsed = docDriftConfigSchema.safeParse({
+      version: 2,
+      specProviders: [
+        {
+          format: "openapi3",
+          current: { type: "export", command: "npm run openapi:export", outputPath: "openapi/generated.json" },
+          published: "apps/docs-site/openapi/openapi.json",
+        },
+      ],
+      docsite: "apps/docs-site",
+      allowConceptualOnlyRun: true,
+      inferMode: true,
+      devin: { apiVersion: "v1" },
+      policy: {
+        prCaps: { maxPrsPerDay: 1, maxFilesTouched: 12 },
+        confidence: { autopatchThreshold: 0.8 },
+        allowlist: ["apps/docs-site/**", "openapi/**"],
+        verification: { commands: ["npm run docs:build"] },
       },
     });
     expect(parsed.success).toBe(true);

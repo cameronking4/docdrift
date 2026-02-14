@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./docdrift.schema.json
 # 10x simple config: openapi + docsite. Legacy docAreas also supported (see comment below).
 version: 1
 
@@ -7,6 +8,10 @@ openapi:
   published: "apps/docs-site/openapi/openapi.json"
 
 docsite: "apps/docs-site"
+
+pathMappings:
+  - match: "apps/api/**"
+    impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
 
 exclude:
   - "apps/docs-site/blog/**"
@@ -32,7 +37,7 @@ policy:
     autopatchThreshold: 0.8
   allowlist:
     - "openapi/**"
-    - "apps/docs-site/**"
+    - "apps/**"
   verification:
     commands:
       - "npm run docs:gen"

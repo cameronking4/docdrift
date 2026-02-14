@@ -8,6 +8,7 @@ import {
   createIssue,
   listOpenPrsWithLabel,
   postCommitComment,
+  postPrComment,
   renderBlockedIssueBody,
   renderRequireHumanReviewIssueBody,
   renderRunComment,
@@ -30,7 +31,8 @@ import {
 interface DetectOptions {
   baseSha: string;
   headSha: string;
-  trigger?: "push" | "manual" | "schedule";
+  trigger?: "push" | "manual" | "schedule" | "pull_request";
+  prNumber?: number;
 }
 
 interface SessionOutcome {
@@ -78,6 +80,9 @@ async function executeSessionSingle(input: {
   aggregated: import("./model/types").AggregatedDriftResult;
   attachmentPaths: string[];
   config: import("./config/schema").NormalizedDocDriftConfig;
+  runGate: import("./detect").RunGate;
+  trigger: import("./model/types").TriggerKind;
+  prNumber?: number;
 }): Promise<SessionOutcome> {
   const attachmentUrls: string[] = [];
   for (const attachmentPath of input.attachmentPaths) {
@@ -89,6 +94,9 @@ async function executeSessionSingle(input: {
     aggregated: input.aggregated,
     config: input.config,
     attachmentUrls,
+    runGate: input.runGate,
+    trigger: input.trigger,
+    prNumber: input.prNumber,
   });
 
   const session = await devinCreateSession(input.apiKey, {
@@ -160,15 +168,16 @@ export async function runDetect(options: DetectOptions): Promise<{ hasDrift: boo
   const repo = process.env.GITHUB_REPOSITORY ?? "local/docdrift";
   const normalized = loadNormalizedConfig();
 
-  const { report, hasOpenApiDrift } = await buildDriftReport({
+  const { report, runGate } = await buildDriftReport({
     config: normalized,
     repo,
     baseSha: options.baseSha,
     headSha: options.headSha,
     trigger: options.trigger ?? "manual",
+    prNumber: options.prNumber,
   });
 
-  logInfo(`Drift items detected: ${report.items.length} (hasOpenApiDrift: ${hasOpenApiDrift})`);
+  logInfo(`Drift items detected: ${report.items.length} (runGate: ${runGate})`);
   return { hasDrift: report.items.length > 0 };
 }
 
@@ -184,18 +193,19 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
   const githubToken = process.env.GITHUB_TOKEN;
   const devinApiKey = process.env.DEVIN_API_KEY;
 
-  const { report, aggregated, runInfo, evidenceRoot, hasOpenApiDrift } =
+  const { report, aggregated, runInfo, evidenceRoot, runGate } =
     await buildDriftReport({
       config: normalized,
       repo,
       baseSha: options.baseSha,
       headSha: options.headSha,
       trigger: options.trigger ?? "manual",
+      prNumber: options.prNumber,
     });
 
-  // Gate: no OpenAPI drift — exit early, no session
-  if (!hasOpenApiDrift || report.items.length === 0) {
-    logInfo("No OpenAPI drift; skipping session");
+  // Gate: no run (spec drift, conceptual-only, or infer) — exit early, no session
+  if (runGate === "none" || report.items.length === 0) {
+    logInfo("No drift; skipping session");
     return [];
   }
 
@@ -284,6 +294,9 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       aggregated: aggregated!,
       attachmentPaths,
       config: normalized,
+      runGate,
+      trigger: runInfo.trigger,
+      prNumber: runInfo.prNumber,
     });
     metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
   } else {
@@ -305,6 +318,15 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     metrics.prsOpened += 1;
     state.lastDocDriftPrUrl = sessionOutcome.prUrl;
     state.lastDocDriftPrOpenedAt = new Date().toISOString();
+
+    if (githubToken && runInfo.trigger === "pull_request" && runInfo.prNumber) {
+      await postPrComment({
+        token: githubToken,
+        repository: repo,
+        prNumber: runInfo.prNumber,
+        body: `## Doc drift detected\n\nDraft doc PR: ${sessionOutcome.prUrl}\n\nMerge your API changes first, then review and merge this doc PR.`,
+      });
+    }
 
     const touchedRequireReview = (item.impactedDocs ?? []).filter((p) =>
       normalized.requireHumanReview.some((glob) => matchesGlob(glob, p))
@@ -527,13 +549,10 @@ export async function runStatus(sinceHours = 24): Promise<void> {
   }
 }
 
-export function resolveTrigger(eventName?: string): "push" | "manual" | "schedule" {
-  if (eventName === "push") {
-    return "push";
-  }
-  if (eventName === "schedule") {
-    return "schedule";
-  }
+export function resolveTrigger(eventName?: string): "push" | "manual" | "schedule" | "pull_request" {
+  if (eventName === "push") return "push";
+  if (eventName === "schedule") return "schedule";
+  if (eventName === "pull_request") return "pull_request";
   return "manual";
 }
 
@@ -554,6 +573,18 @@ export function requireSha(value: string | undefined, label: string): string {
     throw new Error(`Missing required argument: ${label}`);
   }
   return value;
+}
+
+export async function resolveBaseHead(
+  baseArg: string | undefined,
+  headArg: string | undefined
+): Promise<{ baseSha: string; headSha: string }> {
+  const headRef = headArg ?? process.env.GITHUB_SHA ?? "HEAD";
+  if (baseArg) {
+    return { baseSha: baseArg, headSha: headRef };
+  }
+  const { resolveDefaultBaseHead } = await import("./utils/git");
+  return resolveDefaultBaseHead(headRef);
 }
 
 export const STATE_PATH = path.resolve(".docdrift", "state.json");

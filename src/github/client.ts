@@ -33,6 +33,26 @@ export async function postCommitComment(input: {
   return response.data.html_url;
 }
 
+/** Post a comment on a pull request (e.g. to link the doc drift PR when trigger is pull_request). */
+export async function postPrComment(input: {
+  token: string;
+  repository: string;
+  prNumber: number;
+  body: string;
+}): Promise<string> {
+  const octokit = new Octokit({ auth: input.token });
+  const { owner, repo } = parseRepo(input.repository);
+
+  const response = await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: input.prNumber,
+    body: input.body,
+  });
+
+  return response.data.html_url;
+}
+
 export async function createIssue(input: {
   token: string;
   repository: string;
