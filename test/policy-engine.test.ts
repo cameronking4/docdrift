@@ -9,22 +9,22 @@ const baseConfig: DocDriftConfig = {
     apiVersion: "v1",
     unlisted: true,
     maxAcuLimit: 2,
-    tags: ["docdrift"]
+    tags: ["docdrift"],
   },
   policy: {
     prCaps: {
       maxPrsPerDay: 1,
-      maxFilesTouched: 12
+      maxFilesTouched: 12,
     },
     confidence: {
-      autopatchThreshold: 0.8
+      autopatchThreshold: 0.8,
     },
     allowlist: ["docs/**", "openapi/**"],
     verification: {
-      commands: ["npm run docs:check"]
-    }
+      commands: ["npm run docs:check"],
+    },
   },
-  docAreas: []
+  docAreas: [],
 };
 
 describe("decidePolicy", () => {
@@ -36,7 +36,7 @@ describe("decidePolicy", () => {
         signals: [{ kind: "openapi_diff", tier: 1, confidence: 0.95, evidence: [] }],
         impactedDocs: ["docs/reference/openapi.json"],
         recommendedAction: "OPEN_PR",
-        summary: "OpenAPI diff"
+        summary: "OpenAPI diff",
       },
       docAreaConfig: {
         name: "api_reference",
@@ -46,19 +46,19 @@ describe("decidePolicy", () => {
           openapi: {
             exportCmd: "npm run openapi:export",
             generatedPath: "openapi/generated.json",
-            publishedPath: "docs/reference/openapi.json"
-          }
+            publishedPath: "docs/reference/openapi.json",
+          },
         },
         patch: {
           targets: ["docs/reference/openapi.json"],
-          requireHumanConfirmation: false
-        }
+          requireHumanConfirmation: false,
+        },
       },
       config: baseConfig,
       state: emptyState(),
       repo: "acme/repo",
       baseSha: "a",
-      headSha: "b"
+      headSha: "b",
     });
 
     expect(decision.action).toBe("OPEN_PR");
@@ -72,7 +72,7 @@ describe("decidePolicy", () => {
         signals: [{ kind: "heuristic_path_impact", tier: 2, confidence: 0.7, evidence: [] }],
         impactedDocs: ["docs/guides/auth.md"],
         recommendedAction: "OPEN_ISSUE",
-        summary: "auth changes"
+        summary: "auth changes",
       },
       docAreaConfig: {
         name: "auth_guide",
@@ -82,19 +82,19 @@ describe("decidePolicy", () => {
           paths: [
             {
               match: "apps/api/src/auth/**",
-              impacts: ["docs/guides/auth.md"]
-            }
-          ]
+              impacts: ["docs/guides/auth.md"],
+            },
+          ],
         },
         patch: {
-          requireHumanConfirmation: true
-        }
+          requireHumanConfirmation: true,
+        },
       },
       config: baseConfig,
       state: emptyState(),
       repo: "acme/repo",
       baseSha: "a",
-      headSha: "b"
+      headSha: "b",
     });
 
     expect(decision.action).toBe("OPEN_ISSUE");

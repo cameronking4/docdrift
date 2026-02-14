@@ -1,0 +1,178 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/docs",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/docs",
+          "mainDocId": "intro",
+          "docs": [
+            {
+              "id": "api/create-cluster",
+              "path": "/docs/api/create-cluster",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/create-or-overwrite-notebook",
+              "path": "/docs/api/create-or-overwrite-notebook",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/datastack-api",
+              "path": "/docs/api/datastack-api",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/export-notebook",
+              "path": "/docs/api/export-notebook",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-a-user",
+              "path": "/docs/api/get-a-user",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-a-user-by-id",
+              "path": "/docs/api/get-a-user-by-id",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-cluster-by-id",
+              "path": "/docs/api/get-cluster-by-id",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-job-by-id",
+              "path": "/docs/api/get-job-by-id",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-job-run",
+              "path": "/docs/api/get-job-run",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-sql-warehouse-by-id",
+              "path": "/docs/api/get-sql-warehouse-by-id",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/get-workspace-by-id",
+              "path": "/docs/api/get-workspace-by-id",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/list-clusters",
+              "path": "/docs/api/list-clusters",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/list-jobs",
+              "path": "/docs/api/list-jobs",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/list-notebooks",
+              "path": "/docs/api/list-notebooks",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/list-sql-warehouses",
+              "path": "/docs/api/list-sql-warehouses",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/list-users-with-pagination",
+              "path": "/docs/api/list-users-with-pagination",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/list-workspaces",
+              "path": "/docs/api/list-workspaces",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/start-sql-warehouse",
+              "path": "/docs/api/start-sql-warehouse",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/stop-sql-warehouse",
+              "path": "/docs/api/stop-sql-warehouse",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/terminate-cluster",
+              "path": "/docs/api/terminate-cluster",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "api/trigger-job-run",
+              "path": "/docs/api/trigger-job-run",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/authentication",
+              "path": "/docs/guides/authentication",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/billing-and-usage",
+              "path": "/docs/guides/billing-and-usage",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/getting-started",
+              "path": "/docs/guides/getting-started",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/migration-from-legacy",
+              "path": "/docs/guides/migration-from-legacy",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/rate-limits-and-quotas",
+              "path": "/docs/guides/rate-limits-and-quotas",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/sdks-and-cli",
+              "path": "/docs/guides/sdks-and-cli",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/security-best-practices",
+              "path": "/docs/guides/security-best-practices",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "guides/support-and-sla",
+              "path": "/docs/guides/support-and-sla",
+              "sidebar": "tutorialSidebar"
+            },
+            {
+              "id": "intro",
+              "path": "/docs/intro",
+              "sidebar": "tutorialSidebar"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "tutorialSidebar": {
+              "link": {
+                "path": "/docs/intro",
+                "label": "intro"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

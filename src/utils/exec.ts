@@ -14,7 +14,7 @@ export async function execCommand(command: string, cwd = process.cwd()): Promise
   try {
     const { stdout, stderr } = await exec(command, {
       cwd,
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 10 * 1024 * 1024,
     });
     return { command, stdout, stderr, exitCode: 0 };
   } catch (error) {
@@ -23,7 +23,7 @@ export async function execCommand(command: string, cwd = process.cwd()): Promise
       command,
       stdout: e.stdout ?? "",
       stderr: e.stderr ?? String(error),
-      exitCode: typeof e.code === "number" ? e.code : 1
+      exitCode: typeof e.code === "number" ? e.code : 1,
     };
   }
 }

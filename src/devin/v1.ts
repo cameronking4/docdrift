@@ -33,9 +33,9 @@ export async function devinUploadAttachment(apiKey: string, filePath: string): P
   const response = await fetch("https://api.devin.ai/v1/attachments", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
-    body: form
+    body: form,
   });
 
   const text = await response.text();
@@ -55,14 +55,17 @@ export async function devinUploadAttachment(apiKey: string, filePath: string): P
   }
 }
 
-export async function devinCreateSession(apiKey: string, body: unknown): Promise<CreateSessionResponse> {
+export async function devinCreateSession(
+  apiKey: string,
+  body: unknown
+): Promise<CreateSessionResponse> {
   const response = await fetch("https://api.devin.ai/v1/sessions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
   const text = await response.text();
@@ -73,8 +76,8 @@ export async function devinCreateSession(apiKey: string, body: unknown): Promise
 export async function devinGetSession(apiKey: string, sessionId: string): Promise<DevinSession> {
   const response = await fetch(`https://api.devin.ai/v1/sessions/${sessionId}`, {
     headers: {
-      Authorization: `Bearer ${apiKey}`
-    }
+      Authorization: `Bearer ${apiKey}`,
+    },
   });
 
   const text = await response.text();
@@ -82,7 +85,10 @@ export async function devinGetSession(apiKey: string, sessionId: string): Promis
   return JSON.parse(text) as DevinSession;
 }
 
-export async function devinListSessions(apiKey: string, params: { limit?: number; tag?: string } = {}): Promise<DevinSession[]> {
+export async function devinListSessions(
+  apiKey: string,
+  params: { limit?: number; tag?: string } = {}
+): Promise<DevinSession[]> {
   const url = new URL("https://api.devin.ai/v1/sessions");
   if (params.limit) {
     url.searchParams.set("limit", String(params.limit));
@@ -93,8 +99,8 @@ export async function devinListSessions(apiKey: string, params: { limit?: number
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${apiKey}`
-    }
+      Authorization: `Bearer ${apiKey}`,
+    },
   });
 
   const text = await response.text();
@@ -111,7 +117,11 @@ export async function devinListSessions(apiKey: string, params: { limit?: number
   return [];
 }
 
-export async function pollUntilTerminal(apiKey: string, sessionId: string, timeoutMs = 30 * 60_000): Promise<DevinSession> {
+export async function pollUntilTerminal(
+  apiKey: string,
+  sessionId: string,
+  timeoutMs = 30 * 60_000
+): Promise<DevinSession> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const session = await devinGetSession(apiKey, sessionId);

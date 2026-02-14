@@ -7,7 +7,7 @@ import {
   createIssue,
   postCommitComment,
   renderBlockedIssueBody,
-  renderRunComment
+  renderRunComment,
 } from "./github/client";
 import { RunResult } from "./model/types";
 import { decidePolicy, applyDecisionToState } from "./policy/engine";
@@ -19,7 +19,7 @@ import {
   devinCreateSession,
   devinListSessions,
   devinUploadAttachment,
-  pollUntilTerminal
+  pollUntilTerminal,
 } from "./devin/v1";
 
 interface DetectOptions {
@@ -62,7 +62,7 @@ function inferQuestions(structured: any): string[] {
   }
   return [
     "Which conceptual docs should be updated for this behavior change?",
-    "What are the exact user-visible semantics after this merge?"
+    "What are the exact user-visible semantics after this merge?",
   ];
 }
 
@@ -86,14 +86,14 @@ async function executeSession(input: {
           attachmentUrls,
           verificationCommands: input.config.policy.verification.commands,
           allowlist: input.config.policy.allowlist,
-          confidenceThreshold: input.config.policy.confidence.autopatchThreshold
+          confidenceThreshold: input.config.policy.confidence.autopatchThreshold,
         })
       : buildConceptualPrompt({
           item: input.item,
           attachmentUrls,
           verificationCommands: input.config.policy.verification.commands,
           allowlist: input.config.policy.allowlist,
-          confidenceThreshold: input.config.policy.confidence.autopatchThreshold
+          confidenceThreshold: input.config.policy.confidence.autopatchThreshold,
         });
 
   const session = await devinCreateSession(input.apiKey, {
@@ -103,13 +103,13 @@ async function executeSession(input: {
     tags: [...new Set([...(input.config.devin.tags ?? []), "docdrift", input.item.docArea])],
     attachments: attachmentUrls,
     structured_output: {
-      schema: PatchPlanSchema
+      schema: PatchPlanSchema,
     },
     metadata: {
       repository: input.repository,
       docArea: input.item.docArea,
-      mode: input.item.mode
-    }
+      mode: input.item.mode,
+    },
   });
 
   const finalSession = await pollUntilTerminal(input.apiKey, session.session_id);
@@ -125,7 +125,7 @@ async function executeSession(input: {
 
   const verification = verificationCommands.map((command: string, idx: number) => ({
     command,
-    result: verificationResults[idx] ?? "not reported"
+    result: verificationResults[idx] ?? "not reported",
   }));
 
   if (prUrl) {
@@ -134,7 +134,7 @@ async function executeSession(input: {
       summary: String(structured?.summary ?? "PR opened by Devin"),
       sessionUrl: session.url,
       prUrl,
-      verification
+      verification,
     };
   }
 
@@ -144,7 +144,7 @@ async function executeSession(input: {
       summary: String(structured?.blocked?.reason ?? structured?.summary ?? "Session blocked"),
       sessionUrl: session.url,
       questions: inferQuestions(structured),
-      verification
+      verification,
     };
   }
 
@@ -152,7 +152,7 @@ async function executeSession(input: {
     outcome: "NO_CHANGE",
     summary: String(structured?.summary ?? "Session completed without PR"),
     sessionUrl: session.url,
-    verification
+    verification,
   };
 }
 
@@ -169,7 +169,7 @@ export async function runDetect(options: DetectOptions): Promise<{ hasDrift: boo
     repo,
     baseSha: options.baseSha,
     headSha: options.headSha,
-    trigger: options.trigger ?? "manual"
+    trigger: options.trigger ?? "manual",
   });
 
   logInfo(`Drift items detected: ${report.items.length}`);
@@ -192,7 +192,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     repo,
     baseSha: options.baseSha,
     headSha: options.headSha,
-    trigger: options.trigger ?? "manual"
+    trigger: options.trigger ?? "manual",
   });
 
   const docAreaByName = new Map(config.docAreas.map((area) => [area.name, area]));
@@ -207,7 +207,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     blockedCount: 0,
     timeToSessionTerminalMs: [] as number[],
     docAreaCounts: {} as Record<string, number>,
-    noiseRateProxy: 0
+    noiseRateProxy: 0,
   };
 
   for (const item of report.items) {
@@ -225,7 +225,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       state,
       repo,
       baseSha: options.baseSha,
-      headSha: options.headSha
+      headSha: options.headSha,
     });
 
     if (decision.action === "NOOP") {
@@ -233,7 +233,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         docArea: item.docArea,
         decision,
         outcome: "NO_CHANGE",
-        summary: decision.reason
+        summary: decision.reason,
       });
       continue;
     }
@@ -250,7 +250,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         decision,
         outcome,
         summary,
-        prUrl: existingPr
+        prUrl: existingPr,
       });
 
       state = applyDecisionToState({
@@ -258,7 +258,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         decision,
         docArea: item.docArea,
         outcome,
-        link: existingPr
+        link: existingPr,
       });
       continue;
     }
@@ -269,7 +269,10 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     let sessionOutcome: SessionOutcome = {
       outcome: "NO_CHANGE",
       summary: "Skipped Devin session",
-      verification: config.policy.verification.commands.map((command) => ({ command, result: "not run" }))
+      verification: config.policy.verification.commands.map((command) => ({
+        command,
+        result: "not run",
+      })),
     };
 
     if (devinApiKey) {
@@ -279,7 +282,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         repository: repo,
         item,
         attachmentPaths,
-        config
+        config,
       });
       metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
     } else {
@@ -288,14 +291,19 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         outcome: "BLOCKED",
         summary: "DEVIN_API_KEY missing; cannot start Devin session",
         questions: ["Set DEVIN_API_KEY in environment or GitHub Actions secrets"],
-        verification: config.policy.verification.commands.map((command) => ({ command, result: "not run" }))
+        verification: config.policy.verification.commands.map((command) => ({
+          command,
+          result: "not run",
+        })),
       };
     }
 
     let issueUrl: string | undefined;
     if (
       githubToken &&
-      (decision.action === "OPEN_ISSUE" || sessionOutcome.outcome === "BLOCKED" || sessionOutcome.outcome === "NO_CHANGE")
+      (decision.action === "OPEN_ISSUE" ||
+        sessionOutcome.outcome === "BLOCKED" ||
+        sessionOutcome.outcome === "NO_CHANGE")
     ) {
       issueUrl = await createIssue({
         token: githubToken,
@@ -305,11 +313,13 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
           body: renderBlockedIssueBody({
             docArea: item.docArea,
             evidenceSummary: item.summary,
-            questions: sessionOutcome.questions ?? ["Please confirm intended behavior and doc wording."],
-            sessionUrl: sessionOutcome.sessionUrl
+            questions: sessionOutcome.questions ?? [
+              "Please confirm intended behavior and doc wording.",
+            ],
+            sessionUrl: sessionOutcome.sessionUrl,
           }),
-          labels: ["docdrift"]
-        }
+          labels: ["docdrift"],
+        },
       });
       metrics.issuesOpened += 1;
       sessionOutcome.outcome = "ISSUE_OPENED";
@@ -329,7 +339,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       summary: sessionOutcome.summary,
       sessionUrl: sessionOutcome.sessionUrl,
       prUrl: sessionOutcome.prUrl,
-      issueUrl
+      issueUrl,
     };
     results.push(result);
 
@@ -342,14 +352,14 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         sessionUrl: sessionOutcome.sessionUrl,
         prUrl: sessionOutcome.prUrl,
         issueUrl,
-        validation: sessionOutcome.verification
+        validation: sessionOutcome.verification,
       });
 
       await postCommitComment({
         token: githubToken,
         repository: repo,
         commitSha,
-        body
+        body,
       });
     }
 
@@ -358,19 +368,21 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       decision,
       docArea: item.docArea,
       outcome: sessionOutcome.outcome,
-      link: sessionOutcome.prUrl ?? issueUrl
+      link: sessionOutcome.prUrl ?? issueUrl,
     });
   }
 
   saveState(state);
 
   metrics.noiseRateProxy =
-    metrics.driftItemsDetected === 0 ? 0 : Number((metrics.prsOpened / metrics.driftItemsDetected).toFixed(4));
+    metrics.driftItemsDetected === 0
+      ? 0
+      : Number((metrics.prsOpened / metrics.driftItemsDetected).toFixed(4));
 
   writeMetrics(metrics);
   logInfo("Run complete", {
     items: report.items.length,
-    elapsedMs: Date.now() - startedAt
+    elapsedMs: Date.now() - startedAt,
   });
 
   return results;

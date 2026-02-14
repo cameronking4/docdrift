@@ -1,0 +1,1 @@
+{"parameters":[{"name":"path","in":"query","required":true,"schema":{"type":"string"}},{"name":"format","in":"query","required":true,"schema":{"type":"string","enum":["SOURCE","HTML","JUPYTER"]}}]}

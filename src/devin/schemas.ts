@@ -10,7 +10,7 @@ export const PatchPlanSchema = {
     "evidence",
     "filesToEdit",
     "verification",
-    "nextAction"
+    "nextAction",
   ],
   properties: {
     status: { enum: ["PLANNING", "EDITING", "VERIFYING", "OPENED_PR", "BLOCKED", "DONE"] },
@@ -24,8 +24,8 @@ export const PatchPlanSchema = {
       required: ["attachments", "diffSummary"],
       properties: {
         attachments: { type: "array", items: { type: "string" } },
-        diffSummary: { type: "string" }
-      }
+        diffSummary: { type: "string" },
+      },
     },
     filesToEdit: { type: "array", items: { type: "string" } },
     verification: {
@@ -34,8 +34,8 @@ export const PatchPlanSchema = {
       required: ["commands"],
       properties: {
         commands: { type: "array", items: { type: "string" } },
-        results: { type: "array", items: { type: "string" } }
-      }
+        results: { type: "array", items: { type: "string" } },
+      },
     },
     nextAction: { enum: ["OPEN_PR", "OPEN_ISSUE", "NOOP"] },
     pr: {
@@ -43,18 +43,18 @@ export const PatchPlanSchema = {
       additionalProperties: false,
       properties: {
         title: { type: "string" },
-        url: { type: "string" }
-      }
+        url: { type: "string" },
+      },
     },
     blocked: {
       type: "object",
       additionalProperties: false,
       properties: {
         reason: { type: "string" },
-        questions: { type: "array", items: { type: "string" } }
-      }
-    }
-  }
+        questions: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
 } as const;
 
 export const PatchResultSchema = {
@@ -72,8 +72,8 @@ export const PatchResultSchema = {
       required: ["commands", "results"],
       properties: {
         commands: { type: "array", items: { type: "string" } },
-        results: { type: "array", items: { type: "string" } }
-      }
+        results: { type: "array", items: { type: "string" } },
+      },
     },
     links: {
       type: "object",
@@ -82,16 +82,16 @@ export const PatchResultSchema = {
       properties: {
         sessionUrl: { type: "string" },
         prUrl: { type: "string" },
-        issueUrl: { type: "string" }
-      }
+        issueUrl: { type: "string" },
+      },
     },
     blocked: {
       type: "object",
       additionalProperties: false,
       properties: {
         reason: { type: "string" },
-        questions: { type: "array", items: { type: "string" } }
-      }
-    }
-  }
+        questions: { type: "array", items: { type: "string" } },
+      },
+    },
+  },
 } as const;

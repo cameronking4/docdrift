@@ -1,0 +1,35 @@
+{
+  "id": "api/create-or-overwrite-notebook",
+  "title": "Create or overwrite notebook",
+  "description": "Create or overwrite notebook",
+  "source": "@site/docs/api/create-or-overwrite-notebook.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/create-or-overwrite-notebook",
+  "permalink": "/docs/api/create-or-overwrite-notebook",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "create-or-overwrite-notebook",
+    "title": "Create or overwrite notebook",
+    "description": "Create or overwrite notebook",
+    "sidebar_label": "Create or overwrite notebook",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJzNVEuT2jAM/isZnbM8euRGKTPbdrtQHocOw8FJBDEktms7sEwm/71S2E2yjynTW3NwbFnfZ+mT7BK82DsYbeBRe4y0PjrYhmDxd4HOf9bJBUYlxFp5VJ6nwphMxsJLrfoHpxXbXJxiLnjmLwZhBDo6YOwhBGO1QeslOt41wqcdL+etVHuoQsiE2hdij+83Q0BV5Bzf/NfqfvZIhuXPBx4n44cx/RewJYJOgG/Iq2sy0mLCLHUInQO3VXV1cUYrdw3z02DAvwRdbKXhTIlv9h3C/1+Hnba5+ECGFr6crReTKRnuVz8Y/21NhNNbKtKeReExGX9I/nIsJORz52WODMl1InfyXzA3itWA6qqR8+sSTeoQA20DfUJ7tpIW6rmrCZujTzXxginqktRFgP5p2FdN64fAtVy03T99ErnJsK1am0BbrLYmjYId5aTa6VoA6ZkIvggvll7Ex2A8/0oYitVdExj2Br0BvE1rMV2u2DWg5IMGPArO2h6dETG6MIh1TllhEGeF88QXBgcd0dhkFgZCJQG1THAWFlNdUK/3ODqjnc9F3b5K5HhbxlfBNWX1+OT7JhNSMWlhs1axDZyGhFPd9yWlU3mnLCPhcG2zqmIzyW7pwdnQ9CSsFBELtuHWTFEkaGlRwhEvHOVV6bsVn8/uWcFxvLuWVfiCGMcxGv9X322nS+brFflGzy8g9TJDrDiTkccR0ETXMtR3uraV3aa4UvL3B5Rx0MQ=",
+    "sidebar_class_name": "put api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Create cluster",
+    "permalink": "/docs/api/create-cluster"
+  },
+  "next": {
+    "title": "Export notebook",
+    "permalink": "/docs/api/export-notebook"
+  }
+}

@@ -83,7 +83,7 @@ export function decidePolicy(input: {
     docArea: item.docArea,
     baseSha: input.baseSha,
     headSha: input.headSha,
-    action
+    action,
   });
 
   if (state.idempotency[idempotencyKey]) {
@@ -91,7 +91,7 @@ export function decidePolicy(input: {
       action: "NOOP",
       confidence,
       reason: "Idempotency key already processed",
-      idempotencyKey
+      idempotencyKey,
     };
   }
 
@@ -99,7 +99,7 @@ export function decidePolicy(input: {
     action,
     confidence,
     reason,
-    idempotencyKey
+    idempotencyKey,
   };
 }
 
@@ -117,7 +117,7 @@ export function applyDecisionToState(input: {
     createdAt: new Date().toISOString(),
     action: input.decision.action,
     outcome: input.outcome,
-    link: input.link
+    link: input.link,
   };
   next.idempotency[input.decision.idempotencyKey] = record;
 

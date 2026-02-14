@@ -1,0 +1,35 @@
+{
+  "id": "api/get-a-user",
+  "title": "Get a user",
+  "description": "Get a user",
+  "source": "@site/docs/api/get-a-user.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/get-a-user",
+  "permalink": "/docs/api/get-a-user",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "get-a-user",
+    "title": "Get a user",
+    "description": "Get a user",
+    "sidebar_label": "Get a user",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJxtUk1vgzAM/Ssop01Che7IrdKmadph0z5OVQ9ucEtaStLEoCHEf58NXdWO5hInzx/v2e6UAw8HJPRBZctOVfxQmTK5ipWp2HJABdsej7XxmKuMfI2xCrrAA6isU9Q6iQjkTbVVfb8S5+BsFTAI/pCmcuUYtDeOjJWsb6+cU9uKsCJBwbnSaBA02QVx6aYl7HqHmjjQeevQkxkLMNcpjfik5AbASU15i/mlyuXYgiHJX8iqlxP/k/KMFEFUB/TsyJ0sLIerLQ5EpXmZSpp5Ig4h6UzeD53d2IGBoVIoPALBJ4HeR4v3F8Yb9h2zz2fpLBXWzgY6wNCY04yuCl9xOksj/KHElcCT5BS1H2SPpJaqmXPcQIvvjOXy5AquIljXrSHgty/7Xr6PNfqW/9lswBtYC2veltwEsVnwBsqAExrnCau7j1Nr7yOudpPe6ROqVjoAZS0vNvfYjhvZr9irQMhZsVQfgYXW6OgiZLJLspLnwTw/ffGofwHObvx+",
+    "sidebar_class_name": "get api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Get a user by ID",
+    "permalink": "/docs/api/get-a-user-by-id"
+  },
+  "next": {
+    "title": "Get cluster by ID",
+    "permalink": "/docs/api/get-cluster-by-id"
+  }
+}

@@ -44,8 +44,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-        run: |
-          npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} | tee .docdrift/run-output.json
+        run: npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
 
       - name: Show Devin session URLs
         if: success()

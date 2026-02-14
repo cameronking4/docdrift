@@ -74,7 +74,7 @@ export async function detectOpenApiDrift(
       "\n--- stdout ---",
       exportResult.stdout,
       "\n--- stderr ---",
-      exportResult.stderr
+      exportResult.stderr,
     ].join("\n"),
     "utf8"
   );
@@ -88,8 +88,8 @@ export async function detectOpenApiDrift(
         kind: "weak_evidence",
         tier: 2,
         confidence: 0.35,
-        evidence: [exportLogPath]
-      }
+        evidence: [exportLogPath],
+      },
     };
   }
 
@@ -102,8 +102,8 @@ export async function detectOpenApiDrift(
         kind: "weak_evidence",
         tier: 2,
         confidence: 0.35,
-        evidence: [exportLogPath]
-      }
+        evidence: [exportLogPath],
+      },
     };
   }
 
@@ -119,7 +119,7 @@ export async function detectOpenApiDrift(
     return {
       impactedDocs: [openapi.publishedPath],
       evidenceFiles: [exportLogPath],
-      summary: "No OpenAPI drift detected"
+      summary: "No OpenAPI drift detected",
     };
   }
 
@@ -135,7 +135,7 @@ export async function detectOpenApiDrift(
       normalizedPublished,
       "",
       "# Generated (normalized)",
-      normalizedGenerated
+      normalizedGenerated,
     ].join("\n"),
     "utf8"
   );
@@ -148,7 +148,7 @@ export async function detectOpenApiDrift(
       kind: "openapi_diff",
       tier: 1,
       confidence: 0.95,
-      evidence: [diffPath]
-    }
+      evidence: [diffPath],
+    },
   };
 }
