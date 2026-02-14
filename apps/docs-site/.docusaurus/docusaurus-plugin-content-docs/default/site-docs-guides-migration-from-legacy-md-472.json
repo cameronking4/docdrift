@@ -1,0 +1,26 @@
+{
+  "id": "guides/migration-from-legacy",
+  "title": "Migration from legacy platforms",
+  "description": "If you are moving from an older data platform (on-prem Hadoop, legacy ETL, or a previous cloud offering), this guide outlines how to map concepts to DataStack and use the API to automate migration.",
+  "source": "@site/docs/guides/migration-from-legacy.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/migration-from-legacy",
+  "permalink": "/docs/guides/migration-from-legacy",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 7,
+  "frontMatter": {
+    "sidebar_position": 7
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Rate limits and quotas",
+    "permalink": "/docs/guides/rate-limits-and-quotas"
+  },
+  "next": {
+    "title": "Support and SLA",
+    "permalink": "/docs/guides/support-and-sla"
+  }
+}

@@ -1,34 +1,24 @@
 import path from "node:path";
-import { DocDriftConfig } from "../config/schema";
-import { DriftItem, DriftReport, RunInfo, Signal } from "../model/types";
+import type { NormalizedDocDriftConfig } from "../config/schema";
+import { AggregatedDriftResult, DriftItem, DriftReport, RunInfo, Signal } from "../model/types";
 import { ensureDir, writeJsonFile } from "../utils/fs";
 import { gitChangedPaths, gitCommitList, gitDiffSummary } from "../utils/git";
-import { runDocsChecks } from "./docsCheck";
 import { detectHeuristicImpacts } from "./heuristics";
-import { detectOpenApiDrift } from "./openapi";
-
-function defaultRecommendation(mode: "autogen" | "conceptual", signals: Signal[]): DriftItem["recommendedAction"] {
-  if (!signals.length) {
-    return "NOOP";
-  }
-  if (mode === "autogen") {
-    return signals.some((s) => s.tier <= 1) ? "OPEN_PR" : "OPEN_ISSUE";
-  }
-  return "OPEN_ISSUE";
-}
+import { detectOpenApiDriftFromNormalized } from "./openapi";
 
 export async function buildDriftReport(input: {
-  config: DocDriftConfig;
+  config: NormalizedDocDriftConfig;
   repo: string;
   baseSha: string;
   headSha: string;
   trigger: RunInfo["trigger"];
 }): Promise<{
   report: DriftReport;
+  aggregated: AggregatedDriftResult | null;
   changedPaths: string[];
   evidenceRoot: string;
   runInfo: RunInfo;
-  checkSummaries: string[];
+  hasOpenApiDrift: boolean;
 }> {
   const runInfo: RunInfo = {
     runId: `${Date.now()}`,
@@ -36,7 +26,7 @@ export async function buildDriftReport(input: {
     baseSha: input.baseSha,
     headSha: input.headSha,
     trigger: input.trigger,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   const evidenceRoot = path.resolve(".docdrift", "evidence", runInfo.runId);
@@ -46,30 +36,44 @@ export async function buildDriftReport(input: {
   const diffSummary = await gitDiffSummary(input.baseSha, input.headSha);
   const commits = await gitCommitList(input.baseSha, input.headSha);
 
-  const docsCheck = await runDocsChecks(input.config.policy.verification.commands, evidenceRoot);
+  writeJsonFile(path.join(evidenceRoot, "changeset.json"), {
+    changedPaths,
+    diffSummary,
+    commits,
+  });
 
-  const items: DriftItem[] = [];
-  const checkSummaries: string[] = [docsCheck.summary];
+  // Gate: run OpenAPI detection first. If no OpenAPI drift, exit (no session).
+  const openapiResult = await detectOpenApiDriftFromNormalized(input.config, evidenceRoot);
+
+  if (!openapiResult.signal) {
+    // No OpenAPI drift — gate closed. Return empty.
+    const report: DriftReport = {
+      run: {
+        repo: input.repo,
+        baseSha: input.baseSha,
+        headSha: input.headSha,
+        trigger: input.trigger,
+        timestamp: runInfo.timestamp,
+      },
+      items: [],
+    };
+    writeJsonFile(path.resolve(".docdrift", "drift_report.json"), report);
+    return {
+      report,
+      aggregated: null,
+      changedPaths,
+      evidenceRoot,
+      runInfo,
+      hasOpenApiDrift: false,
+    };
+  }
+
+  // Gate passed: aggregate signals and impacted docs.
+  const signals: Signal[] = [openapiResult.signal];
+  const impactedDocs = new Set<string>(openapiResult.impactedDocs);
+  const summaries: string[] = [openapiResult.summary];
 
   for (const docArea of input.config.docAreas) {
-    const signals: Signal[] = [];
-    const impactedDocs = new Set<string>(docArea.patch.targets ?? []);
-    const summaries: string[] = [];
-
-    if (docsCheck.signal) {
-      signals.push(docsCheck.signal);
-      summaries.push(docsCheck.summary);
-    }
-
-    if (docArea.detect.openapi) {
-      const openapiResult = await detectOpenApiDrift(docArea, evidenceRoot);
-      if (openapiResult.signal) {
-        signals.push(openapiResult.signal);
-      }
-      openapiResult.impactedDocs.forEach((doc) => impactedDocs.add(doc));
-      summaries.push(openapiResult.summary);
-    }
-
     if (docArea.detect.paths?.length) {
       const heuristicResult = detectHeuristicImpacts(docArea, changedPaths, evidenceRoot);
       if (heuristicResult.signal) {
@@ -78,20 +82,22 @@ export async function buildDriftReport(input: {
       heuristicResult.impactedDocs.forEach((doc) => impactedDocs.add(doc));
       summaries.push(heuristicResult.summary);
     }
-
-    if (!signals.length) {
-      continue;
-    }
-
-    items.push({
-      docArea: docArea.name,
-      mode: docArea.mode,
-      signals,
-      impactedDocs: [...impactedDocs],
-      recommendedAction: defaultRecommendation(docArea.mode, signals),
-      summary: summaries.filter(Boolean).join(" | ")
-    });
   }
+
+  const aggregated: AggregatedDriftResult = {
+    signals,
+    impactedDocs: [...impactedDocs],
+    summary: summaries.filter(Boolean).join(" | "),
+  };
+
+  const item: DriftItem = {
+    docArea: "docsite",
+    mode: "autogen",
+    signals: aggregated.signals,
+    impactedDocs: aggregated.impactedDocs,
+    recommendedAction: aggregated.signals.some((s) => s.tier <= 1) ? "OPEN_PR" : "OPEN_ISSUE",
+    summary: aggregated.summary,
+  };
 
   const report: DriftReport = {
     run: {
@@ -99,17 +105,19 @@ export async function buildDriftReport(input: {
       baseSha: input.baseSha,
       headSha: input.headSha,
       trigger: input.trigger,
-      timestamp: runInfo.timestamp
+      timestamp: runInfo.timestamp,
     },
-    items
+    items: [item],
   };
 
   writeJsonFile(path.resolve(".docdrift", "drift_report.json"), report);
-  writeJsonFile(path.join(evidenceRoot, "changeset.json"), {
-    changedPaths,
-    diffSummary,
-    commits
-  });
 
-  return { report, changedPaths, evidenceRoot, runInfo, checkSummaries };
+  return {
+    report,
+    aggregated,
+    changedPaths,
+    evidenceRoot,
+    runInfo,
+    hasOpenApiDrift: true,
+  };
 }

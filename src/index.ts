@@ -1,25 +1,30 @@
 import path from "node:path";
-import { loadConfig } from "./config/load";
+import type { DocAreaConfig } from "./config/schema";
+import { loadConfig, loadNormalizedConfig } from "./config/load";
 import { validateRuntimeConfig } from "./config/validate";
 import { buildDriftReport } from "./detect";
 import { buildEvidenceBundle, writeMetrics } from "./evidence/bundle";
 import {
   createIssue,
+  listOpenPrsWithLabel,
   postCommitComment,
   renderBlockedIssueBody,
-  renderRunComment
+  renderRequireHumanReviewIssueBody,
+  renderRunComment,
+  renderSlaIssueBody,
 } from "./github/client";
 import { RunResult } from "./model/types";
 import { decidePolicy, applyDecisionToState } from "./policy/engine";
 import { loadState, saveState } from "./policy/state";
 import { logInfo, logWarn } from "./utils/log";
-import { buildAutogenPrompt, buildConceptualPrompt } from "./devin/prompts";
+import { buildAutogenPrompt, buildConceptualPrompt, buildWholeDocsitePrompt } from "./devin/prompts";
+import { matchesGlob } from "./utils/glob";
 import { PatchPlanSchema } from "./devin/schemas";
 import {
   devinCreateSession,
   devinListSessions,
   devinUploadAttachment,
-  pollUntilTerminal
+  pollUntilTerminal,
 } from "./devin/v1";
 
 interface DetectOptions {
@@ -62,16 +67,17 @@ function inferQuestions(structured: any): string[] {
   }
   return [
     "Which conceptual docs should be updated for this behavior change?",
-    "What are the exact user-visible semantics after this merge?"
+    "What are the exact user-visible semantics after this merge?",
   ];
 }
 
-async function executeSession(input: {
+async function executeSessionSingle(input: {
   apiKey: string;
   repository: string;
-  item: any;
+  item: { docArea: string; mode: string };
+  aggregated: import("./model/types").AggregatedDriftResult;
   attachmentPaths: string[];
-  config: ReturnType<typeof loadConfig>;
+  config: import("./config/schema").NormalizedDocDriftConfig;
 }): Promise<SessionOutcome> {
   const attachmentUrls: string[] = [];
   for (const attachmentPath of input.attachmentPaths) {
@@ -79,22 +85,11 @@ async function executeSession(input: {
     attachmentUrls.push(url);
   }
 
-  const prompt =
-    input.item.mode === "autogen"
-      ? buildAutogenPrompt({
-          item: input.item,
-          attachmentUrls,
-          verificationCommands: input.config.policy.verification.commands,
-          allowlist: input.config.policy.allowlist,
-          confidenceThreshold: input.config.policy.confidence.autopatchThreshold
-        })
-      : buildConceptualPrompt({
-          item: input.item,
-          attachmentUrls,
-          verificationCommands: input.config.policy.verification.commands,
-          allowlist: input.config.policy.allowlist,
-          confidenceThreshold: input.config.policy.confidence.autopatchThreshold
-        });
+  const prompt = buildWholeDocsitePrompt({
+    aggregated: input.aggregated,
+    config: input.config,
+    attachmentUrls,
+  });
 
   const session = await devinCreateSession(input.apiKey, {
     prompt,
@@ -103,13 +98,13 @@ async function executeSession(input: {
     tags: [...new Set([...(input.config.devin.tags ?? []), "docdrift", input.item.docArea])],
     attachments: attachmentUrls,
     structured_output: {
-      schema: PatchPlanSchema
+      schema: PatchPlanSchema,
     },
     metadata: {
       repository: input.repository,
       docArea: input.item.docArea,
-      mode: input.item.mode
-    }
+      mode: input.item.mode,
+    },
   });
 
   const finalSession = await pollUntilTerminal(input.apiKey, session.session_id);
@@ -125,7 +120,7 @@ async function executeSession(input: {
 
   const verification = verificationCommands.map((command: string, idx: number) => ({
     command,
-    result: verificationResults[idx] ?? "not reported"
+    result: verificationResults[idx] ?? "not reported",
   }));
 
   if (prUrl) {
@@ -134,7 +129,7 @@ async function executeSession(input: {
       summary: String(structured?.summary ?? "PR opened by Devin"),
       sessionUrl: session.url,
       prUrl,
-      verification
+      verification,
     };
   }
 
@@ -144,7 +139,7 @@ async function executeSession(input: {
       summary: String(structured?.blocked?.reason ?? structured?.summary ?? "Session blocked"),
       sessionUrl: session.url,
       questions: inferQuestions(structured),
-      verification
+      verification,
     };
   }
 
@@ -152,7 +147,7 @@ async function executeSession(input: {
     outcome: "NO_CHANGE",
     summary: String(structured?.summary ?? "Session completed without PR"),
     sessionUrl: session.url,
-    verification
+    verification,
   };
 }
 
@@ -163,16 +158,17 @@ export async function runDetect(options: DetectOptions): Promise<{ hasDrift: boo
     throw new Error(`Config validation failed:\n${runtimeValidation.errors.join("\n")}`);
   }
   const repo = process.env.GITHUB_REPOSITORY ?? "local/docdrift";
+  const normalized = loadNormalizedConfig();
 
-  const { report } = await buildDriftReport({
-    config,
+  const { report, hasOpenApiDrift } = await buildDriftReport({
+    config: normalized,
     repo,
     baseSha: options.baseSha,
     headSha: options.headSha,
-    trigger: options.trigger ?? "manual"
+    trigger: options.trigger ?? "manual",
   });
 
-  logInfo(`Drift items detected: ${report.items.length}`);
+  logInfo(`Drift items detected: ${report.items.length} (hasOpenApiDrift: ${hasOpenApiDrift})`);
   return { hasDrift: report.items.length > 0 };
 }
 
@@ -182,195 +178,258 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
   if (runtimeValidation.errors.length) {
     throw new Error(`Config validation failed:\n${runtimeValidation.errors.join("\n")}`);
   }
+  const normalized = loadNormalizedConfig();
   const repo = process.env.GITHUB_REPOSITORY ?? "local/docdrift";
   const commitSha = process.env.GITHUB_SHA ?? options.headSha;
   const githubToken = process.env.GITHUB_TOKEN;
   const devinApiKey = process.env.DEVIN_API_KEY;
 
-  const { report, runInfo, evidenceRoot } = await buildDriftReport({
-    config,
-    repo,
-    baseSha: options.baseSha,
-    headSha: options.headSha,
-    trigger: options.trigger ?? "manual"
-  });
+  const { report, aggregated, runInfo, evidenceRoot, hasOpenApiDrift } =
+    await buildDriftReport({
+      config: normalized,
+      repo,
+      baseSha: options.baseSha,
+      headSha: options.headSha,
+      trigger: options.trigger ?? "manual",
+    });
 
-  const docAreaByName = new Map(config.docAreas.map((area) => [area.name, area]));
+  // Gate: no OpenAPI drift — exit early, no session
+  if (!hasOpenApiDrift || report.items.length === 0) {
+    logInfo("No OpenAPI drift; skipping session");
+    return [];
+  }
+
+  const item = report.items[0]!;
+  const docAreaConfig: DocAreaConfig = {
+    name: "docsite",
+    mode: "autogen",
+    owners: { reviewers: [] },
+    detect: { openapi: { exportCmd: normalized.openapi.export, generatedPath: normalized.openapi.generated, publishedPath: normalized.openapi.published }, paths: [] },
+    patch: { targets: [], requireHumanConfirmation: false },
+  };
 
   let state = loadState();
   const startedAt = Date.now();
   const results: RunResult[] = [];
   const metrics = {
-    driftItemsDetected: report.items.length,
+    driftItemsDetected: 1,
     prsOpened: 0,
     issuesOpened: 0,
     blockedCount: 0,
     timeToSessionTerminalMs: [] as number[],
-    docAreaCounts: {} as Record<string, number>,
-    noiseRateProxy: 0
+    docAreaCounts: { docsite: 1 },
+    noiseRateProxy: 0,
   };
 
-  for (const item of report.items) {
-    metrics.docAreaCounts[item.docArea] = (metrics.docAreaCounts[item.docArea] ?? 0) + 1;
+  const decision = decidePolicy({
+    item,
+    docAreaConfig,
+    config,
+    state,
+    repo,
+    baseSha: options.baseSha,
+    headSha: options.headSha,
+  });
 
-    const areaConfig = docAreaByName.get(item.docArea);
-    if (!areaConfig) {
-      continue;
-    }
-
-    const decision = decidePolicy({
-      item,
-      docAreaConfig: areaConfig,
-      config,
-      state,
-      repo,
-      baseSha: options.baseSha,
-      headSha: options.headSha
-    });
-
-    if (decision.action === "NOOP") {
-      results.push({
-        docArea: item.docArea,
-        decision,
-        outcome: "NO_CHANGE",
-        summary: decision.reason
-      });
-      continue;
-    }
-
-    if (decision.action === "UPDATE_EXISTING_PR") {
-      const existingPr = state.areaLatestPr[item.docArea];
-      const summary = existingPr
-        ? `Bundled into existing PR: ${existingPr}`
-        : "PR cap reached and no existing area PR; escalated";
-      const outcome = existingPr ? "NO_CHANGE" : "BLOCKED";
-
-      results.push({
-        docArea: item.docArea,
-        decision,
-        outcome,
-        summary,
-        prUrl: existingPr
-      });
-
-      state = applyDecisionToState({
-        state,
-        decision,
-        docArea: item.docArea,
-        outcome,
-        link: existingPr
-      });
-      continue;
-    }
-
-    const bundle = await buildEvidenceBundle({ runInfo, item, evidenceRoot });
-    const attachmentPaths = [...new Set([bundle.archivePath, ...bundle.attachmentPaths])];
-
-    let sessionOutcome: SessionOutcome = {
+  if (decision.action === "NOOP") {
+    results.push({
+      docArea: item.docArea,
+      decision,
       outcome: "NO_CHANGE",
-      summary: "Skipped Devin session",
-      verification: config.policy.verification.commands.map((command) => ({ command, result: "not run" }))
+      summary: decision.reason,
+    });
+    writeMetrics(metrics);
+    return results;
+  }
+
+  if (decision.action === "UPDATE_EXISTING_PR") {
+    const existingPr = state.areaLatestPr["docsite"];
+    results.push({
+      docArea: item.docArea,
+      decision,
+      outcome: existingPr ? "NO_CHANGE" : "BLOCKED",
+      summary: existingPr ? `Bundled into existing PR: ${existingPr}` : "PR cap reached",
+      prUrl: existingPr,
+    });
+    state = applyDecisionToState({
+      state,
+      decision,
+      docArea: "docsite",
+      outcome: existingPr ? "NO_CHANGE" : "BLOCKED",
+      link: existingPr,
+    });
+    saveState(state);
+    writeMetrics(metrics);
+    return results;
+  }
+
+  const bundle = await buildEvidenceBundle({ runInfo, item, evidenceRoot });
+  const attachmentPaths = [...new Set([bundle.archivePath, ...bundle.attachmentPaths])];
+
+  let sessionOutcome: SessionOutcome = {
+    outcome: "NO_CHANGE",
+    summary: "Skipped Devin session",
+    verification: normalized.policy.verification.commands.map((command) => ({
+      command,
+      result: "not run",
+    })),
+  };
+
+  if (devinApiKey) {
+    const sessionStart = Date.now();
+    sessionOutcome = await executeSessionSingle({
+      apiKey: devinApiKey,
+      repository: repo,
+      item,
+      aggregated: aggregated!,
+      attachmentPaths,
+      config: normalized,
+    });
+    metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
+  } else {
+    logWarn("DEVIN_API_KEY not set; running fallback behavior", { docArea: item.docArea });
+    sessionOutcome = {
+      outcome: "BLOCKED",
+      summary: "DEVIN_API_KEY missing; cannot start Devin session",
+      questions: ["Set DEVIN_API_KEY in environment or GitHub Actions secrets"],
+      verification: normalized.policy.verification.commands.map((command) => ({
+        command,
+        result: "not run",
+      })),
     };
+  }
 
-    if (devinApiKey) {
-      const sessionStart = Date.now();
-      sessionOutcome = await executeSession({
-        apiKey: devinApiKey,
-        repository: repo,
-        item,
-        attachmentPaths,
-        config
-      });
-      metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
-    } else {
-      logWarn("DEVIN_API_KEY not set; running fallback behavior", { docArea: item.docArea });
-      sessionOutcome = {
-        outcome: "BLOCKED",
-        summary: "DEVIN_API_KEY missing; cannot start Devin session",
-        questions: ["Set DEVIN_API_KEY in environment or GitHub Actions secrets"],
-        verification: config.policy.verification.commands.map((command) => ({ command, result: "not run" }))
-      };
-    }
+  let issueUrl: string | undefined;
 
-    let issueUrl: string | undefined;
-    if (
-      githubToken &&
-      (decision.action === "OPEN_ISSUE" || sessionOutcome.outcome === "BLOCKED" || sessionOutcome.outcome === "NO_CHANGE")
-    ) {
+  if (sessionOutcome.outcome === "PR_OPENED" && sessionOutcome.prUrl) {
+    metrics.prsOpened += 1;
+    state.lastDocDriftPrUrl = sessionOutcome.prUrl;
+    state.lastDocDriftPrOpenedAt = new Date().toISOString();
+
+    const touchedRequireReview = (item.impactedDocs ?? []).filter((p) =>
+      normalized.requireHumanReview.some((glob) => matchesGlob(glob, p))
+    );
+    if (githubToken && touchedRequireReview.length > 0) {
       issueUrl = await createIssue({
         token: githubToken,
         repository: repo,
         issue: {
-          title: `[docdrift] ${item.docArea}: docs drift requires input`,
-          body: renderBlockedIssueBody({
-            docArea: item.docArea,
-            evidenceSummary: item.summary,
-            questions: sessionOutcome.questions ?? ["Please confirm intended behavior and doc wording."],
-            sessionUrl: sessionOutcome.sessionUrl
+          title: "[docdrift] Docs out of sync — review doc drift PR",
+          body: renderRequireHumanReviewIssueBody({
+            prUrl: sessionOutcome.prUrl,
+            touchedPaths: touchedRequireReview,
           }),
-          labels: ["docdrift"]
-        }
+          labels: ["docdrift"],
+        },
       });
       metrics.issuesOpened += 1;
+    }
+  } else if (
+    githubToken &&
+    (decision.action === "OPEN_ISSUE" ||
+      sessionOutcome.outcome === "BLOCKED" ||
+      sessionOutcome.outcome === "NO_CHANGE")
+  ) {
+    issueUrl = await createIssue({
+      token: githubToken,
+      repository: repo,
+      issue: {
+        title: "[docdrift] docsite: docs drift requires input",
+        body: renderBlockedIssueBody({
+          docArea: item.docArea,
+          evidenceSummary: item.summary,
+          questions: sessionOutcome.questions ?? [
+            "Please confirm intended behavior and doc wording.",
+          ],
+          sessionUrl: sessionOutcome.sessionUrl,
+        }),
+        labels: ["docdrift"],
+      },
+    });
+    metrics.issuesOpened += 1;
+    if (sessionOutcome.outcome !== "PR_OPENED") {
       sessionOutcome.outcome = "ISSUE_OPENED";
     }
+  }
 
-    if (sessionOutcome.outcome === "PR_OPENED") {
-      metrics.prsOpened += 1;
-    }
-    if (sessionOutcome.outcome === "BLOCKED") {
-      metrics.blockedCount += 1;
-    }
+  if (sessionOutcome.outcome === "BLOCKED") {
+    metrics.blockedCount += 1;
+  }
 
-    const result: RunResult = {
-      docArea: item.docArea,
-      decision,
-      outcome: sessionOutcome.outcome,
-      summary: sessionOutcome.summary,
-      sessionUrl: sessionOutcome.sessionUrl,
-      prUrl: sessionOutcome.prUrl,
-      issueUrl
-    };
-    results.push(result);
+  const result: RunResult = {
+    docArea: item.docArea,
+    decision,
+    outcome: sessionOutcome.outcome,
+    summary: sessionOutcome.summary,
+    sessionUrl: sessionOutcome.sessionUrl,
+    prUrl: sessionOutcome.prUrl,
+    issueUrl,
+  };
+  results.push(result);
 
-    if (githubToken) {
-      const body = renderRunComment({
-        docArea: item.docArea,
-        summary: sessionOutcome.summary,
-        decision: decision.action,
-        outcome: sessionOutcome.outcome,
-        sessionUrl: sessionOutcome.sessionUrl,
-        prUrl: sessionOutcome.prUrl,
-        issueUrl,
-        validation: sessionOutcome.verification
-      });
+  state = applyDecisionToState({
+    state,
+    decision,
+    docArea: "docsite",
+    outcome: sessionOutcome.outcome,
+    link: sessionOutcome.prUrl ?? issueUrl,
+  });
 
-      await postCommitComment({
-        token: githubToken,
-        repository: repo,
-        commitSha,
-        body
-      });
-    }
-
-    state = applyDecisionToState({
-      state,
-      decision,
-      docArea: item.docArea,
-      outcome: sessionOutcome.outcome,
-      link: sessionOutcome.prUrl ?? issueUrl
-    });
+  if (sessionOutcome.outcome === "PR_OPENED" && sessionOutcome.prUrl) {
+    state.lastDocDriftPrUrl = sessionOutcome.prUrl;
+    state.lastDocDriftPrOpenedAt = new Date().toISOString();
   }
 
   saveState(state);
 
-  metrics.noiseRateProxy =
-    metrics.driftItemsDetected === 0 ? 0 : Number((metrics.prsOpened / metrics.driftItemsDetected).toFixed(4));
+  if (githubToken) {
+    const body = renderRunComment({
+      docArea: item.docArea,
+      summary: sessionOutcome.summary,
+      decision: decision.action,
+      outcome: sessionOutcome.outcome,
+      sessionUrl: sessionOutcome.sessionUrl,
+      prUrl: sessionOutcome.prUrl,
+      issueUrl,
+      validation: sessionOutcome.verification,
+    });
+    await postCommitComment({
+      token: githubToken,
+      repository: repo,
+      commitSha,
+      body,
+    });
+  }
 
+  const slaDays = normalized.policy.slaDays ?? 0;
+  if (githubToken && slaDays > 0 && state.lastDocDriftPrUrl && state.lastDocDriftPrOpenedAt) {
+    const openedAt = Date.parse(state.lastDocDriftPrOpenedAt);
+    const daysOld = (Date.now() - openedAt) / (24 * 60 * 60 * 1000);
+    const lastSla = state.lastSlaIssueOpenedAt ? Date.parse(state.lastSlaIssueOpenedAt) : 0;
+    const slaCooldown = 6 * 24 * 60 * 60 * 1000;
+    if (daysOld >= slaDays && Date.now() - lastSla > slaCooldown) {
+      const slaIssueUrl = await createIssue({
+        token: githubToken,
+        repository: repo,
+        issue: {
+          title: "[docdrift] Docs out of sync — merge doc drift PR(s)",
+          body: renderSlaIssueBody({
+            prUrls: [state.lastDocDriftPrUrl],
+            slaDays,
+          }),
+          labels: ["docdrift"],
+        },
+      });
+      state.lastSlaIssueOpenedAt = new Date().toISOString();
+      saveState(state);
+    }
+  }
+
+  metrics.noiseRateProxy = metrics.prsOpened;
   writeMetrics(metrics);
   logInfo("Run complete", {
-    items: report.items.length,
-    elapsedMs: Date.now() - startedAt
+    items: 1,
+    elapsedMs: Date.now() - startedAt,
   });
 
   return results;
@@ -384,6 +443,61 @@ export async function runValidate(): Promise<void> {
   }
   runtimeValidation.warnings.forEach((warning) => logWarn(warning));
   logInfo("Config is valid");
+}
+
+export async function runSlaCheck(): Promise<{ issueOpened: boolean }> {
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) {
+    throw new Error("GITHUB_TOKEN is required for sla-check command");
+  }
+  const repo = process.env.GITHUB_REPOSITORY;
+  if (!repo) {
+    throw new Error("GITHUB_REPOSITORY is required for sla-check command");
+  }
+  const normalized = loadNormalizedConfig();
+  const slaDays = normalized.policy.slaDays ?? 0;
+  const slaLabel = normalized.policy.slaLabel ?? "docdrift";
+
+  if (slaDays <= 0) {
+    logInfo("SLA check disabled (slaDays <= 0)");
+    return { issueOpened: false };
+  }
+
+  const cutoff = new Date(Date.now() - slaDays * 24 * 60 * 60 * 1000);
+
+  const openPrs = await listOpenPrsWithLabel(githubToken, repo, slaLabel);
+  const stalePrs = openPrs.filter((pr) => {
+    const created = pr.created_at ? Date.parse(pr.created_at) : Date.now();
+    return Number.isFinite(created) && created <= cutoff.getTime();
+  });
+
+  if (stalePrs.length === 0) {
+    logInfo("No doc-drift PRs open longer than slaDays; nothing to do");
+    return { issueOpened: false };
+  }
+
+  let state = loadState();
+  const lastSla = state.lastSlaIssueOpenedAt ? Date.parse(state.lastSlaIssueOpenedAt) : 0;
+  const slaCooldown = 6 * 24 * 60 * 60 * 1000;
+  if (Date.now() - lastSla < slaCooldown) {
+    logInfo("SLA issue cooldown; skipping");
+    return { issueOpened: false };
+  }
+
+  const prUrls = stalePrs.map((p) => p.url).filter(Boolean);
+  await createIssue({
+    token: githubToken,
+    repository: repo,
+    issue: {
+      title: "[docdrift] Docs out of sync — merge doc drift PR(s)",
+      body: renderSlaIssueBody({ prUrls, slaDays }),
+      labels: ["docdrift"],
+    },
+  });
+  state.lastSlaIssueOpenedAt = new Date().toISOString();
+  saveState(state);
+  logInfo(`Opened SLA issue for ${prUrls.length} stale PR(s)`);
+  return { issueOpened: true };
 }
 
 export async function runStatus(sinceHours = 24): Promise<void> {

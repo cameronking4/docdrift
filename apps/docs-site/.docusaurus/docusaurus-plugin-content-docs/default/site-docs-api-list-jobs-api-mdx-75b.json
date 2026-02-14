@@ -1,0 +1,35 @@
+{
+  "id": "api/list-jobs",
+  "title": "List jobs",
+  "description": "List jobs",
+  "source": "@site/docs/api/list-jobs.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/list-jobs",
+  "permalink": "/docs/api/list-jobs",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "list-jobs",
+    "title": "List jobs",
+    "description": "List jobs",
+    "sidebar_label": "List jobs",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJydVNtu2kAQ/RVrnt1AIvWFN5qgija3huQpQtFgD7Bgeze7YxKE+PfOGIdL7apRn+ydOWcuZ2dnA4yzAL1n+GEnAcYxOPSYE5NX6wYKOUAP3qxfBocJDVOIwRRiei3Jr+UQkjnlCL0N8NopNrA3xQy223hPz0xu+J9EUzDNyIsrpSmWGUPv4utxGDudBvqvON3tVnrzFJwtAgUFX3S7+kkpJN44NlZj3v0UVmIlQMHqRecyk6B6O4ugkE0zn50sKNGynLeOPJtdgoUqekCh96jlGqY8fIotWjeb2sa1Gg2949NeWvxaeVpmLeQ/uHDpbRHRuxPFglqELMCZFtDCpaLMdYbuBw/Du6vhpZhu+rdP/Wv5ubsdvDwObwYw1gKIWSifaD/JyiBDeCLBoZHCMk2sXd4jz1sBbHKyJY9I7jINbTLKXEHiCZnSPrc1NbU+R/FAKpgvGhAOlG/r1oGXCXstjadU1djdYH1dB/2O046Vw5Yxu7RlcVyGKDqpymzEDHBCkRBVL6f3d20CRzVYXvPcChtm1dtxlWbQWZ13aoApprZKbVhnA66QccSYLKP+/VD8K1kGu7DnZ92zbmNYHgajR4VGIlm0J/ei/dIIcZTY3JVMUX2vYtHkcfRxk/KLRRqNfl1Hb+hpbkt5pmequLOBc6wGul4Dx821jzzTO3dchqaa3NJn6ts1/gyrc+Et6nU3l+hq3GwmGOjJZ9utmne7RRdgagJOMlV/ilmgGJa0bizEFWal5gVdVn9hfOzAz2D3i+4AHuvBG0VLXfqY5oSpvkcpcsfqJwm5Y1Zje2mU/Th8HzzKfP0GSP4GhQ==",
+    "sidebar_class_name": "get api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "List clusters",
+    "permalink": "/docs/api/list-clusters"
+  },
+  "next": {
+    "title": "List notebooks",
+    "permalink": "/docs/api/list-notebooks"
+  }
+}

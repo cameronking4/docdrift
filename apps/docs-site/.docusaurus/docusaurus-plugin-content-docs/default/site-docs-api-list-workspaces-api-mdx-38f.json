@@ -1,0 +1,35 @@
+{
+  "id": "api/list-workspaces",
+  "title": "List workspaces",
+  "description": "List workspaces",
+  "source": "@site/docs/api/list-workspaces.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/list-workspaces",
+  "permalink": "/docs/api/list-workspaces",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "list-workspaces",
+    "title": "List workspaces",
+    "description": "List workspaces",
+    "sidebar_label": "List workspaces",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJyFVE2P2kAM/SvRnFM+VuqFG1rQCnW1pYVtDysOTmJgIJmZnXGgFOW/1yY0kIK6F8jMs9+zPbaPimAV1OBN/bR+GxykGNQiVg48FEjoBTsqwwc14NsVzvRvVLHShs/vJfoDH0K6xgLU4Kjo4MRQG8IVeoYyXEKZkxo8fK6quMU0t1s0H1IF8tqsVFVxVB6DsyZwiIw/9Hryl2FIvXakrdB8/cIcqWV5Q4KCc7lOQdDuJojJ8VbCJhtMiR2dtw496Vpgf6nIxRa8B4lTExbhYw6d3UklPlfhDuBxpesob6AMXW4PBSf26vO7FoGAynALxQpNWcgjDx/nkx9jvpi9zqbjl9F4xN/yMXl5UgumSD0CYTakeyxL6wtgRGVs84k051CdYn4vtcdMBDjfc3ZNLk1c1+wLcSRLkD/a0lyrcaQJd44UCX/RtOmTOx3Rlr56rhY1S1XVqX7XjfKsA0UtF273tWUmtcLTOwKt+dDd9bstM22W9hSMplyiGQHBjCDdRsPphPEdz0wt0e/0Oj31r/D38WwuphFXM2qcB1exxFFqC1cSRmleBpnBONrYhH+NJUys3fInmCyafXuO9uBxbUueiY7UzNlABZyqdZ6020Rb8TRVJa521+XA08g8Zd1idRHe1K7PfvvWhlizkkDHYwIBuSWrSq7rOZadkekASS5vs4Q8YKy2eGjvkB3kpUgrWQz/Mf+7KC72Czl4LQ6sJY27Rsi4bUS4dhymKTq68rpZBcLSPPrTeM4d9Qe8fLX+",
+    "sidebar_class_name": "get api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "List users with pagination",
+    "permalink": "/docs/api/list-users-with-pagination"
+  },
+  "next": {
+    "title": "Start SQL warehouse",
+    "permalink": "/docs/api/start-sql-warehouse"
+  }
+}

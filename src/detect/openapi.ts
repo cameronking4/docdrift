@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DocAreaConfig } from "../config/schema";
+import type { NormalizedDocDriftConfig } from "../config/schema";
 import { Signal } from "../model/types";
 import { execCommand } from "../utils/exec";
 import { ensureDir } from "../utils/fs";
@@ -74,7 +75,7 @@ export async function detectOpenApiDrift(
       "\n--- stdout ---",
       exportResult.stdout,
       "\n--- stderr ---",
-      exportResult.stderr
+      exportResult.stderr,
     ].join("\n"),
     "utf8"
   );
@@ -88,8 +89,8 @@ export async function detectOpenApiDrift(
         kind: "weak_evidence",
         tier: 2,
         confidence: 0.35,
-        evidence: [exportLogPath]
-      }
+        evidence: [exportLogPath],
+      },
     };
   }
 
@@ -102,8 +103,8 @@ export async function detectOpenApiDrift(
         kind: "weak_evidence",
         tier: 2,
         confidence: 0.35,
-        evidence: [exportLogPath]
-      }
+        evidence: [exportLogPath],
+      },
     };
   }
 
@@ -119,7 +120,7 @@ export async function detectOpenApiDrift(
     return {
       impactedDocs: [openapi.publishedPath],
       evidenceFiles: [exportLogPath],
-      summary: "No OpenAPI drift detected"
+      summary: "No OpenAPI drift detected",
     };
   }
 
@@ -135,7 +136,7 @@ export async function detectOpenApiDrift(
       normalizedPublished,
       "",
       "# Generated (normalized)",
-      normalizedGenerated
+      normalizedGenerated,
     ].join("\n"),
     "utf8"
   );
@@ -148,7 +149,109 @@ export async function detectOpenApiDrift(
       kind: "openapi_diff",
       tier: 1,
       confidence: 0.95,
-      evidence: [diffPath]
-    }
+      evidence: [diffPath],
+    },
+  };
+}
+
+/** Run OpenAPI drift detection from normalized config (simple openapi block). Used as gate. */
+export async function detectOpenApiDriftFromNormalized(
+  config: NormalizedDocDriftConfig,
+  evidenceDir: string
+): Promise<OpenApiDetectResult> {
+  const openapi = config.openapi;
+  const exportLogPath = path.join(evidenceDir, "openapi-export.log");
+  const exportResult = await execCommand(openapi.export);
+  fs.writeFileSync(
+    exportLogPath,
+    [
+      `$ ${openapi.export}`,
+      `exitCode: ${exportResult.exitCode}`,
+      "\n--- stdout ---",
+      exportResult.stdout,
+      "\n--- stderr ---",
+      exportResult.stderr,
+    ].join("\n"),
+    "utf8"
+  );
+
+  if (exportResult.exitCode !== 0) {
+    return {
+      impactedDocs: [openapi.published],
+      evidenceFiles: [exportLogPath],
+      summary: "OpenAPI export command failed",
+      signal: {
+        kind: "weak_evidence",
+        tier: 2,
+        confidence: 0.35,
+        evidence: [exportLogPath],
+      },
+    };
+  }
+
+  if (!fs.existsSync(openapi.generated) || !fs.existsSync(openapi.published)) {
+    return {
+      impactedDocs: [openapi.generated, openapi.published],
+      evidenceFiles: [exportLogPath],
+      summary: "OpenAPI file(s) missing",
+      signal: {
+        kind: "weak_evidence",
+        tier: 2,
+        confidence: 0.35,
+        evidence: [exportLogPath],
+      },
+    };
+  }
+
+  const generatedRaw = fs.readFileSync(openapi.generated, "utf8");
+  const publishedRaw = fs.readFileSync(openapi.published, "utf8");
+  const generatedJson = JSON.parse(generatedRaw);
+  const publishedJson = JSON.parse(publishedRaw);
+
+  const normalizedGenerated = stableStringify(generatedJson);
+  const normalizedPublished = stableStringify(publishedJson);
+
+  if (normalizedGenerated === normalizedPublished) {
+    return {
+      impactedDocs: [openapi.published],
+      evidenceFiles: [exportLogPath],
+      summary: "No OpenAPI drift detected",
+    };
+  }
+
+  const summary = summarizeSpecDelta(publishedJson, generatedJson);
+  const diffPath = path.join(evidenceDir, "openapi.diff.txt");
+  fs.writeFileSync(
+    diffPath,
+    [
+      "# OpenAPI Drift Summary",
+      summary,
+      "",
+      "# Published (normalized)",
+      normalizedPublished,
+      "",
+      "# Generated (normalized)",
+      normalizedGenerated,
+    ].join("\n"),
+    "utf8"
+  );
+
+  const impactedDocs = [
+    ...new Set([
+      openapi.published,
+      ...config.docAreas.flatMap((a) => a.patch.targets ?? []).filter(Boolean),
+    ]),
+  ].filter(Boolean);
+
+  return {
+    impactedDocs,
+    evidenceFiles: [exportLogPath, diffPath],
+    summary,
+    signal: {
+      kind: "openapi_diff",
+      tier: 1,
+      confidence: 0.95,
+      evidence: [diffPath],
+    },
   };
 }

@@ -1,0 +1,22 @@
+{
+  "id": "guides/support-and-sla",
+  "title": "Support and SLA",
+  "description": "DataStack offers tiered support and SLAs so you can align service levels with your use case.",
+  "source": "@site/docs/guides/support-and-sla.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/support-and-sla",
+  "permalink": "/docs/guides/support-and-sla",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 8,
+  "frontMatter": {
+    "sidebar_position": 8
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Migration from legacy platforms",
+    "permalink": "/docs/guides/migration-from-legacy"
+  }
+}

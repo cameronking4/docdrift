@@ -65,7 +65,7 @@ export async function buildEvidenceBundle(input: {
       baseSha: input.runInfo.baseSha,
       headSha: input.runInfo.headSha,
       trigger: input.runInfo.trigger,
-      timestamp: input.runInfo.timestamp
+      timestamp: input.runInfo.timestamp,
     },
     docArea: input.item.docArea,
     mode: input.item.mode,
@@ -73,14 +73,16 @@ export async function buildEvidenceBundle(input: {
     signals: input.item.signals,
     impactedDocs: input.item.impactedDocs,
     copiedEvidence,
-    copiedDocs
+    copiedDocs,
   });
 
   const archivePath = `${bundleDir}.tar.gz`;
   const parent = path.dirname(bundleDir);
   const name = path.basename(bundleDir);
 
-  const tarResult = await execCommand(`tar -czf ${JSON.stringify(archivePath)} -C ${JSON.stringify(parent)} ${JSON.stringify(name)}`);
+  const tarResult = await execCommand(
+    `tar -czf ${JSON.stringify(archivePath)} -C ${JSON.stringify(parent)} ${JSON.stringify(name)}`
+  );
   if (tarResult.exitCode !== 0) {
     throw new Error(`Failed to create evidence archive: ${tarResult.stderr || tarResult.stdout}`);
   }
@@ -89,7 +91,7 @@ export async function buildEvidenceBundle(input: {
     bundleDir,
     archivePath,
     manifestPath,
-    attachmentPaths: [archivePath, manifestPath]
+    attachmentPaths: [archivePath, manifestPath],
   };
 }
 

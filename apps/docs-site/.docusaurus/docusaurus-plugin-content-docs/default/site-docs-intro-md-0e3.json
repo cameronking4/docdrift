@@ -1,0 +1,22 @@
+{
+  "id": "intro",
+  "title": "Welcome",
+  "description": "DataStack documentation: API reference (generated from OpenAPI) and guides.",
+  "source": "@site/docs/intro.md",
+  "sourceDirName": ".",
+  "slug": "/intro",
+  "permalink": "/docs/intro",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "tutorialSidebar",
+  "next": {
+    "title": "Introduction",
+    "permalink": "/docs/api/datastack-api"
+  }
+}

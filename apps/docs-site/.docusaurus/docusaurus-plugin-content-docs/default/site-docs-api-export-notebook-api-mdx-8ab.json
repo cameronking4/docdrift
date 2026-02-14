@@ -1,0 +1,35 @@
+{
+  "id": "api/export-notebook",
+  "title": "Export notebook",
+  "description": "Export notebook",
+  "source": "@site/docs/api/export-notebook.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/export-notebook",
+  "permalink": "/docs/api/export-notebook",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "export-notebook",
+    "title": "Export notebook",
+    "description": "Export notebook",
+    "sidebar_label": "Export notebook",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJy1VE1v2zAM/SsCTxvg5WPH3IIuWLd1TZePQxHkoMhMrMS2VElOGxj+7yOdxGnmYsAK7GJZEsn3SD6qhCA3HgYLuDcBV8bsPCwjsNLJDAM6viohpw0M6DQkEIHO6f+pQHegjcOnQjuMYRBcgRF4lWAmYVBCOFh28sHpfANVFTVx1sZlMrw3UgSYFxlTno7nk5sRHdzOft7R8n3+8DgbTWBZVUuO563JPXoO8bnX4yVGr5y2QRtGHv8gJ2XygHngW2ltqpXk2+7Ws0nZZmFWW1RM3jpj0QV9BKhr0846glTmm0Ju8G+JEO3b8T0dTH9xHtOb4d2QVs4kOlfrXXW4Sq9FTTmUAePhm8HPsBCTzaegqXPkkplYr/W/+FSvO7s4a6ipSuNETavY+LpFoxdrXBD5SZxkTrJMDIWCDdZdqOsO3X2/ezbyXay9aoGtTU1Uh5SZfpFBToNUOzF8+Eb3e1L4Eajf6XV68Cf8ZDSdsakgkqJxHohn43beSoU+EspktggoVFp4nphIbM2Kvg2dSMg8FtRa8SwdJqYgTXa4mNb4kMlaZqfJaKd7xaepeMCX0LWppAGiOIVLLxJcwL5Pfg066+RYDpqJhBDZpCxX0uPcpVXFx8cR5EmPtZerlFu1lqnHFn4jJ/gwOXX1oyCIN3nt8HB5NfYyLdgE+CH4DzDNo3IBWvLGaUai5HgaEpQxujrTo9dQKbSvvVpvAEdpNPd1NCNF/wakvrz8",
+    "sidebar_class_name": "get api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Create or overwrite notebook",
+    "permalink": "/docs/api/create-or-overwrite-notebook"
+  },
+  "next": {
+    "title": "Get a user by ID",
+    "permalink": "/docs/api/get-a-user-by-id"
+  }
+}

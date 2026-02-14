@@ -1,0 +1,35 @@
+{
+  "id": "api/terminate-cluster",
+  "title": "Terminate cluster",
+  "description": "Terminate cluster",
+  "source": "@site/docs/api/terminate-cluster.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/terminate-cluster",
+  "permalink": "/docs/api/terminate-cluster",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "terminate-cluster",
+    "title": "Terminate cluster",
+    "description": "Terminate cluster",
+    "sidebar_label": "Terminate cluster",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJxtUk1v2zAM/SsCTxtgxMmOvhVtDsUKrG2yU5ADLTOxEttSJTldYPi/j7TdbG2Sg0Px65GPr4OI+wDZBu5t7dpIKlX3VRsi+QDbBBx6rGl4ZZsOGn5ABnrMeCwgAdOww2Es2fb01hpPBWTRt5RA0CXVCFkH8eykMERvmj30/VaSg7NNoCDxH/O5/BUUtDcuGitdf/3knto2kZooUXSuMholmh6CpHTXEDY/kI5c6Lx15KMZAWoKAfd0a5bhl3zBXpOvTYNMyLQsd2QiSsvLcWrFnAiG7J1BelqkU1pIuws7/UDPzg6gJlaC+oARVxH1Ud09P3L8xCUj4mI2n83h6xyvy9VaUtXOenUpztS79cfgUFNIlJ5O9zFCog42529jI+XWHtnEplCrlyf1jp5K2zLrM+CdnQ2xxoHI6bS39v400YW/SH9i6ipkAXCn1lcSGwnZwGkhp/sQUgLZP8nw6UuGlayuyzHQb1/1vbjfWvJn9rN5Qm8wF8ZYdYUJYjPzO6wCXQ10kQh8e50U+F0x6M1BJyc2Z2Efq1ZebB7p/EnZ/ZaTS8KCKZAhxvid1uTif5VXmhRpX4TysHxarpessb+6MCk9",
+    "sidebar_class_name": "delete api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Stop SQL warehouse",
+    "permalink": "/docs/api/stop-sql-warehouse"
+  },
+  "next": {
+    "title": "Trigger job run",
+    "permalink": "/docs/api/trigger-job-run"
+  }
+}

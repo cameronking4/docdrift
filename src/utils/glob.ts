@@ -17,3 +17,18 @@ export function matchesGlob(glob: string, value: string): boolean {
 export function isPathAllowed(path: string, allowlist: string[]): boolean {
   return allowlist.some((glob) => matchesGlob(glob, path));
 }
+
+export function isPathExcluded(path: string, exclude: string[]): boolean {
+  if (!exclude?.length) return false;
+  return exclude.some((glob) => matchesGlob(glob, path));
+}
+
+/** Path is allowed by allowlist AND not excluded */
+export function isPathAllowedAndNotExcluded(
+  path: string,
+  allowlist: string[],
+  exclude: string[] = []
+): boolean {
+  if (isPathExcluded(path, exclude)) return false;
+  return isPathAllowed(path, allowlist);
+}

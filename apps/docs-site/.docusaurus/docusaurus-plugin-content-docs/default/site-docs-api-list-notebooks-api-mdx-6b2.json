@@ -1,0 +1,35 @@
+{
+  "id": "api/list-notebooks",
+  "title": "List notebooks",
+  "description": "List notebooks",
+  "source": "@site/docs/api/list-notebooks.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/list-notebooks",
+  "permalink": "/docs/api/list-notebooks",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "list-notebooks",
+    "title": "List notebooks",
+    "description": "List notebooks",
+    "sidebar_label": "List notebooks",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJydU8tu2zAQ/BWBZ8GPAL34ZrRBETRo0zo9BT6spZVEmyIZcuXEEPTv3bVaWY5dpOhFArkzsw/OtoqgjGrxpL46wo1zu6jWqfIQoEbCIKFWWT6oBd9S9RCw0K8qVdryzXOD4cCHmFVYg1q0ig5eoJGCtqXqunRgG11repeoLWGJgUM5FtAYUoubD2MZVxQR/0tn1nXcWsDonY0YBXwzm8kvx5gF7Uk70fz2hVmZYwFLEgXvjc5AotNtFEh7mc9ttphJWT44j4F0n8AOUz1BIQSQmjVhHd+XkKlfmWyqDNiygRKvBmuX60JjvqRrr8IDVeQIzEfX2DHCNvWGpybxgM+NDpiLOU5tnPHWXS91Pr97HSkZM9hJlWMdVR4frm9ITffz6RilbeGOlWgyUsonIFgRZLtk+XDH8T27sU8wn8wmM/U27Y/b1aNAk8KFZCAvkhcXdtFDhjFNMlf7hjDJTBPF3WmydRv+DnWkCdg8WX2/T14gYOUaNspE5uldpBqOb//biBdtnpUzTJTwlabeANuVZZpgTm/6pPZz5tnx5lWcRyJtu4GIP4PpOrnufS67mOsIGyPPUoCJmKodHt7u5h5MI7mV7M1fCH/W8V+ww86dwGs5BC1oLmvNrVUIOVtHauxZyyxDP2ZdLJKoDOb4fPvIvvsFYcWMXA==",
+    "sidebar_class_name": "get api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "List jobs",
+    "permalink": "/docs/api/list-jobs"
+  },
+  "next": {
+    "title": "List SQL warehouses",
+    "permalink": "/docs/api/list-sql-warehouses"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "api/start-sql-warehouse",
+  "title": "Start SQL warehouse",
+  "description": "Start SQL warehouse",
+  "source": "@site/docs/api/start-sql-warehouse.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/start-sql-warehouse",
+  "permalink": "/docs/api/start-sql-warehouse",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "start-sql-warehouse",
+    "title": "Start SQL warehouse",
+    "description": "Start SQL warehouse",
+    "sidebar_label": "Start SQL warehouse",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJx9VEuPokAQ/iukT7sJK7pHbiaajdmJusJkD8ZD05RDK9Btd+OsS/jvWyUM44OsByzqXV99Rc0cf7Ms3LLo14v3mxvIVGXBsp3PNDe8AAeG7DUr8YWF7P3DZ5Eyn8kSVZq7DGUDp0oaSFnoTAU+syKDgrOwZu6iKdQ6I8s31jQ7crZalVQJ7d/HY/pLwQojtZOKsq5+Yk6hSgelIyvXOpeCkzU4WHKpn0uo5ADCYaA2SoNxsi0g04E2/G6kAYPIK4uDR/LvsN067gYsPoOyKq5oxtNNvFj+QNXmdblspSherdc34nyG0mz+Mo9R2mHaQ5qIV5MPllT/sQkD2E86dUMt7ZUpOFpYij7fnMSRm+Z2W1uCpwPjY7TbnLuGfv7DeiLHjfOINT0jMAr5kqmUOKHsdQ1EjZAF50lgT3nQu9qgviFSE1jKduXTXl2HkC6nKWbccawkjt50vUD7GdnY1p+MxqMxe+xqM49icvVwaq8PDr13ZY5WcwHW94QqdOXA65aMmoNK8FkqB4lSRxR5md6PZkeEMw1V8CvzumsYRuGup34jDv64QOccbwZzVe0uW4C27Dwh7E85Pj+L4kt4f28tTng/GeGLcXWdcAtIjKYh9akCc0E9imduJE8IRTzeVFqScTN7nlt4arG/M/Zl0xHjq4f1BlvvlLy80EZ4XtEbike4PHwgGmJ1BjwFc22j9ZgKAdrdxD6dNn0heiqtV1GMlP0HNiCRzQ==",
+    "sidebar_class_name": "post api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "List workspaces",
+    "permalink": "/docs/api/list-workspaces"
+  },
+  "next": {
+    "title": "Stop SQL warehouse",
+    "permalink": "/docs/api/stop-sql-warehouse"
+  }
+}

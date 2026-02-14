@@ -1,0 +1,35 @@
+{
+  "id": "api/get-job-run",
+  "title": "Get job run",
+  "description": "Get job run",
+  "source": "@site/docs/api/get-job-run.api.mdx",
+  "sourceDirName": "api",
+  "slug": "/api/get-job-run",
+  "permalink": "/docs/api/get-job-run",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": null,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "get-job-run",
+    "title": "Get job run",
+    "description": "Get job run",
+    "sidebar_label": "Get job run",
+    "hide_title": true,
+    "hide_table_of_contents": true,
+    "api": "eJy9VE2P2kAM/SvRnFopJdBjbhRSRLtltwROCFWTxJBAkpmdcdiiKP+9dsJG7MKlqlQOxB5/vXm2pxYo91b4G/FNRVZsXaGlkQUgGD6tRUmK8MVBRfNEuCIrSdESU5INPFeZgUT4aCpwhY1TKKTwa4FnzUFZibAHI5rG7ROZqvyXRFv2tlqVFiw7fB4O+ZOAjU2mMVOc9vE7JY0VBZXIVql1nsWSrd7Bskt9W0NFB4iRArVRGgxmXYEO7x0o7oWTuyaLEuHKZNFk5Z6SQ1kVzPZTsJjOFzM6Wa4Xi04K15NJEIYkfR3PH4IpCZPxYhJ04mr+I5j+elyvxLYrYHCVFXeL7JQpJN1cJITiE7JXw6WTvwsg657uA8mX820Q9fSqb5u+r6+D0jGwbfjnvuvPDNAhP4diyJOGLVWUQ+yhpZ9nwhfeaeSRj/XqNmPjkTMpbZmmnZ+dalFlmDOsqUQZooyPzvhpTvYTDXBXbTQYDobiPYZlEK7Y1aG7O32w77woc7RaxmBdJ1aFrhCcOK8sL4TLqOm/VAiRUkcSZZk44c8H50UaSFVFUzlg6rSyWMh20C5z//bOb7D01CL8Rk/nknaDclQmZ1vHx0acRh27lj7+K8tMCusd+7QcKRVm77qOpIW1yZuGj58rMNTEDYknaTIZMWe03UlmWSb2dzK3cAOsXyLxYXlp9keHCt4FfDmU5Zn5l3nFGolHOPcvCL8E/7Fox0vDG5OCTGg5+dadbRzHoPEq6uaZ4Nemn85ZsKKh/wPDELe0",
+    "sidebar_class_name": "get api-method",
+    "info_path": "docs/api/datastack-api",
+    "custom_edit_url": null
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Get job by ID",
+    "permalink": "/docs/api/get-job-by-id"
+  },
+  "next": {
+    "title": "Get SQL warehouse by ID",
+    "permalink": "/docs/api/get-sql-warehouse-by-id"
+  }
+}

@@ -3,11 +3,9 @@
   "prsOpened": 0,
   "issuesOpened": 0,
   "blockedCount": 1,
-  "timeToSessionTerminalMs": [
-    163827
-  ],
+  "timeToSessionTerminalMs": [],
   "docAreaCounts": {
-    "api_reference": 1
+    "docsite": 1
   },
   "noiseRateProxy": 0
 }

@@ -1,12 +1,15 @@
 #!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
 import {
   parseDurationHours,
   requireSha,
   resolveTrigger,
   runDetect,
   runDocDrift,
+  runSlaCheck,
   runStatus,
-  runValidate
+  runValidate,
 } from "./index";
 
 function getArg(args: string[], flag: string): string | undefined {
@@ -21,7 +24,7 @@ async function main(): Promise<void> {
   const [, , command, ...args] = process.argv;
 
   if (!command) {
-    throw new Error("Usage: docdrift <validate|detect|run|status> [options]");
+    throw new Error("Usage: docdrift <validate|detect|run|status|sla-check> [options]");
   }
 
   switch (command) {
@@ -44,6 +47,9 @@ async function main(): Promise<void> {
       const headSha = requireSha(getArg(args, "--head"), "--head");
       const trigger = resolveTrigger(process.env.GITHUB_EVENT_NAME);
       const results = await runDocDrift({ baseSha, headSha, trigger });
+      const outPath = path.resolve(".docdrift", "run-output.json");
+      fs.mkdirSync(path.dirname(outPath), { recursive: true });
+      fs.writeFileSync(outPath, JSON.stringify(results, null, 2), "utf-8");
       console.log(JSON.stringify(results, null, 2));
       return;
     }
@@ -52,6 +58,11 @@ async function main(): Promise<void> {
       const since = getArg(args, "--since");
       const sinceHours = parseDurationHours(since);
       await runStatus(sinceHours);
+      return;
+    }
+
+    case "sla-check": {
+      await runSlaCheck();
       return;
     }
 

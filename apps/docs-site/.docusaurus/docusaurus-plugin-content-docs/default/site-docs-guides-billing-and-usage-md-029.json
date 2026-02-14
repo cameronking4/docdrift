@@ -1,0 +1,26 @@
+{
+  "id": "guides/billing-and-usage",
+  "title": "Billing and usage",
+  "description": "DataStack usage is metered in DataStack Billing Units (DBUs) for compute and in GB-months for storage. This guide summarizes how usage is tracked and how to stay within limits.",
+  "source": "@site/docs/guides/billing-and-usage.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/billing-and-usage",
+  "permalink": "/docs/guides/billing-and-usage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Authentication",
+    "permalink": "/docs/guides/authentication"
+  },
+  "next": {
+    "title": "Security best practices",
+    "permalink": "/docs/guides/security-best-practices"
+  }
+}

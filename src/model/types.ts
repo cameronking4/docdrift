@@ -72,3 +72,10 @@ export interface RunResult {
   issueUrl?: string;
   summary: string;
 }
+
+/** Aggregated drift result for single-session runs (one run = one item) */
+export interface AggregatedDriftResult {
+  signals: Signal[];
+  impactedDocs: string[];
+  summary: string;
+}

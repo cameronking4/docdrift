@@ -1,6 +1,6 @@
 {
   "name": "@devinnn/docdrift",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": false,
   "description": "Detect and remediate documentation drift with Devin sessions",
   "main": "dist/src/index.js",
@@ -11,9 +11,20 @@
   "engines": {
     "node": ">=20"
   },
-  "files": ["dist/src"],
-  "repository": { "type": "git", "url": "" },
-  "keywords": ["docs", "drift", "openapi", "devin", "github-actions"],
+  "files": [
+    "dist/src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "docs",
+    "drift",
+    "openapi",
+    "devin",
+    "github-actions"
+  ],
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -21,7 +32,9 @@
     "lint": "eslint .",
     "format": "prettier -w .",
     "openapi:export": "tsx apps/api/scripts/export-openapi.ts",
-    "docs:check": "node scripts/docs-check.js",
+    "docs:gen": "npm run --prefix apps/docs-site docusaurus -- gen-api-docs api",
+    "docs:build": "npm run --prefix apps/docs-site build",
+    "docs:serve": "npm run --prefix apps/docs-site start",
     "docdrift": "tsx src/cli.ts"
   },
   "dependencies": {

@@ -1,0 +1,26 @@
+{
+  "id": "guides/sdks-and-cli",
+  "title": "SDKs and CLI",
+  "description": "DataStack provides official SDKs and a CLI so you can automate workspace management, jobs, and data operations without calling the REST API directly.",
+  "source": "@site/docs/guides/sdks-and-cli.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/sdks-and-cli",
+  "permalink": "/docs/guides/sdks-and-cli",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Security best practices",
+    "permalink": "/docs/guides/security-best-practices"
+  },
+  "next": {
+    "title": "Rate limits and quotas",
+    "permalink": "/docs/guides/rate-limits-and-quotas"
+  }
+}

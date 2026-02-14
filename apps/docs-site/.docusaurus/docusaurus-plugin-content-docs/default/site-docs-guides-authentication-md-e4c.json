@@ -1,0 +1,26 @@
+{
+  "id": "guides/authentication",
+  "title": "Authentication",
+  "description": "DataStack APIs use token-based authentication. This guide covers personal access tokens, OAuth, and scopes.",
+  "source": "@site/docs/guides/authentication.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/authentication",
+  "permalink": "/docs/guides/authentication",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Getting started with DataStack",
+    "permalink": "/docs/guides/getting-started"
+  },
+  "next": {
+    "title": "Billing and usage",
+    "permalink": "/docs/guides/billing-and-usage"
+  }
+}

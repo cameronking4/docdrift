@@ -1,0 +1,26 @@
+{
+  "id": "guides/auth",
+  "title": "Auth Guide",
+  "description": "Use Authorization: Bearer  for authenticated endpoints.",
+  "source": "@site/docs/guides/auth.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/auth",
+  "permalink": "/docs/guides/auth",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "sidebar_position": 2
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Getting started with DataStack",
+    "permalink": "/docs/guides/getting-started"
+  },
+  "next": {
+    "title": "Authentication",
+    "permalink": "/docs/guides/authentication"
+  }
+}
