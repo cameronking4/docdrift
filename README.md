@@ -182,3 +182,5 @@ Once published to npm, any repo can use the CLI locally or in GitHub Actions.
 
 ## Loom
 See `/Users/cameronking/Desktop/sideproject/docdrift/loom.md` for the minute-by-minute recording script.
+
+<!-- Devin verification test -->
