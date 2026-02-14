@@ -43,7 +43,15 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+          npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} | tee .docdrift/run-output.json
+
+      - name: Show Devin session URLs
+        if: success()
+        run: |
+          node -e "
+            const r = require('./.docdrift/run-output.json');
+            if (Array.isArray(r)) r.forEach((x, i) => console.log('Doc area:', x.docArea, '| Session:', x.sessionUrl || '(none)', '| Outcome:', x.outcome));
+          "
 
       - name: Upload artifacts
         if: always()
@@ -53,5 +61,6 @@ jobs:
           path: |
             .docdrift/drift_report.json
             .docdrift/metrics.json
+            .docdrift/run-output.json
             .docdrift/evidence/**
             .docdrift/state.json

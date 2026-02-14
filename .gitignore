@@ -4,6 +4,7 @@ coverage
 .docdrift/evidence
 .docdrift/*.log
 .docdrift/state.json
+.docdrift/run-output.json
 *.tgz
 .DS_Store
 .env

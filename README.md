@@ -109,6 +109,25 @@ You can run a full end-to-end demo locally with no remote repo. Ensure `.env` ha
    - **Push to `main`** — runs on every push (compares previous commit vs current).
    - **Manual run** — **Actions** tab → **devin-doc-drift** → **Run workflow** (uses `HEAD` and `HEAD^` as head/base).
 
+## See it work (demo on GitHub)
+
+This repo already has **intentional drift** (two commits: baseline with docs in sync, then `name` → `fullName` in the API without updating docs). To see Devin sessions and the full flow:
+
+1. **Create a new GitHub repo** (e.g. `docdrift-demo`) so you have a clean place to run the workflow.
+2. **Push this project with full history** (so both commits are on `main`):
+   ```bash
+   git remote add origin https://github.com/YOUR_ORG/docdrift-demo.git
+   git push -u origin main
+   ```
+3. **Add secret** in that repo: **Settings** → **Secrets and variables** → **Actions** → `DEVIN_API_KEY` = your Devin API key.
+4. **Trigger the workflow**
+   - Either push another small commit (e.g. README tweak), or  
+   - **Actions** → **devin-doc-drift** → **Run workflow**.
+5. **Where to look**
+   - **Actions** → open the run → **Run Doc Drift** step: the step logs print JSON with `sessionUrl`, `prUrl`, and `outcome` per doc area. Open any `sessionUrl` in your browser to see the Devin session.
+   - **Artifacts**: download **docdrift-artifacts** for `.docdrift/drift_report.json`, `.docdrift/metrics.json`, and evidence.
+   - **Devin dashboard**: sessions are tagged `docdrift`; you’ll see the run there once the step completes (often 1–3 minutes).
+
 ## Using in another repo (published package)
 
 Once published to npm, any repo can use the CLI locally or in GitHub Actions.
