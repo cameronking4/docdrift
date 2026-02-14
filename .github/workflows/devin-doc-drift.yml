@@ -51,7 +51,7 @@ jobs:
         with:
           name: docdrift-artifacts
           path: |
-            drift_report.json
-            metrics.json
+            .docdrift/drift_report.json
+            .docdrift/metrics.json
             .docdrift/evidence/**
             .docdrift/state.json

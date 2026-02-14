@@ -94,5 +94,5 @@ export async function buildEvidenceBundle(input: {
 }
 
 export function writeMetrics(metrics: unknown): void {
-  writeJsonFile(path.resolve("metrics.json"), metrics);
+  writeJsonFile(path.resolve(".docdrift", "metrics.json"), metrics);
 }

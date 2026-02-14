@@ -123,7 +123,7 @@ async function executeSession(input: {
     ? structured.verification.results.map(String)
     : verificationCommands.map(() => "not reported");
 
-  const verification = verificationCommands.map((command, idx) => ({
+  const verification = verificationCommands.map((command: string, idx: number) => ({
     command,
     result: verificationResults[idx] ?? "not reported"
   }));

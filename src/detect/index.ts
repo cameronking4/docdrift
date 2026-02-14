@@ -104,7 +104,7 @@ export async function buildDriftReport(input: {
     items
   };
 
-  writeJsonFile(path.resolve("drift_report.json"), report);
+  writeJsonFile(path.resolve(".docdrift", "drift_report.json"), report);
   writeJsonFile(path.join(evidenceRoot, "changeset.json"), {
     changedPaths,
     diffSummary,

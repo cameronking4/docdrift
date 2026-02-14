@@ -12,7 +12,7 @@
 ## 2:30-5:30 - Beat 1 (autogen)
 - Merge a response field rename in API code.
 - Trigger workflow.
-- Show artifacts: `drift_report.json`, evidence bundle.
+- Show artifacts: `.docdrift/drift_report.json`, `.docdrift/evidence/` bundle.
 - Open Devin session URL from logs.
 - Show bundled PR created for `api_reference`.
 

@@ -1,0 +1,31 @@
+{
+  "run": {
+    "repo": "local/docdrift",
+    "baseSha": "b0f624f",
+    "headSha": "6030902",
+    "trigger": "manual",
+    "timestamp": "2026-02-14T04:44:18.982Z"
+  },
+  "items": [
+    {
+      "docArea": "api_reference",
+      "mode": "autogen",
+      "signals": [
+        {
+          "kind": "openapi_diff",
+          "tier": 1,
+          "confidence": 0.95,
+          "evidence": [
+            "/Users/cameronking/Desktop/sideproject/docdrift/.docdrift/evidence/1771044258982/api_reference.openapi.diff.txt"
+          ]
+        }
+      ],
+      "impactedDocs": [
+        "docs/reference/openapi.json",
+        "docs/reference/api.md"
+      ],
+      "recommendedAction": "OPEN_PR",
+      "summary": "Added response fields (1):\n+ GET /v1/users/{id}: fullName\nRemoved response fields (1):\n- GET /v1/users/{id}: name"
+    }
+  ]
+}
