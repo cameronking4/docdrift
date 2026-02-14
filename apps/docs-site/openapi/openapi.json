@@ -11,6 +11,10 @@
       "description": "Users and permissions"
     },
     {
+      "name": "Authentication",
+      "description": "API keys and tokens"
+    },
+    {
       "name": "Workspaces",
       "description": "Workspace management"
     },
@@ -29,67 +33,17 @@
     {
       "name": "SQL Warehouses",
       "description": "SQL warehouse lifecycle"
+    },
+    {
+      "name": "Pipelines",
+      "description": "Delta Live Tables pipelines"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhook management and delivery"
     }
   ],
   "paths": {
-    "/v1/users/{id}": {
-      "get": {
-        "summary": "Get a user by ID",
-        "tags": [
-          "Identity & Access"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "fullName": {
-                      "type": "string"
-                    },
-                    "email": {
-                      "type": "string"
-                    },
-                    "avatarUrl": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "string"
-                    },
-                    "role": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "fullName",
-                    "email",
-                    "avatarUrl",
-                    "createdAt",
-                    "role"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/users": {
       "get": {
         "summary": "List users with pagination",
@@ -122,7 +76,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "users": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -130,7 +84,7 @@
                           "id": {
                             "type": "string"
                           },
-                          "fullName": {
+                          "displayName": {
                             "type": "string"
                           },
                           "email": {
@@ -144,25 +98,51 @@
                           },
                           "role": {
                             "type": "string"
+                          },
+                          "lastLoginAt": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
                           }
                         },
                         "required": [
                           "id",
-                          "fullName",
+                          "displayName",
                           "email",
                           "avatarUrl",
                           "createdAt",
-                          "role"
+                          "role",
+                          "lastLoginAt",
+                          "status",
+                          "updatedAt"
                         ]
                       }
                     },
-                    "totalCount": {
-                      "type": "number"
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "totalCount": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      }
                     }
                   },
                   "required": [
-                    "users",
-                    "totalCount"
+                    "data",
+                    "pagination"
                   ]
                 }
               }
@@ -409,7 +389,7 @@
                           "nodeType": {
                             "type": "string"
                           },
-                          "numWorkers": {
+                          "workerCount": {
                             "type": "integer"
                           },
                           "autoTerminationMinutes": {
@@ -418,6 +398,27 @@
                           "createdAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "enableAutoscaling": {
+                            "type": "boolean"
+                          },
+                          "maxWorkers": {
+                            "type": "integer"
+                          },
+                          "minWorkers": {
+                            "type": "integer"
+                          },
+                          "tags": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "workspaceId": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -516,7 +517,7 @@
                     "nodeType": {
                       "type": "string"
                     },
-                    "numWorkers": {
+                    "workerCount": {
                       "type": "integer"
                     },
                     "autoTerminationMinutes": {
@@ -525,6 +526,27 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "enableAutoscaling": {
+                      "type": "boolean"
+                    },
+                    "maxWorkers": {
+                      "type": "integer"
+                    },
+                    "minWorkers": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "workspaceId": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -594,7 +616,7 @@
                     "nodeType": {
                       "type": "string"
                     },
-                    "numWorkers": {
+                    "workerCount": {
                       "type": "integer"
                     },
                     "autoTerminationMinutes": {
@@ -603,6 +625,27 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "enableAutoscaling": {
+                      "type": "boolean"
+                    },
+                    "maxWorkers": {
+                      "type": "integer"
+                    },
+                    "minWorkers": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "workspaceId": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -913,6 +956,27 @@
                     },
                     "triggeredBy": {
                       "type": "string"
+                    },
+                    "attempt": {
+                      "type": "integer"
+                    },
+                    "clusterSpec": {
+                      "type": "object",
+                      "properties": {
+                        "clusterId": {
+                          "type": "string"
+                        },
+                        "nodeType": {
+                          "type": "string"
+                        },
+                        "workerCount": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "description": "Duration in milliseconds"
                     }
                   },
                   "required": [
@@ -986,6 +1050,27 @@
                     },
                     "triggeredBy": {
                       "type": "string"
+                    },
+                    "attempt": {
+                      "type": "integer"
+                    },
+                    "clusterSpec": {
+                      "type": "object",
+                      "properties": {
+                        "clusterId": {
+                          "type": "string"
+                        },
+                        "nodeType": {
+                          "type": "string"
+                        },
+                        "workerCount": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "description": "Duration in milliseconds"
                     }
                   },
                   "required": [
@@ -1324,6 +1409,38 @@
                           "createdAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "enableServerlessCompute": {
+                            "type": "boolean"
+                          },
+                          "httpPath": {
+                            "type": "string"
+                          },
+                          "maxNumClusters": {
+                            "type": "integer"
+                          },
+                          "minNumClusters": {
+                            "type": "integer"
+                          },
+                          "tags": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "warehouseType": {
+                            "type": "string",
+                            "enum": [
+                              "CLASSIC",
+                              "PRO",
+                              "SERVERLESS"
+                            ]
+                          },
+                          "workspaceId": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -1401,6 +1518,38 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "enableServerlessCompute": {
+                      "type": "boolean"
+                    },
+                    "httpPath": {
+                      "type": "string"
+                    },
+                    "maxNumClusters": {
+                      "type": "integer"
+                    },
+                    "minNumClusters": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "warehouseType": {
+                      "type": "string",
+                      "enum": [
+                        "CLASSIC",
+                        "PRO",
+                        "SERVERLESS"
+                      ]
+                    },
+                    "workspaceId": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -1468,6 +1617,38 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "enableServerlessCompute": {
+                      "type": "boolean"
+                    },
+                    "httpPath": {
+                      "type": "string"
+                    },
+                    "maxNumClusters": {
+                      "type": "integer"
+                    },
+                    "minNumClusters": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "warehouseType": {
+                      "type": "string",
+                      "enum": [
+                        "CLASSIC",
+                        "PRO",
+                        "SERVERLESS"
+                      ]
+                    },
+                    "workspaceId": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -1535,6 +1716,38 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "enableServerlessCompute": {
+                      "type": "boolean"
+                    },
+                    "httpPath": {
+                      "type": "string"
+                    },
+                    "maxNumClusters": {
+                      "type": "integer"
+                    },
+                    "minNumClusters": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "warehouseType": {
+                      "type": "string",
+                      "enum": [
+                        "CLASSIC",
+                        "PRO",
+                        "SERVERLESS"
+                      ]
+                    },
+                    "workspaceId": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -1542,6 +1755,1553 @@
                     "name",
                     "state",
                     "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/clusters/{clusterId}/resize": {
+      "post": {
+        "summary": "Resize cluster",
+        "tags": [
+          "Compute / Clusters"
+        ],
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workerCount": {
+                    "type": "integer"
+                  },
+                  "enableAutoscaling": {
+                    "type": "boolean"
+                  },
+                  "minWorkers": {
+                    "type": "integer"
+                  },
+                  "maxWorkers": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "clusterSize": {
+                      "type": "string"
+                    },
+                    "region": {
+                      "type": "string",
+                      "description": "Cloud region where the cluster runs (e.g. us-east-1)"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "RUNNING",
+                        "TERMINATING",
+                        "TERMINATED",
+                        "ERROR"
+                      ]
+                    },
+                    "sparkVersion": {
+                      "type": "string"
+                    },
+                    "nodeType": {
+                      "type": "string"
+                    },
+                    "workerCount": {
+                      "type": "integer"
+                    },
+                    "autoTerminationMinutes": {
+                      "type": "integer"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "enableAutoscaling": {
+                      "type": "boolean"
+                    },
+                    "maxWorkers": {
+                      "type": "integer"
+                    },
+                    "minWorkers": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "region",
+                    "state",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "summary": "Get a user by ID",
+        "tags": [
+          "Identity & Access"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "avatarUrl": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "lastLoginAt": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "email",
+                    "avatarUrl",
+                    "createdAt",
+                    "role",
+                    "lastLoginAt",
+                    "status",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update user",
+        "tags": [
+          "Identity & Access"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "avatarUrl": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "lastLoginAt": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName",
+                    "email",
+                    "avatarUrl",
+                    "createdAt",
+                    "role",
+                    "lastLoginAt",
+                    "status",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pipelines": {
+      "get": {
+        "summary": "List pipelines",
+        "tags": [
+          "Pipelines"
+        ],
+        "parameters": [
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pipelines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "IDLE",
+                              "RUNNING",
+                              "STOPPING",
+                              "FAILED"
+                            ]
+                          },
+                          "catalog": {
+                            "type": "string"
+                          },
+                          "clusters": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "label": {
+                                  "type": "string"
+                                },
+                                "nodeType": {
+                                  "type": "string"
+                                },
+                                "workerCount": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          },
+                          "continuous": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "createdBy": {
+                            "type": "string"
+                          },
+                          "edition": {
+                            "type": "string",
+                            "enum": [
+                              "CORE",
+                              "PRO",
+                              "ADVANCED"
+                            ]
+                          },
+                          "lastRunAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "photon": {
+                            "type": "boolean"
+                          },
+                          "schema": {
+                            "type": "string"
+                          },
+                          "target": {
+                            "type": "string"
+                          },
+                          "workspaceId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "state",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    },
+                    "nextPageToken": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "pipelines",
+                    "totalCount"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pipelines/{pipelineId}": {
+      "get": {
+        "summary": "Get pipeline by ID",
+        "tags": [
+          "Pipelines"
+        ],
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "IDLE",
+                        "RUNNING",
+                        "STOPPING",
+                        "FAILED"
+                      ]
+                    },
+                    "catalog": {
+                      "type": "string"
+                    },
+                    "clusters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "nodeType": {
+                            "type": "string"
+                          },
+                          "workerCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "continuous": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "edition": {
+                      "type": "string",
+                      "enum": [
+                        "CORE",
+                        "PRO",
+                        "ADVANCED"
+                      ]
+                    },
+                    "lastRunAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "photon": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "state",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete pipeline",
+        "tags": [
+          "Pipelines"
+        ],
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pipelines/{pipelineId}/events": {
+      "get": {
+        "summary": "List pipeline events",
+        "tags": [
+          "Pipelines"
+        ],
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "eventType": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "events",
+                    "totalCount"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pipelines/{pipelineId}/start": {
+      "post": {
+        "summary": "Start pipeline",
+        "tags": [
+          "Pipelines"
+        ],
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "IDLE",
+                        "RUNNING",
+                        "STOPPING",
+                        "FAILED"
+                      ]
+                    },
+                    "catalog": {
+                      "type": "string"
+                    },
+                    "clusters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "nodeType": {
+                            "type": "string"
+                          },
+                          "workerCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "continuous": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "edition": {
+                      "type": "string",
+                      "enum": [
+                        "CORE",
+                        "PRO",
+                        "ADVANCED"
+                      ]
+                    },
+                    "lastRunAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "photon": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "state",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pipelines/{pipelineId}/stop": {
+      "post": {
+        "summary": "Stop pipeline",
+        "tags": [
+          "Pipelines"
+        ],
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "IDLE",
+                        "RUNNING",
+                        "STOPPING",
+                        "FAILED"
+                      ]
+                    },
+                    "catalog": {
+                      "type": "string"
+                    },
+                    "clusters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "nodeType": {
+                            "type": "string"
+                          },
+                          "workerCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "continuous": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "edition": {
+                      "type": "string",
+                      "enum": [
+                        "CORE",
+                        "PRO",
+                        "ADVANCED"
+                      ]
+                    },
+                    "lastRunAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "photon": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "state",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks": {
+      "get": {
+        "summary": "List webhooks",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "events": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "active": {
+                            "type": "boolean"
+                          },
+                          "secret": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastTriggeredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "failureCount": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "url",
+                          "events",
+                          "active",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "webhooks",
+                    "totalCount"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{webhookId}": {
+      "get": {
+        "summary": "Get webhook by ID",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "secret": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lastTriggeredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "failureCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "url",
+                    "events",
+                    "active",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "secret": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lastTriggeredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "failureCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "url",
+                    "events",
+                    "active",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{webhookId}/deliveries": {
+      "get": {
+        "summary": "List webhook deliveries",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "responseStatus": {
+                            "type": "integer"
+                          },
+                          "success": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "deliveries",
+                    "totalCount"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{webhookId}/test": {
+      "post": {
+        "summary": "Test webhook",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "event": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "event"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "webhookId": {
+                      "type": "string"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "requestUrl": {
+                      "type": "string"
+                    },
+                    "requestHeaders": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "requestBody": {
+                      "type": "string"
+                    },
+                    "responseStatus": {
+                      "type": "integer"
+                    },
+                    "responseBody": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "description": "Duration in milliseconds"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "webhookId",
+                    "event",
+                    "success",
+                    "timestamp"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/api-keys": {
+      "get": {
+        "summary": "List API keys",
+        "tags": [
+          "Authentication"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apiKeys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "prefix": {
+                            "type": "string"
+                          },
+                          "scopes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ACTIVE",
+                              "REVOKED",
+                              "EXPIRED"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastUsedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "prefix",
+                          "status",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "totalCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "apiKeys",
+                    "totalCount"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/api-keys/{keyId}": {
+      "delete": {
+        "summary": "Revoke API key",
+        "tags": [
+          "Authentication"
+        ],
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "prefix": {
+                      "type": "string"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "REVOKED",
+                        "EXPIRED"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "lastUsedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "prefix",
+                    "status",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/token": {
+      "post": {
+        "summary": "Generate access token",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "grantType": {
+                    "type": "string"
+                  },
+                  "refreshToken": {
+                    "type": "string"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "grantType"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    },
+                    "tokenType": {
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "description": "Token lifetime in seconds"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "accessToken",
+                    "tokenType",
+                    "expiresIn"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/token/revoke": {
+      "post": {
+        "summary": "Revoke access token",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "revoked"
                   ]
                 }
               }

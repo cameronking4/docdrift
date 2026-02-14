@@ -14,6 +14,17 @@ import {
   buildNotebookListSchema,
   buildSqlWarehouseSchema,
   buildSqlWarehouseListSchema,
+  buildPipelineSchema,
+  buildPipelineListSchema,
+  buildPipelineEventListSchema,
+  buildWebhookSchema,
+  buildWebhookListSchema,
+  buildWebhookDeliveryListSchema,
+  buildWebhookTestResultSchema,
+  buildApiKeySchema,
+  buildApiKeyListSchema,
+  buildAuthTokenSchema,
+  buildTokenRevokeSchema,
 } from "../src/model";
 
 function pathResp(schema: object) {
@@ -29,15 +40,7 @@ function pathResp201(schema: object) {
 }
 
 const paths: Record<string, object> = {
-  "/v1/users/{id}": {
-    get: {
-      summary: "Get a user by ID",
-      tags: ["Identity & Access"],
-      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-      responses: pathResp(buildUserSchema()),
-    },
-  },
-  "/v1/users": {
+  "/v1/users":{
     get: {
       summary: "List users with pagination",
       tags: ["Identity & Access"],
@@ -222,6 +225,220 @@ const paths: Record<string, object> = {
       responses: pathResp(buildSqlWarehouseSchema()),
     },
   },
+  "/v1/clusters/{clusterId}/resize": {
+    post: {
+      summary: "Resize cluster",
+      tags: ["Compute / Clusters"],
+      parameters: [{ name: "clusterId", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { workerCount: { type: "integer" }, enableAutoscaling: { type: "boolean" }, minWorkers: { type: "integer" }, maxWorkers: { type: "integer" } },
+            },
+          },
+        },
+      },
+      responses: pathResp(buildClusterSchema()),
+    },
+  },
+  "/v1/users/{id}": {
+    get: {
+      summary: "Get a user by ID",
+      tags: ["Identity & Access"],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp(buildUserSchema()),
+    },
+    patch: {
+      summary: "Update user",
+      tags: ["Identity & Access"],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { displayName: { type: "string" }, email: { type: "string" }, role: { type: "string" } },
+            },
+          },
+        },
+      },
+      responses: pathResp(buildUserSchema()),
+    },
+  },
+  "/v1/pipelines": {
+    get: {
+      summary: "List pipelines",
+      tags: ["Pipelines"],
+      parameters: [
+        { name: "pageSize", in: "query", schema: { type: "integer", default: 25 } },
+        { name: "pageToken", in: "query", schema: { type: "string" } },
+      ],
+      responses: pathResp(buildPipelineListSchema()),
+    },
+  },
+  "/v1/pipelines/{pipelineId}": {
+    get: {
+      summary: "Get pipeline by ID",
+      tags: ["Pipelines"],
+      parameters: [{ name: "pipelineId", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp(buildPipelineSchema()),
+    },
+    delete: {
+      summary: "Delete pipeline",
+      tags: ["Pipelines"],
+      parameters: [{ name: "pipelineId", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp({ type: "object", properties: { message: { type: "string" } } }),
+    },
+  },
+  "/v1/pipelines/{pipelineId}/events": {
+    get: {
+      summary: "List pipeline events",
+      tags: ["Pipelines"],
+      parameters: [
+        { name: "pipelineId", in: "path", required: true, schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 25 } },
+      ],
+      responses: pathResp(buildPipelineEventListSchema()),
+    },
+  },
+  "/v1/pipelines/{pipelineId}/start": {
+    post: {
+      summary: "Start pipeline",
+      tags: ["Pipelines"],
+      parameters: [{ name: "pipelineId", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp(buildPipelineSchema()),
+    },
+  },
+  "/v1/pipelines/{pipelineId}/stop": {
+    post: {
+      summary: "Stop pipeline",
+      tags: ["Pipelines"],
+      parameters: [{ name: "pipelineId", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp(buildPipelineSchema()),
+    },
+  },
+  "/v1/webhooks": {
+    get: {
+      summary: "List webhooks",
+      tags: ["Webhooks"],
+      parameters: [
+        { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+        { name: "pageSize", in: "query", schema: { type: "integer", default: 25 } },
+      ],
+      responses: pathResp(buildWebhookListSchema()),
+    },
+  },
+  "/v1/webhooks/{webhookId}": {
+    get: {
+      summary: "Get webhook by ID",
+      tags: ["Webhooks"],
+      parameters: [{ name: "webhookId", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp(buildWebhookSchema()),
+    },
+    patch: {
+      summary: "Update webhook",
+      tags: ["Webhooks"],
+      parameters: [{ name: "webhookId", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { url: { type: "string" }, events: { type: "array", items: { type: "string" } }, active: { type: "boolean" } },
+            },
+          },
+        },
+      },
+      responses: pathResp(buildWebhookSchema()),
+    },
+  },
+  "/v1/webhooks/{webhookId}/deliveries": {
+    get: {
+      summary: "List webhook deliveries",
+      tags: ["Webhooks"],
+      parameters: [
+        { name: "webhookId", in: "path", required: true, schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 25 } },
+      ],
+      responses: pathResp(buildWebhookDeliveryListSchema()),
+    },
+  },
+  "/v1/webhooks/{webhookId}/test": {
+    post: {
+      summary: "Test webhook",
+      tags: ["Webhooks"],
+      parameters: [{ name: "webhookId", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { event: { type: "string" } },
+              required: ["event"],
+            },
+          },
+        },
+      },
+      responses: pathResp(buildWebhookTestResultSchema()),
+    },
+  },
+  "/v1/auth/api-keys": {
+    get: {
+      summary: "List API keys",
+      tags: ["Authentication"],
+      parameters: [
+        { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+      ],
+      responses: pathResp(buildApiKeyListSchema()),
+    },
+  },
+  "/v1/auth/api-keys/{keyId}": {
+    delete: {
+      summary: "Revoke API key",
+      tags: ["Authentication"],
+      parameters: [{ name: "keyId", in: "path", required: true, schema: { type: "string" } }],
+      responses: pathResp(buildApiKeySchema()),
+    },
+  },
+  "/v1/auth/token": {
+    post: {
+      summary: "Generate access token",
+      tags: ["Authentication"],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { grantType: { type: "string" }, refreshToken: { type: "string" }, scopes: { type: "array", items: { type: "string" } } },
+              required: ["grantType"],
+            },
+          },
+        },
+      },
+      responses: pathResp(buildAuthTokenSchema()),
+    },
+  },
+  "/v1/auth/token/revoke": {
+    post: {
+      summary: "Revoke access token",
+      tags: ["Authentication"],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { token: { type: "string" } },
+              required: ["token"],
+            },
+          },
+        },
+      },
+      responses: pathResp(buildTokenRevokeSchema()),
+    },
+  },
 };
 
 const spec = {
@@ -233,11 +450,14 @@ const spec = {
   },
   tags: [
     { name: "Identity & Access", description: "Users and permissions" },
+    { name: "Authentication", description: "API keys and tokens" },
     { name: "Workspaces", description: "Workspace management" },
     { name: "Compute / Clusters", description: "Spark compute clusters" },
     { name: "Jobs", description: "Scheduled and triggered jobs" },
     { name: "Notebooks", description: "Notebook CRUD and export" },
     { name: "SQL Warehouses", description: "SQL warehouse lifecycle" },
+    { name: "Pipelines", description: "Delta Live Tables pipelines" },
+    { name: "Webhooks", description: "Webhook management and delivery" },
   ],
   paths,
 };

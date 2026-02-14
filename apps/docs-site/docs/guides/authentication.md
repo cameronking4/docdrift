@@ -53,13 +53,30 @@ Operations are gated by scope. Send the required scope in `x-datastack-scope` fo
 | `read:jobs`, `manage:jobs` | Jobs and runs. |
 | `read:notebooks`, `manage:notebooks` | Notebooks list, export, create. |
 | `read:sql`, `manage:sql` | SQL warehouses list, get, start, stop. |
+| `read:pipelines`, `manage:pipelines` | Pipelines list, get, start, stop, delete. |
+| `read:webhooks`, `manage:webhooks` | Webhooks list, get, update, test, deliveries. |
 
 If the token does not have the required scope, the API returns `403 Forbidden`.
+
+## API key management
+
+You can also create and manage API keys programmatically:
+
+- **List API keys**: `GET /v1/auth/api-keys` — returns all keys with their `prefix`, `scopes`, and `status`.
+- **Revoke an API key**: `DELETE /v1/auth/api-keys/{keyId}` — revokes the key and returns the updated key object.
+
+## Token endpoints
+
+The API provides token lifecycle endpoints:
+
+- **Generate token**: `POST /v1/auth/token` — exchange credentials for an `accessToken`, `refreshToken`, and `scopes`.
+- **Revoke token**: `POST /v1/auth/token/revoke` — invalidate an access or refresh token.
 
 ## Token lifetime and rotation
 
 - PATs can have an expiration; expired tokens return `401 Unauthorized`.
 - For OAuth, use the refresh token to obtain a new access token before it expires.
+- API keys show `lastUsedAt` and `expiresAt` fields to help track usage and expiration.
 - We recommend rotating PATs at least every 90 days and immediately if compromise is suspected.
 
 ## Errors

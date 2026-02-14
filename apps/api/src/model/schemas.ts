@@ -5,11 +5,14 @@
 
 export const USER_RESPONSE_FIELDS = [
   "id",
-  "fullName",
+  "displayName",
   "email",
   "avatarUrl",
   "createdAt",
   "role",
+  "lastLoginAt",
+  "status",
+  "updatedAt",
 ] as const;
 
 export function buildUserSchema() {
@@ -26,10 +29,18 @@ export function buildUserListSchema() {
   return {
     type: "object" as const,
     properties: {
-      users: { type: "array" as const, items: buildUserSchema() },
-      totalCount: { type: "number" as const },
+      data: { type: "array" as const, items: buildUserSchema() },
+      pagination: {
+        type: "object" as const,
+        properties: {
+          page: { type: "integer" as const },
+          limit: { type: "integer" as const },
+          totalCount: { type: "integer" as const },
+          totalPages: { type: "integer" as const },
+        },
+      },
     },
-    required: ["users", "totalCount"] as const,
+    required: ["data", "pagination"] as const,
   };
 }
 
@@ -76,9 +87,15 @@ export function buildClusterSchema() {
       },
       sparkVersion: { type: "string" },
       nodeType: { type: "string" },
-      numWorkers: { type: "integer" },
+      workerCount: { type: "integer" },
       autoTerminationMinutes: { type: "integer" },
       createdAt: { type: "string", format: "date-time" },
+      createdBy: { type: "string" },
+      enableAutoscaling: { type: "boolean" },
+      maxWorkers: { type: "integer" },
+      minWorkers: { type: "integer" },
+      tags: { type: "object", additionalProperties: { type: "string" } },
+      workspaceId: { type: "string" },
     },
     required: ["id", "name", "region", "state", "createdAt"],
   };
@@ -133,6 +150,16 @@ export function buildJobRunSchema() {
       startTime: { type: "string", format: "date-time" },
       endTime: { type: "string", format: "date-time" },
       triggeredBy: { type: "string" },
+      attempt: { type: "integer" },
+      clusterSpec: {
+        type: "object",
+        properties: {
+          clusterId: { type: "string" },
+          nodeType: { type: "string" },
+          workerCount: { type: "integer" },
+        },
+      },
+      duration: { type: "integer", description: "Duration in milliseconds" },
     },
     required: ["runId", "jobId", "state"],
   };
@@ -201,6 +228,14 @@ export function buildSqlWarehouseSchema() {
       jdbcUrl: { type: "string" },
       odbcUrl: { type: "string" },
       createdAt: { type: "string", format: "date-time" },
+      createdBy: { type: "string" },
+      enableServerlessCompute: { type: "boolean" },
+      httpPath: { type: "string" },
+      maxNumClusters: { type: "integer" },
+      minNumClusters: { type: "integer" },
+      tags: { type: "object", additionalProperties: { type: "string" } },
+      warehouseType: { type: "string", enum: ["CLASSIC", "PRO", "SERVERLESS"] },
+      workspaceId: { type: "string" },
     },
     required: ["id", "name", "state", "createdAt"],
   };
@@ -214,6 +249,203 @@ export function buildSqlWarehouseListSchema() {
       totalCount: { type: "number" },
     },
     required: ["warehouses", "totalCount"],
+  };
+}
+
+// --- Pipeline ---
+export function buildPipelineSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      name: { type: "string" },
+      state: {
+        type: "string",
+        enum: ["IDLE", "RUNNING", "STOPPING", "FAILED"],
+      },
+      catalog: { type: "string" },
+      clusters: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            nodeType: { type: "string" },
+            workerCount: { type: "integer" },
+          },
+        },
+      },
+      continuous: { type: "boolean" },
+      createdAt: { type: "string", format: "date-time" },
+      createdBy: { type: "string" },
+      edition: { type: "string", enum: ["CORE", "PRO", "ADVANCED"] },
+      lastRunAt: { type: "string", format: "date-time" },
+      photon: { type: "boolean" },
+      schema: { type: "string" },
+      target: { type: "string" },
+      workspaceId: { type: "string" },
+    },
+    required: ["id", "name", "state", "createdAt"],
+  };
+}
+
+export function buildPipelineListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      pipelines: { type: "array", items: buildPipelineSchema() },
+      totalCount: { type: "integer" },
+      nextPageToken: { type: "string" },
+    },
+    required: ["pipelines", "totalCount"],
+  };
+}
+
+export function buildPipelineEventListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      events: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            eventType: { type: "string" },
+            timestamp: { type: "string", format: "date-time" },
+            message: { type: "string" },
+          },
+        },
+      },
+      totalCount: { type: "integer" },
+    },
+    required: ["events", "totalCount"],
+  };
+}
+
+// --- Webhook ---
+export function buildWebhookSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      url: { type: "string" },
+      events: { type: "array", items: { type: "string" } },
+      active: { type: "boolean" },
+      secret: { type: "string" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+      lastTriggeredAt: { type: "string", format: "date-time" },
+      failureCount: { type: "integer" },
+    },
+    required: ["id", "url", "events", "active", "createdAt"],
+  };
+}
+
+export function buildWebhookListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      webhooks: { type: "array", items: buildWebhookSchema() },
+      totalCount: { type: "integer" },
+    },
+    required: ["webhooks", "totalCount"],
+  };
+}
+
+export function buildWebhookDeliveryListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      deliveries: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            event: { type: "string" },
+            timestamp: { type: "string", format: "date-time" },
+            responseStatus: { type: "integer" },
+            success: { type: "boolean" },
+          },
+        },
+      },
+      totalCount: { type: "integer" },
+    },
+    required: ["deliveries", "totalCount"],
+  };
+}
+
+export function buildWebhookTestResultSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      webhookId: { type: "string" },
+      event: { type: "string" },
+      requestUrl: { type: "string" },
+      requestHeaders: { type: "object", additionalProperties: { type: "string" } },
+      requestBody: { type: "string" },
+      responseStatus: { type: "integer" },
+      responseBody: { type: "string" },
+      success: { type: "boolean" },
+      duration: { type: "integer", description: "Duration in milliseconds" },
+      timestamp: { type: "string", format: "date-time" },
+    },
+    required: ["id", "webhookId", "event", "success", "timestamp"],
+  };
+}
+
+// --- Auth ---
+export function buildApiKeySchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      id: { type: "string" },
+      name: { type: "string" },
+      prefix: { type: "string" },
+      scopes: { type: "array", items: { type: "string" } },
+      status: { type: "string", enum: ["ACTIVE", "REVOKED", "EXPIRED"] },
+      createdAt: { type: "string", format: "date-time" },
+      expiresAt: { type: "string", format: "date-time" },
+      lastUsedAt: { type: "string", format: "date-time" },
+    },
+    required: ["id", "name", "prefix", "status", "createdAt"],
+  };
+}
+
+export function buildApiKeyListSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      apiKeys: { type: "array", items: buildApiKeySchema() },
+      totalCount: { type: "integer" },
+    },
+    required: ["apiKeys", "totalCount"],
+  };
+}
+
+export function buildAuthTokenSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      accessToken: { type: "string" },
+      refreshToken: { type: "string" },
+      tokenType: { type: "string" },
+      expiresIn: { type: "integer", description: "Token lifetime in seconds" },
+      scopes: { type: "array", items: { type: "string" } },
+    },
+    required: ["accessToken", "tokenType", "expiresIn"],
+  };
+}
+
+export function buildTokenRevokeSchema() {
+  return {
+    type: "object" as const,
+    properties: {
+      revoked: { type: "boolean" },
+    },
+    required: ["revoked"],
   };
 }
 
