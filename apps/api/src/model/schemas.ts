@@ -5,9 +5,10 @@
 
 export const USER_RESPONSE_FIELDS = [
   "id",
-  "displayName",
+  "fullName",
   "email",
   "avatarUrl",
+  "department",
   "createdAt",
   "updatedAt",
   "role",
@@ -20,16 +21,17 @@ export function buildUserSchema() {
     type: "object" as const,
     properties: {
       id: { type: "string" as const },
-      displayName: { type: "string" as const },
+      fullName: { type: "string" as const },
       email: { type: "string" as const, format: "email" },
       avatarUrl: { type: "string" as const },
+      department: { type: "string" as const },
       createdAt: { type: "string" as const, format: "date-time" },
       updatedAt: { type: "string" as const, format: "date-time" },
       role: { type: "string" as const, enum: ["admin", "editor", "viewer"] },
       status: { type: "string" as const, enum: ["active", "suspended", "pending_verification"] },
       lastLoginAt: { type: "string" as const, format: "date-time" },
     },
-    required: ["id", "displayName", "email", "createdAt", "role", "status"] as const,
+    required: ["id", "fullName", "email", "createdAt", "role", "status"] as const,
   };
 }
 
