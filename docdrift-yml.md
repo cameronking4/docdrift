@@ -287,32 +287,36 @@ Use `apps/**` in `policy.allowlist` so Devin can modify both docsite and publish
 
 Issues are created **only** when:
 
-1. **`requireHumanReview`** — A PR was opened and it touches paths matched by `requireHumanReview`. We open a *review* issue to direct human attention to that PR.
-2. **Blocked or no-PR runs** — The Devin session did **not** open a PR (blocked or finished with no change). We open an issue titled `[docdrift] docsite: docs drift requires input` so a human can decide next steps.
+1. **`requireHumanReview`** — A doc-drift PR was opened and it touches paths matched by `requireHumanReview`. We open a *review* issue to direct human attention to that PR.
+2. **7-day SLA** — A doc-drift PR has been open for `slaDays` or more. We open an issue to nudge merging.
+3. **`DEVIN_API_KEY` missing** — The workflow ran but `DEVIN_API_KEY` is not set. We open an issue so you can add the secret.
+
+We **do not** create "docs drift requires input"–style issues when Devin reports blocked (evidence questions), policy `OPEN_ISSUE`, or sessions that finish with no PR. Those outcomes are reported in commit comments only.
 
 ### What is a blocked run?
 
-A **blocked run** means the Devin session ended without opening a PR. We treat that as "docs drift requires input" and create an issue.
+A **blocked run** means the Devin session ended without opening a PR (e.g. `BLOCKED`, `NO_CHANGE`). The run completes and posts a commit comment; no issue is created.
 
 ### How runs get blocked
 
 | Cause | Description |
 | ----- | ----------- |
-| **Devin reports blocked** | Devin hits a blocker (ambiguous requirements, unclear policy, needs human input) and sets `status: "BLOCKED"` in its structured output. `blocked.questions` populate the issue body. |
-| **Session completed with no PR** | Devin finished but didn't open a PR (e.g. `NO_CHANGE`). We treat that as blocked and open an issue. |
+| **Devin reports blocked** | Devin hits a blocker (ambiguous requirements, unclear policy, needs human input) and sets `status: "BLOCKED"` in its structured output. |
+| **Session completed with no PR** | Devin finished but didn't open a PR (e.g. `NO_CHANGE`). |
 | **Policy: PR cap reached** | The policy returns `UPDATE_EXISTING_PR` but there is no existing doc-drift PR to update. Outcome is **BLOCKED** ("PR cap reached"). |
-| **API key missing** | If `DEVIN_API_KEY` is not set, we don't start a session, treat it as blocked, and create an issue asking to set `DEVIN_API_KEY`. |
+| **API key missing** | If `DEVIN_API_KEY` is not set, we don't start a session and treat it as blocked. |
 
 ### When issues are created
 
 | Condition | Issue created? |
 | --------- | --------------- |
-| **PR opened** and touches `requireHumanReview` paths | Yes — "review doc drift PR" |
+| **PR opened** and touches `requireHumanReview` paths | Yes — "Docs out of sync — review doc drift PR" |
 | **PR opened** and no `requireHumanReview` paths touched | No |
-| **Policy `OPEN_ISSUE`** (policy chose issue instead of PR) | Yes — "docs drift requires input" |
-| **Session `BLOCKED`** (Devin reported blocked) | Yes — "docs drift requires input" |
-| **Session `NO_CHANGE`** (finished but didn't open PR) | Yes — "docs drift requires input" |
-| **`DEVIN_API_KEY` missing** | Yes — "docs drift requires input" |
+| **Doc-drift PR open ≥ `slaDays`** | Yes — "Docs out of sync — merge doc drift PR(s)" |
+| **Policy `OPEN_ISSUE`** (policy chose issue instead of PR) | No |
+| **Session `BLOCKED`** (Devin reported blocked, evidence questions) | No |
+| **Session `NO_CHANGE`** (finished but didn't open PR) | No |
+| **`DEVIN_API_KEY` missing** | Yes — "Configuration required — set DEVIN_API_KEY" |
 
 ---
 

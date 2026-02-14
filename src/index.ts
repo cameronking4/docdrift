@@ -363,20 +363,19 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     }
   } else if (
     githubToken &&
-    (decision.action === "OPEN_ISSUE" ||
-      sessionOutcome.outcome === "BLOCKED" ||
-      sessionOutcome.outcome === "NO_CHANGE")
+    sessionOutcome.outcome === "BLOCKED" &&
+    sessionOutcome.summary.includes("DEVIN_API_KEY")
   ) {
     issueUrl = await createIssue({
       token: githubToken,
       repository: repo,
       issue: {
-        title: "[docdrift] docsite: docs drift requires input",
+        title: "[docdrift] Configuration required — set DEVIN_API_KEY",
         body: renderBlockedIssueBody({
           docArea: item.docArea,
-          evidenceSummary: item.summary,
+          evidenceSummary: sessionOutcome.summary,
           questions: sessionOutcome.questions ?? [
-            "Please confirm intended behavior and doc wording.",
+            "Set DEVIN_API_KEY in GitHub Actions secrets or environment.",
           ],
           sessionUrl: sessionOutcome.sessionUrl,
         }),
@@ -384,10 +383,11 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       },
     });
     metrics.issuesOpened += 1;
-    if (sessionOutcome.outcome !== "PR_OPENED") {
-      sessionOutcome.outcome = "ISSUE_OPENED";
-    }
   }
+  // Note: We do NOT create "docs drift requires input" issues for Devin-reported BLOCKED
+  // (evidence questions) or for OPEN_ISSUE/NO_CHANGE. Issues are only created for:
+  // (1) requireHumanReview when a PR touches those paths, (2) 7-day SLA reminders,
+  // and (3) DEVIN_API_KEY missing. See docdrift-yml.md.
 
   if (sessionOutcome.outcome === "BLOCKED") {
     metrics.blockedCount += 1;
