@@ -1,4 +1,4 @@
-export const USER_RESPONSE_FIELDS = ["id", "name", "email"] as const;
+export const USER_RESPONSE_FIELDS = ["id", "fullName", "email"] as const;
 
 export function buildUserSchema(): {
   type: "object";

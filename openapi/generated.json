@@ -29,7 +29,7 @@
                     "id": {
                       "type": "string"
                     },
-                    "name": {
+                    "fullName": {
                       "type": "string"
                     },
                     "email": {
@@ -38,7 +38,7 @@
                   },
                   "required": [
                     "id",
-                    "name",
+                    "fullName",
                     "email"
                   ]
                 }
