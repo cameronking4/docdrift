@@ -24,7 +24,19 @@ async function main(): Promise<void> {
   const [, , command, ...args] = process.argv;
 
   if (!command) {
-    throw new Error("Usage: docdrift <validate|detect|run|status|sla-check> [options]\n  detect|run: [--base SHA] [--head SHA] (defaults: merge-base with main..HEAD)");
+    throw new Error(
+      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml> [options]\n  detect|run: [--base SHA] [--head SHA] (defaults: merge-base with main..HEAD)\n  setup|generate-yaml: [--output path] [--force]"
+    );
+  }
+
+  if (command === "setup" || command === "generate-yaml") {
+    require("dotenv").config();
+    const { runSetup } = await import("./setup");
+    await runSetup({
+      outputPath: getArg(args, "--output") ?? "docdrift.yaml",
+      force: args.includes("--force"),
+    });
+    return;
   }
 
   switch (command) {

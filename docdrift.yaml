@@ -9,6 +9,8 @@ openapi:
 
 docsite: "apps/docs-site"
 
+inferMode: false
+
 pathMappings:
   - match: "apps/api/**"
     impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]

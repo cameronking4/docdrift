@@ -15,6 +15,8 @@ export interface DevinSession {
   status_enum?: string;
   structured_output?: unknown;
   data?: Record<string, unknown>;
+  pull_request_url?: string;
+  pr_url?: string;
 }
 
 function ensureOk(response: Response, body: string, context: string): void {
@@ -117,6 +119,26 @@ export async function devinListSessions(
   return [];
 }
 
+const TERMINAL_STATUSES = [
+  "finished",
+  "blocked",
+  "error",
+  "cancelled",
+  "done",
+  "complete",
+  "completed",
+  "success",
+  "terminated",
+];
+
+function hasPrUrl(session: DevinSession): boolean {
+  if (typeof session.pull_request_url === "string" && session.pull_request_url) return true;
+  if (typeof session.pr_url === "string" && session.pr_url) return true;
+  const structured = (session.structured_output ?? (session.data as any)?.structured_output) as any;
+  if (structured?.pr?.url) return true;
+  return false;
+}
+
 export async function pollUntilTerminal(
   apiKey: string,
   sessionId: string,
@@ -126,7 +148,11 @@ export async function pollUntilTerminal(
   while (Date.now() - started < timeoutMs) {
     const session = await devinGetSession(apiKey, sessionId);
     const status = String(session.status_enum ?? session.status ?? "UNKNOWN").toLowerCase();
-    if (["finished", "blocked", "error", "cancelled", "done", "complete"].includes(status)) {
+    if (TERMINAL_STATUSES.includes(status)) {
+      return session;
+    }
+    // Session already produced a PR; stop polling so we don't timeout waiting for status to flip
+    if (hasPrUrl(session)) {
       return session;
     }
     await new Promise((resolve) => setTimeout(resolve, 5000));

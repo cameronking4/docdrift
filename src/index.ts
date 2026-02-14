@@ -588,3 +588,4 @@ export async function resolveBaseHead(
 }
 
 export const STATE_PATH = path.resolve(".docdrift", "state.json");
+export { runSetup } from "./setup";

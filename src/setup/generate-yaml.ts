@@ -1,0 +1,103 @@
+import fs from "node:fs";
+import path from "node:path";
+import yaml from "js-yaml";
+import type { ConfigInference } from "./ai-infer";
+import type { FormResult } from "./interactive-form";
+import { docDriftConfigSchema } from "../config/schema";
+
+function deepMerge<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>): T {
+  const out = { ...target };
+  for (const key of Object.keys(source)) {
+    const s = source[key];
+    const t = out[key];
+    if (s != null && typeof s === "object" && !Array.isArray(s) && t != null && typeof t === "object" && !Array.isArray(t)) {
+      (out as Record<string, unknown>)[key] = deepMerge(t as Record<string, unknown>, s as Record<string, unknown>);
+    } else if (s !== undefined) {
+      (out as Record<string, unknown>)[key] = s;
+    }
+  }
+  return out;
+}
+
+function applyOverrides(base: Record<string, unknown>, overrides: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(overrides)) {
+    setByKey(base, key, value);
+  }
+}
+
+function setByKey(obj: Record<string, unknown>, key: string, value: unknown): void {
+  const parts = key.split(".");
+  let cur: Record<string, unknown> = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i]!;
+    if (!(p in cur) || typeof cur[p] !== "object" || cur[p] === null || Array.isArray(cur[p])) {
+      cur[p] = {};
+    }
+    cur = cur[p] as Record<string, unknown>;
+  }
+  cur[parts[parts.length - 1]!] = value;
+}
+
+const DEFAULT_CONFIG = {
+  version: 1 as const,
+  openapi: { export: "npm run openapi:export", generated: "openapi/generated.json", published: "apps/docs-site/openapi/openapi.json" },
+  docsite: "apps/docs-site",
+  exclude: [] as string[],
+  requireHumanReview: [] as string[],
+  pathMappings: [] as Array<{ match: string; impacts: string[] }>,
+  devin: {
+    apiVersion: "v1" as const,
+    unlisted: true,
+    maxAcuLimit: 2,
+    tags: ["docdrift"],
+  },
+  policy: {
+    prCaps: { maxPrsPerDay: 5, maxFilesTouched: 30 },
+    confidence: { autopatchThreshold: 0.8 },
+    allowlist: ["openapi/**", "apps/**"],
+    verification: { commands: ["npm run docs:gen", "npm run docs:build"] },
+    slaDays: 7,
+    slaLabel: "docdrift",
+    allowNewFiles: false,
+  },
+};
+
+export function buildConfigFromInference(
+  inference: ConfigInference,
+  formResult: FormResult
+): Record<string, unknown> {
+  const base = deepMerge(
+    { ...DEFAULT_CONFIG },
+    inference.suggestedConfig as Record<string, unknown>
+  );
+  applyOverrides(base, formResult.configOverrides);
+  return base;
+}
+
+export function writeConfig(
+  config: Record<string, unknown>,
+  outputPath: string
+): void {
+  const dir = path.dirname(outputPath);
+  fs.mkdirSync(dir, { recursive: true });
+  const yamlContent = [
+    "# yaml-language-server: $schema=./docdrift.schema.json",
+    yaml.dump(config, { lineWidth: 120, noRefs: true }),
+  ].join("\n");
+  fs.writeFileSync(outputPath, yamlContent, "utf8");
+}
+
+export function validateGeneratedConfig(configPath: string): { ok: boolean; errors: string[] } {
+  try {
+    const content = fs.readFileSync(configPath, "utf8");
+    const parsed = yaml.load(content);
+    const result = docDriftConfigSchema.safeParse(parsed);
+    if (!result.success) {
+      const errors = result.error.errors.map((e) => `${e.path.join(".") || "root"}: ${e.message}`);
+      return { ok: false, errors };
+    }
+    return { ok: true, errors: [] };
+  } catch (err) {
+    return { ok: false, errors: [err instanceof Error ? err.message : String(err)] };
+  }
+}
