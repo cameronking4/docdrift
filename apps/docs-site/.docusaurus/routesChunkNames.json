@@ -1,142 +1,181 @@
 {
-  "/docs-274": {
-    "__comp": "5e95c892",
+  "/__docusaurus/debug-5ff": {
+    "__comp": "__comp---theme-debug-config-23-a-2ff",
     "__context": {
-      "plugin": "aba21aa0"
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
     }
   },
-  "/docs-dc6": {
-    "__comp": "a7bd4aaa",
-    "__props": "0058b4c6"
+  "/__docusaurus/debug/config-5ba": {
+    "__comp": "__comp---theme-debug-config-23-a-2ff",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
   },
-  "/docs-5ae": {
-    "__comp": "a94703ab"
+  "/__docusaurus/debug/content-a2b": {
+    "__comp": "__comp---theme-debug-contentba-8-ce7",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    },
+    "__props": "__props---docusaurus-debug-content-3-c-0-be2"
+  },
+  "/__docusaurus/debug/globalData-c3c": {
+    "__comp": "__comp---theme-debug-global-dataede-0fa",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/metadata-156": {
+    "__comp": "__comp---theme-debug-site-metadata-68-e-3d4",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/registry-88c": {
+    "__comp": "__comp---theme-debug-registry-679-501",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/routes-000": {
+    "__comp": "__comp---theme-debug-routes-946-699",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/docs-82d": {
+    "__comp": "__comp---theme-docs-root-5-e-9-0b6",
+    "__context": {
+      "plugin": "plugin---docsaba-d7c"
+    }
+  },
+  "/docs-d72": {
+    "__comp": "__comp---theme-doc-version-roota-7-b-5de",
+    "__props": "__props---docs-005-788"
+  },
+  "/docs-1e1": {
+    "__comp": "__comp---theme-doc-roota-94-67a"
   },
   "/docs/api/create-cluster-95a": {
-    "__comp": "4c5e977b",
-    "content": "866ef585"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-create-cluster-866-661"
   },
   "/docs/api/create-or-overwrite-notebook-37b": {
-    "__comp": "4c5e977b",
-    "content": "0b531013"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-create-or-overwrite-notebook-0-b-5-651"
   },
   "/docs/api/datastack-api-54e": {
-    "__comp": "4c5e977b",
-    "content": "be004851"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-datastack-apibe-0-793"
   },
   "/docs/api/export-notebook-5f5": {
-    "__comp": "4c5e977b",
-    "content": "8ab75add"
-  },
-  "/docs/api/get-a-user-e9e": {
-    "__comp": "4c5e977b",
-    "content": "7cf90402"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-export-notebook-8-ab-d85"
   },
   "/docs/api/get-a-user-by-id-123": {
-    "__comp": "4c5e977b",
-    "content": "2b27d0af"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-get-a-user-by-id-2-b-2-a34"
   },
   "/docs/api/get-cluster-by-id-55b": {
-    "__comp": "4c5e977b",
-    "content": "eaf4f7b0"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-get-cluster-by-ideaf-3e7"
   },
   "/docs/api/get-job-by-id-0cf": {
-    "__comp": "4c5e977b",
-    "content": "14b62931"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-get-job-by-id-14-b-2bd"
   },
   "/docs/api/get-job-run-697": {
-    "__comp": "4c5e977b",
-    "content": "ad6a2aa0"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-get-job-runad-6-037"
   },
   "/docs/api/get-sql-warehouse-by-id-9b6": {
-    "__comp": "4c5e977b",
-    "content": "b1446c79"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-get-sql-warehouse-by-idb-14-c4b"
   },
   "/docs/api/get-workspace-by-id-127": {
-    "__comp": "4c5e977b",
-    "content": "6c7b81a0"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-get-workspace-by-id-6-c-7-ff9"
   },
   "/docs/api/list-clusters-c3c": {
-    "__comp": "4c5e977b",
-    "content": "017d1a0f"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-list-clusters-017-49e"
   },
   "/docs/api/list-jobs-bc7": {
-    "__comp": "4c5e977b",
-    "content": "75bf33e3"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-list-jobs-75-b-191"
   },
   "/docs/api/list-notebooks-233": {
-    "__comp": "4c5e977b",
-    "content": "6b2ec513"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-list-notebooks-6-b-2-ed0"
   },
   "/docs/api/list-sql-warehouses-dce": {
-    "__comp": "4c5e977b",
-    "content": "3ee3285d"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-list-sql-warehouses-3-ee-2be"
   },
   "/docs/api/list-users-with-pagination-a6f": {
-    "__comp": "4c5e977b",
-    "content": "493074d4"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-list-users-with-pagination-493-6ed"
   },
   "/docs/api/list-workspaces-6e6": {
-    "__comp": "4c5e977b",
-    "content": "38f1f539"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-list-workspaces-38-f-d75"
   },
   "/docs/api/start-sql-warehouse-e7f": {
-    "__comp": "4c5e977b",
-    "content": "59e291f9"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-start-sql-warehouse-59-e-9d4"
   },
   "/docs/api/stop-sql-warehouse-9b6": {
-    "__comp": "4c5e977b",
-    "content": "4395c27c"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-stop-sql-warehouse-439-1d9"
   },
   "/docs/api/terminate-cluster-d1a": {
-    "__comp": "4c5e977b",
-    "content": "9419d9a3"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-terminate-cluster-941-b20"
   },
   "/docs/api/trigger-job-run-f58": {
-    "__comp": "4c5e977b",
-    "content": "447080eb"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-api-trigger-job-run-447-cae"
   },
   "/docs/guides/authentication-838": {
-    "__comp": "4c5e977b",
-    "content": "e4c8a744"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-authenticatione-4-c-8d4"
   },
   "/docs/guides/billing-and-usage-b82": {
-    "__comp": "4c5e977b",
-    "content": "029d7c80"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-billing-and-usage-029-57a"
   },
   "/docs/guides/getting-started-988": {
-    "__comp": "4c5e977b",
-    "content": "c9ea0dcf"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-getting-startedc-9-e-20f"
   },
   "/docs/guides/migration-from-legacy-18d": {
-    "__comp": "4c5e977b",
-    "content": "4729acf3"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-migration-from-legacy-472-456"
   },
   "/docs/guides/rate-limits-and-quotas-97c": {
-    "__comp": "4c5e977b",
-    "content": "ae239681"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-rate-limits-and-quotasae-2-e51"
   },
   "/docs/guides/sdks-and-cli-8ee": {
-    "__comp": "4c5e977b",
-    "content": "44d18d0c"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-sdks-and-cli-44-d-506"
   },
   "/docs/guides/security-best-practices-b92": {
-    "__comp": "4c5e977b",
-    "content": "acfbd0a8"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-security-best-practicesacf-8f5"
   },
   "/docs/guides/support-and-sla-49f": {
-    "__comp": "4c5e977b",
-    "content": "66baa3fa"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-guides-support-and-sla-66-b-a5f"
   },
   "/docs/intro-13e": {
-    "__comp": "4c5e977b",
-    "content": "0e384e19"
+    "__comp": "__comp---theme-api-item-4-c-5-a29",
+    "content": "content---docs-intro-0-e-3-be1"
   },
   "/-2e1": {
-    "__comp": "c4f5d8e4",
+    "__comp": "__comp---site-src-pages-index-jsc-4-f-f99",
     "__context": {
-      "plugin": "a7456010"
+      "plugin": "plugin---a-74-9d6"
     },
-    "config": "5e9f5e1a"
+    "config": "config---5-e-9-4f3"
   }
 }

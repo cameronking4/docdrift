@@ -16,8 +16,8 @@
   },
   "sidebar": "tutorialSidebar",
   "previous": {
-    "title": "Trigger job run",
-    "permalink": "/docs/api/trigger-job-run"
+    "title": "Welcome",
+    "permalink": "/docs/intro"
   },
   "next": {
     "title": "Authentication",

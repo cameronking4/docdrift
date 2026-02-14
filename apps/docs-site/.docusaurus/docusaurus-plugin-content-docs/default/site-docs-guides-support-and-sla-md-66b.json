@@ -18,5 +18,9 @@
   "previous": {
     "title": "Migration from legacy platforms",
     "permalink": "/docs/guides/migration-from-legacy"
+  },
+  "next": {
+    "title": "Introduction",
+    "permalink": "/docs/api/datastack-api"
   }
 }

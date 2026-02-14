@@ -1,7 +1,7 @@
 {
   "id": "api/datastack-api",
   "title": "DataStack API",
-  "description": "",
+  "description": "REST API for DataStack: workspaces, compute clusters, jobs, notebooks, and SQL warehouses.",
   "source": "@site/docs/api/datastack-api.info.mdx",
   "sourceDirName": "api",
   "slug": "/api/datastack-api",
@@ -15,7 +15,7 @@
   "frontMatter": {
     "id": "datastack-api",
     "title": "DataStack API",
-    "description": "",
+    "description": "REST API for DataStack: workspaces, compute clusters, jobs, notebooks, and SQL warehouses.",
     "sidebar_label": "Introduction",
     "sidebar_position": 0,
     "hide_title": true,
@@ -23,8 +23,8 @@
   },
   "sidebar": "tutorialSidebar",
   "previous": {
-    "title": "Welcome",
-    "permalink": "/docs/intro"
+    "title": "Support and SLA",
+    "permalink": "/docs/guides/support-and-sla"
   },
   "next": {
     "title": "Create cluster",

@@ -16,7 +16,7 @@
   },
   "sidebar": "tutorialSidebar",
   "next": {
-    "title": "Introduction",
-    "permalink": "/docs/api/datastack-api"
+    "title": "Getting started with DataStack",
+    "permalink": "/docs/guides/getting-started"
   }
 }

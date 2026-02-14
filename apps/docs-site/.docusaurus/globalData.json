@@ -31,11 +31,6 @@
               "sidebar": "tutorialSidebar"
             },
             {
-              "id": "api/get-a-user",
-              "path": "/docs/api/get-a-user",
-              "sidebar": "tutorialSidebar"
-            },
-            {
               "id": "api/get-a-user-by-id",
               "path": "/docs/api/get-a-user-by-id",
               "sidebar": "tutorialSidebar"
