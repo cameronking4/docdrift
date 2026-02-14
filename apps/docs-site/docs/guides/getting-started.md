@@ -35,7 +35,7 @@ Create a notebook (Python, SQL, or Scala) in the workspace, then define a [Job](
 
 ## Step 4: Call the API
 
-All API requests require authentication. Set the `Authorization: Bearer <token>` header and, for scoped operations, the `x-datastack-scope` header as described in [Authentication](/docs/guides/authentication).
+All API requests require authentication. Set the `Authorization: Bearer <token>` header and the `x-datastack-scope` header as described in [Authentication](/docs/guides/authentication).
 
 Example: list clusters
 
