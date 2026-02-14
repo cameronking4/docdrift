@@ -3,6 +3,7 @@ import type { NormalizedDocDriftConfig } from "../config/schema";
 import { AggregatedDriftResult, DriftItem, DriftReport, RunInfo, Signal } from "../model/types";
 import { ensureDir, writeJsonFile } from "../utils/fs";
 import { gitChangedPaths, gitCommitList, gitDiffSummary } from "../utils/git";
+import { matchesGlob } from "../utils/glob";
 import { detectHeuristicImpacts } from "./heuristics";
 import { getSpecDetector } from "../spec-providers/registry";
 import type { SpecProviderResult } from "../spec-providers/types";
@@ -95,14 +96,23 @@ export async function buildDriftReport(input: {
   }
 
   const hasHeuristicMatch = signals.some((s) => s.kind === "heuristic_path_impact");
+  const pathMappings = config.pathMappings ?? [];
+  const hasPathMappingMatch =
+    pathMappings.length > 0 &&
+    changedPaths.some((p) => pathMappings.some((m) => matchesGlob(m.match, p)));
 
   // 3. Gate logic
+  const isAuto = config.mode === "auto";
   let runGate: RunGate = "none";
   if (anySpecDrift) {
     runGate = "spec_drift";
-  } else if (config.allowConceptualOnlyRun && hasHeuristicMatch) {
+  } else if (isAuto && hasHeuristicMatch) {
     runGate = "conceptual_only";
-  } else if (config.inferMode && (config.specProviders.length === 0 || allSpecFailedOrNoDrift)) {
+  } else if (
+    isAuto &&
+    hasPathMappingMatch &&
+    (config.specProviders.length === 0 || allSpecFailedOrNoDrift)
+  ) {
     runGate = "infer";
     if (config.specProviders.length > 0) {
       for (const r of providerResults) {

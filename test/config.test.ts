@@ -152,7 +152,7 @@ describe("docDriftConfigSchema", () => {
     expect(normalized.requireHumanReview).toContain("pages/api.mdx");
   });
 
-  it("accepts v2 config with specProviders, allowConceptualOnlyRun, inferMode", () => {
+  it("accepts v2 config with specProviders and mode auto", () => {
     const parsed = docDriftConfigSchema.safeParse({
       version: 2,
       specProviders: [
@@ -163,8 +163,7 @@ describe("docDriftConfigSchema", () => {
         },
       ],
       docsite: "apps/docs-site",
-      allowConceptualOnlyRun: true,
-      inferMode: true,
+      mode: "auto",
       devin: { apiVersion: "v1" },
       policy: {
         prCaps: { maxPrsPerDay: 1, maxFilesTouched: 12 },

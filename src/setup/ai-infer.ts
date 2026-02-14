@@ -12,20 +12,25 @@ const pathRuleSchema = z.object({
   impacts: z.array(z.string().min(1)).min(1),
 });
 
+const specProviderSchema = z.object({
+  format: z.enum(["openapi3", "swagger2", "graphql", "fern", "postman"]),
+  current: z.object({
+    type: z.literal("export"),
+    command: z.string().min(1),
+    outputPath: z.string().min(1),
+  }),
+  published: z.string().min(1),
+});
+
 const InferenceSchema = z.object({
   suggestedConfig: z.object({
-    version: z.union([z.literal(1), z.literal(2)]).optional(),
-    openapi: z
-      .object({
-        export: z.string().min(1),
-        generated: z.string().min(1),
-        published: z.string().min(1),
-      })
-      .optional(),
+    version: z.literal(2).optional(),
+    specProviders: z.array(specProviderSchema).optional(),
     docsite: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
     exclude: z.array(z.string().min(1)).optional(),
     requireHumanReview: z.array(z.string().min(1)).optional(),
     pathMappings: z.array(pathRuleSchema).optional(),
+    mode: z.enum(["strict", "auto"]).optional(),
     devin: z
       .object({
         apiVersion: z.literal("v1"),
@@ -145,12 +150,19 @@ function heuristicInference(fingerprint: RepoFingerprint): ConfigInference {
 
   return {
     suggestedConfig: {
-      version: 1,
-      openapi: { export: openapiExport, generated, published },
+      version: 2,
+      specProviders: [
+        {
+          format: "openapi3" as const,
+          current: { type: "export" as const, command: openapiExport, outputPath: generated },
+          published,
+        },
+      ],
       docsite: firstDocsite,
       exclude: ["**/CHANGELOG*", "**/blog/**"],
       requireHumanReview,
       pathMappings: [{ match: matchGlob, impacts: [`${firstDocsite}/docs/**`, `${firstDocsite}/openapi/**`] }],
+      mode: "strict" as const,
       devin: { apiVersion: "v1", unlisted: true, maxAcuLimit: 2, tags: ["docdrift"] },
       policy: {
         prCaps: { maxPrsPerDay: 5, maxFilesTouched: 30 },
@@ -164,7 +176,7 @@ function heuristicInference(fingerprint: RepoFingerprint): ConfigInference {
     },
     choices: [
       {
-        key: "openapi.export",
+        key: "specProviders.0.current.command",
         question: "OpenAPI export command",
         options: [{ value: openapiExport, label: openapiExport, recommended: true }],
         defaultIndex: 0,

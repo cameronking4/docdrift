@@ -25,7 +25,14 @@ async function main(): Promise<void> {
 
   if (!command) {
     throw new Error(
-      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml> [options]\n  detect|run: [--base SHA] [--head SHA] (defaults: merge-base with main..HEAD)\n  setup|generate-yaml: [--output path] [--force]"
+      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml> [options]\n" +
+        "  validate          Validate docdrift.yaml (v2 config)\n" +
+        "  detect            Check for drift [--base SHA] [--head SHA]\n" +
+        "  run               Full run with Devin [--base SHA] [--head SHA]\n" +
+        "  status            Show run status [--since 24h]\n" +
+        "  sla-check         Check SLA for unmerged PRs\n" +
+        "  setup             Interactive setup (generates v2 docdrift.yaml)\n" +
+        "  generate-yaml     Generate config [--output path] [--force]"
     );
   }
 

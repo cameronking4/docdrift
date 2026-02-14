@@ -12,8 +12,7 @@ export function normalizeConfig(config: DocDriftConfig): NormalizedDocDriftConfi
   let exclude: string[] = config.exclude ?? [];
   let requireHumanReview: string[] = config.requireHumanReview ?? [];
   let docAreas = config.docAreas ?? [];
-  const allowConceptualOnlyRun = config.allowConceptualOnlyRun ?? false;
-  const inferMode = config.inferMode ?? true;
+  const mode = config.mode ?? "strict";
 
   if (config.specProviders && config.specProviders.length >= 1) {
     specProviders = config.specProviders;
@@ -138,7 +137,6 @@ export function normalizeConfig(config: DocDriftConfig): NormalizedDocDriftConfi
     exclude,
     requireHumanReview,
     docAreas,
-    allowConceptualOnlyRun,
-    inferMode,
+    mode,
   };
 }

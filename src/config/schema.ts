@@ -106,8 +106,8 @@ export const docDriftConfigBaseSchema = z.object({
   exclude: z.array(z.string().min(1)).optional().default([]),
   requireHumanReview: z.array(z.string().min(1)).optional().default([]),
   pathMappings: z.array(pathRuleSchema).optional().default([]),
-  allowConceptualOnlyRun: z.boolean().optional().default(false),
-  inferMode: z.boolean().optional().default(true),
+  /** strict: only run on spec drift. auto: also run when pathMappings match (no spec drift). */
+  mode: z.enum(["strict", "auto"]).optional().default("strict"),
   devin: z.object({
     apiVersion: z.literal("v1"),
     unlisted: z.boolean().default(true),
@@ -128,8 +128,8 @@ const docDriftConfigObjectSchema = z.object({
   exclude: z.array(z.string().min(1)).optional().default([]),
   requireHumanReview: z.array(z.string().min(1)).optional().default([]),
   pathMappings: z.array(pathRuleSchema).optional().default([]),
-  allowConceptualOnlyRun: z.boolean().optional().default(false),
-  inferMode: z.boolean().optional().default(true),
+  /** strict: only run on spec drift. auto: also run when pathMappings match (no spec drift). */
+  mode: z.enum(["strict", "auto"]).optional().default("strict"),
   devin: z.object({
     apiVersion: z.literal("v1"),
     unlisted: z.boolean().default(true),
@@ -165,6 +165,5 @@ export interface NormalizedDocDriftConfig extends Omit<DocDriftConfig, "openapi"
   docsite: string[];
   exclude: string[];
   requireHumanReview: string[];
-  allowConceptualOnlyRun: boolean;
-  inferMode: boolean;
+  mode: "strict" | "auto";
 }

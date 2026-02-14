@@ -28,23 +28,59 @@ function applyOverrides(base: Record<string, unknown>, overrides: Record<string,
 function setByKey(obj: Record<string, unknown>, key: string, value: unknown): void {
   const parts = key.split(".");
   let cur: Record<string, unknown> = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
+  let i = 0;
+  while (i < parts.length - 1) {
     const p = parts[i]!;
-    if (!(p in cur) || typeof cur[p] !== "object" || cur[p] === null || Array.isArray(cur[p])) {
-      cur[p] = {};
+    const nextPart = parts[i + 1];
+    const isArrayIndex = nextPart !== undefined && /^\d+$/.test(nextPart);
+    const existing = cur[p];
+
+    if (existing != null && typeof existing === "object") {
+      if (Array.isArray(existing) && isArrayIndex) {
+        const idx = parseInt(nextPart!, 10);
+        let el = existing[idx];
+        if (el == null || typeof el !== "object") {
+          el = {};
+          existing[idx] = el;
+        }
+        cur = el as Record<string, unknown>;
+        i += 2;
+        continue;
+      }
+      if (!Array.isArray(existing)) {
+        cur = existing as Record<string, unknown>;
+      } else {
+        cur[p] = isArrayIndex ? [] : {};
+        cur = cur[p] as Record<string, unknown>;
+      }
+    } else {
+      const next = isArrayIndex ? [] : {};
+      cur[p] = next;
+      cur = next as Record<string, unknown>;
     }
-    cur = cur[p] as Record<string, unknown>;
+    i++;
   }
   cur[parts[parts.length - 1]!] = value;
 }
 
 const DEFAULT_CONFIG = {
-  version: 1 as const,
-  openapi: { export: "npm run openapi:export", generated: "openapi/generated.json", published: "apps/docs-site/openapi/openapi.json" },
+  version: 2 as const,
+  specProviders: [
+    {
+      format: "openapi3" as const,
+      current: {
+        type: "export" as const,
+        command: "npm run openapi:export",
+        outputPath: "openapi/generated.json",
+      },
+      published: "apps/docs-site/openapi/openapi.json",
+    },
+  ],
   docsite: "apps/docs-site",
   exclude: [] as string[],
   requireHumanReview: [] as string[],
   pathMappings: [] as Array<{ match: string; impacts: string[] }>,
+  mode: "strict" as const,
   devin: {
     apiVersion: "v1" as const,
     unlisted: true,

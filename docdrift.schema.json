@@ -183,13 +183,13 @@
       },
       "default": []
     },
-    "allowConceptualOnlyRun": {
-      "type": "boolean",
-      "default": false
-    },
-    "inferMode": {
-      "type": "boolean",
-      "default": true
+    "mode": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "auto"
+      ],
+      "default": "strict"
     },
     "devin": {
       "type": "object",
