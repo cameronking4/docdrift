@@ -1,0 +1,1 @@
+{"parameters":[{"name":"workspaceId","in":"query","schema":{"type":"string"}},{"name":"state","in":"query","schema":{"type":"string","enum":["IDLE","RUNNING","FAILED","STOPPING","DELETED"]}},{"name":"pageSize","in":"query","schema":{"type":"integer","default":25}},{"name":"pageToken","in":"query","schema":{"type":"string"}}]}

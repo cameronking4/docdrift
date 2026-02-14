@@ -1,0 +1,1 @@
+{"parameters":[{"name":"pipelineId","in":"path","required":true,"schema":{"type":"string"}},{"name":"limit","in":"query","schema":{"type":"integer","default":50}},{"name":"orderBy","in":"query","schema":{"type":"string","enum":["timestamp_asc","timestamp_desc"]}}]}
