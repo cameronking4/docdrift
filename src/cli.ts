@@ -6,7 +6,7 @@ import {
   runDetect,
   runDocDrift,
   runStatus,
-  runValidate
+  runValidate,
 } from "./index";
 
 function getArg(args: string[], flag: string): string | undefined {

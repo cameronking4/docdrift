@@ -11,7 +11,10 @@ export interface DocsCheckResult {
   commandResults: Array<{ command: string; exitCode: number; logPath: string }>;
 }
 
-export async function runDocsChecks(commands: string[], evidenceDir: string): Promise<DocsCheckResult> {
+export async function runDocsChecks(
+  commands: string[],
+  evidenceDir: string
+): Promise<DocsCheckResult> {
   ensureDir(evidenceDir);
 
   const logs: string[] = [];
@@ -28,7 +31,7 @@ export async function runDocsChecks(commands: string[], evidenceDir: string): Pr
         "\n--- stdout ---",
         result.stdout,
         "\n--- stderr ---",
-        result.stderr
+        result.stderr,
       ].join("\n"),
       "utf8"
     );
@@ -41,7 +44,7 @@ export async function runDocsChecks(commands: string[], evidenceDir: string): Pr
     return {
       logs,
       commandResults,
-      summary: "Docs checks passed"
+      summary: "Docs checks passed",
     };
   }
 
@@ -53,7 +56,7 @@ export async function runDocsChecks(commands: string[], evidenceDir: string): Pr
       kind: "docs_check_failed",
       tier: 0,
       confidence: 0.99,
-      evidence: failed.map((result) => result.logPath)
-    }
+      evidence: failed.map((result) => result.logPath),
+    },
   };
 }

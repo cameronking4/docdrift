@@ -51,7 +51,7 @@ export function detectHeuristicImpacts(
       kind: "heuristic_path_impact",
       tier: 2,
       confidence: 0.67,
-      evidence: [evidencePath]
-    }
+      evidence: [evidencePath],
+    },
   };
 }

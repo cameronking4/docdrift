@@ -11,9 +11,20 @@
   "engines": {
     "node": ">=20"
   },
-  "files": ["dist/src"],
-  "repository": { "type": "git", "url": "" },
-  "keywords": ["docs", "drift", "openapi", "devin", "github-actions"],
+  "files": [
+    "dist/src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "docs",
+    "drift",
+    "openapi",
+    "devin",
+    "github-actions"
+  ],
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",

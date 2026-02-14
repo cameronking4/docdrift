@@ -6,12 +6,12 @@ This document describes every field in the repo-local config file `docdrift.yaml
 
 ## Top-level
 
-| Field      | Required | Type   | Description |
-|-----------|----------|--------|-------------|
-| `version` | **Yes**  | number | Must be `1`. Reserved for future config schema versions. |
-| `devin`   | **Yes**  | object | Devin API and session settings. |
-| `policy`  | **Yes**  | object | PR caps, confidence, allowlist, and verification. |
-| `docAreas`| **Yes**  | array  | One or more doc areas (each defines what to detect and how to patch). |
+| Field      | Required | Type   | Description                                                           |
+| ---------- | -------- | ------ | --------------------------------------------------------------------- |
+| `version`  | **Yes**  | number | Must be `1`. Reserved for future config schema versions.              |
+| `devin`    | **Yes**  | object | Devin API and session settings.                                       |
+| `policy`   | **Yes**  | object | PR caps, confidence, allowlist, and verification.                     |
+| `docAreas` | **Yes**  | array  | One or more doc areas (each defines what to detect and how to patch). |
 
 ---
 
@@ -19,12 +19,12 @@ This document describes every field in the repo-local config file `docdrift.yaml
 
 Settings for Devin API (sessions, ACU limits, visibility).
 
-| Field         | Required | Type    | Default     | Description |
-|---------------|----------|---------|-------------|-------------|
-| `apiVersion`  | **Yes**  | string  | —           | Must be `"v1"`. |
-| `unlisted`   | No       | boolean | `true`      | If `true`, sessions are unlisted. |
-| `maxAcuLimit`| No       | integer | `2`         | Max ACU (compute) limit for a session. Must be a positive integer. |
-| `tags`       | No       | array   | `["docdrift"]` | Tags attached to Devin sessions (e.g. for filtering in `docdrift status`). Each tag must be a non-empty string. |
+| Field         | Required | Type    | Default        | Description                                                                                                     |
+| ------------- | -------- | ------- | -------------- | --------------------------------------------------------------------------------------------------------------- |
+| `apiVersion`  | **Yes**  | string  | —              | Must be `"v1"`.                                                                                                 |
+| `unlisted`    | No       | boolean | `true`         | If `true`, sessions are unlisted.                                                                               |
+| `maxAcuLimit` | No       | integer | `2`            | Max ACU (compute) limit for a session. Must be a positive integer.                                              |
+| `tags`        | No       | array   | `["docdrift"]` | Tags attached to Devin sessions (e.g. for filtering in `docdrift status`). Each tag must be a non-empty string. |
 
 **Example:**
 
@@ -45,28 +45,28 @@ Global policy: PR caps, confidence gating, allowlist, and verification commands.
 
 ### `policy.prCaps`
 
-| Field             | Required | Type    | Default | Description |
-|-------------------|----------|---------|---------|-------------|
+| Field             | Required | Type    | Default | Description                                                                 |
+| ----------------- | -------- | ------- | ------- | --------------------------------------------------------------------------- |
 | `maxPrsPerDay`    | No       | integer | `1`     | Maximum PRs that can be opened per day (across all doc areas). Must be ≥ 1. |
-| `maxFilesTouched`  | No       | integer | `12`    | Maximum files a single PR may touch. Must be ≥ 1. |
+| `maxFilesTouched` | No       | integer | `12`    | Maximum files a single PR may touch. Must be ≥ 1.                           |
 
 ### `policy.confidence`
 
-| Field                 | Required | Type   | Default | Description |
-|-----------------------|----------|--------|---------|-------------|
-| `autopatchThreshold`  | No       | number | `0.8`   | Confidence score between `0` and `1`. Above this threshold, the engine may open/update a PR; at or below, it may escalate to an issue. |
+| Field                | Required | Type   | Default | Description                                                                                                                            |
+| -------------------- | -------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `autopatchThreshold` | No       | number | `0.8`   | Confidence score between `0` and `1`. Above this threshold, the engine may open/update a PR; at or below, it may escalate to an issue. |
 
 ### `policy.allowlist`
 
-| Field        | Required | Type  | Default | Description |
-|--------------|----------|-------|---------|-------------|
-| `allowlist`  | **Yes**  | array | —       | Glob-style paths (e.g. `"docs/**"`, `"openapi/**"`). Only paths matching this list may be modified by generated PRs. At least one entry required. |
+| Field       | Required | Type  | Default | Description                                                                                                                                       |
+| ----------- | -------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allowlist` | **Yes**  | array | —       | Glob-style paths (e.g. `"docs/**"`, `"openapi/**"`). Only paths matching this list may be modified by generated PRs. At least one entry required. |
 
 ### `policy.verification`
 
-| Field       | Required | Type  | Default | Description |
-|-------------|----------|-------|---------|-------------|
-| `commands`  | **Yes**  | array | —       | Commands run after patching to verify docs (e.g. `npm run docs:check`). At least one required. Each entry must be a non-empty string. The **binary** of each command must exist on the runner (e.g. `npm` for `npm run docs:check`). |
+| Field      | Required | Type  | Default | Description                                                                                                                                                                                                                          |
+| ---------- | -------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `commands` | **Yes**  | array | —       | Commands run after patching to verify docs (e.g. `npm run docs:check`). At least one required. Each entry must be a non-empty string. The **binary** of each command must exist on the runner (e.g. `npm` for `npm run docs:check`). |
 
 **Example:**
 
@@ -93,19 +93,19 @@ Array of **doc areas**. Each area has a name, a mode, owners, detection rules, a
 
 ### Doc area: root fields
 
-| Field   | Required | Type   | Description |
-|---------|----------|--------|-------------|
-| `name`  | **Yes**  | string | Unique identifier for this doc area (non-empty). Used in drift reports, state, and Devin metadata. |
-| `mode`  | **Yes**  | string | **Options:** `autogen` \| `conceptual`. See [Mode](#mode) below. |
-| `owners`| **Yes**  | object | Ownership/review metadata. |
-| `detect`| **Yes**  | object | How to detect drift for this area. Must include at least one of `openapi` or `paths`. |
-| `patch` | **Yes**  | object | How to patch (targets, human confirmation). |
+| Field    | Required | Type   | Description                                                                                        |
+| -------- | -------- | ------ | -------------------------------------------------------------------------------------------------- |
+| `name`   | **Yes**  | string | Unique identifier for this doc area (non-empty). Used in drift reports, state, and Devin metadata. |
+| `mode`   | **Yes**  | string | **Options:** `autogen` \| `conceptual`. See [Mode](#mode) below.                                   |
+| `owners` | **Yes**  | object | Ownership/review metadata.                                                                         |
+| `detect` | **Yes**  | object | How to detect drift for this area. Must include at least one of `openapi` or `paths`.              |
+| `patch`  | **Yes**  | object | How to patch (targets, human confirmation).                                                        |
 
 ### `owners`
 
-| Field        | Required | Type  | Description |
-|--------------|----------|-------|-------------|
-| `reviewers`  | **Yes**  | array | List of reviewer identifiers (e.g. team slugs like `datastack/api-owners`). At least one required; each must be a non-empty string. |
+| Field       | Required | Type  | Description                                                                                                                         |
+| ----------- | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `reviewers` | **Yes**  | array | List of reviewer identifiers (e.g. team slugs like `datastack/api-owners`). At least one required; each must be a non-empty string. |
 
 ### `detect`
 
@@ -115,29 +115,29 @@ Exactly one or both of `openapi` and `paths` must be present. If both are set, b
 
 Use for **autogen** doc areas: compare generated OpenAPI spec to published spec.
 
-| Field           | Required | Type  | Description |
-|-----------------|----------|-------|-------------|
-| `exportCmd`     | **Yes**  | string| Command that generates the current spec (e.g. `npm run openapi:export`). Non-empty. The command’s binary must exist at validate time. |
-| `generatedPath` | **Yes**  | string| Path to the **generated** spec file (output of `exportCmd`). Non-empty. |
-| `publishedPath` | **Yes**  | string| Path to the **published** spec file (e.g. in `docs/`). Non-empty. Drift = diff between generated and published. |
+| Field           | Required | Type   | Description                                                                                                                           |
+| --------------- | -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `exportCmd`     | **Yes**  | string | Command that generates the current spec (e.g. `npm run openapi:export`). Non-empty. The command’s binary must exist at validate time. |
+| `generatedPath` | **Yes**  | string | Path to the **generated** spec file (output of `exportCmd`). Non-empty.                                                               |
+| `publishedPath` | **Yes**  | string | Path to the **published** spec file (e.g. in `docs/`). Non-empty. Drift = diff between generated and published.                       |
 
 #### Option B: `detect.paths`
 
 Use for **conceptual** (or autogen) areas: when code paths change, which doc paths are considered impacted.
 
-| Field   | Required | Type  | Description |
-|---------|----------|-------|-------------|
-| `paths` | No*     | array | List of path rules. *Required if `openapi` is not set.* |
-| **Each rule** |       |       | |
-| `match`  | **Yes**  | string| Glob pattern for **code** paths (e.g. `apps/api/src/auth/**`). Non-empty. |
-| `impacts`| **Yes**  | array | List of **doc** paths impacted when `match` changes (e.g. `["docs/guides/auth.md"]`). At least one non-empty string per rule. |
+| Field         | Required | Type   | Description                                                                                                                   |
+| ------------- | -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `paths`       | No\*     | array  | List of path rules. _Required if `openapi` is not set._                                                                       |
+| **Each rule** |          |        |                                                                                                                               |
+| `match`       | **Yes**  | string | Glob pattern for **code** paths (e.g. `apps/api/src/auth/**`). Non-empty.                                                     |
+| `impacts`     | **Yes**  | array  | List of **doc** paths impacted when `match` changes (e.g. `["docs/guides/auth.md"]`). At least one non-empty string per rule. |
 
 ### `patch`
 
-| Field                     | Required | Type    | Default | Description |
-|---------------------------|----------|---------|---------|-------------|
-| `targets`                 | No       | array   | —       | List of doc file paths that may be updated by an autogen PR. Optional; if omitted for an **autogen** area, validation may emit a warning. |
-| `requireHumanConfirmation`| No       | boolean | `false`| If `true`, the engine treats this area as human-in-the-loop (e.g. open an issue instead of auto-opening a PR). |
+| Field                      | Required | Type    | Default | Description                                                                                                                               |
+| -------------------------- | -------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `targets`                  | No       | array   | —       | List of doc file paths that may be updated by an autogen PR. Optional; if omitted for an **autogen** area, validation may emit a warning. |
+| `requireHumanConfirmation` | No       | boolean | `false` | If `true`, the engine treats this area as human-in-the-loop (e.g. open an issue instead of auto-opening a PR).                            |
 
 ### Mode
 

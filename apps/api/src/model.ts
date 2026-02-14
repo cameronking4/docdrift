@@ -4,7 +4,7 @@ export const USER_RESPONSE_FIELDS = [
   "email",
   "avatarUrl",
   "createdAt",
-  "role"
+  "role",
 ] as const;
 
 export function buildUserSchema(): {
@@ -17,7 +17,7 @@ export function buildUserSchema(): {
     properties: Object.fromEntries(
       USER_RESPONSE_FIELDS.map((field) => [field, { type: "string" }])
     ),
-    required: [...USER_RESPONSE_FIELDS]
+    required: [...USER_RESPONSE_FIELDS],
   };
 }
 
@@ -33,8 +33,8 @@ export function buildUserListSchema(): {
     type: "object",
     properties: {
       users: { type: "array", items: buildUserSchema() },
-      totalCount: { type: "number" }
+      totalCount: { type: "number" },
     },
-    required: ["users", "totalCount"]
+    required: ["users", "totalCount"],
   };
 }

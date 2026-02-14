@@ -27,7 +27,7 @@ export async function postCommitComment(input: {
     owner,
     repo,
     commit_sha: input.commitSha,
-    body: input.body
+    body: input.body,
   });
 
   return response.data.html_url;
@@ -46,7 +46,7 @@ export async function createIssue(input: {
     repo,
     title: input.issue.title,
     body: input.issue.body,
-    labels: input.issue.labels
+    labels: input.issue.labels,
   });
 
   return response.data.html_url;

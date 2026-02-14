@@ -9,20 +9,20 @@ describe("docDriftConfigSchema", () => {
         apiVersion: "v1",
         unlisted: true,
         maxAcuLimit: 2,
-        tags: ["docdrift"]
+        tags: ["docdrift"],
       },
       policy: {
         prCaps: {
           maxPrsPerDay: 1,
-          maxFilesTouched: 12
+          maxFilesTouched: 12,
         },
         confidence: {
-          autopatchThreshold: 0.8
+          autopatchThreshold: 0.8,
         },
         allowlist: ["docs/**", "openapi/**"],
         verification: {
-          commands: ["npm run docs:check"]
-        }
+          commands: ["npm run docs:check"],
+        },
       },
       docAreas: [
         {
@@ -33,14 +33,14 @@ describe("docDriftConfigSchema", () => {
             openapi: {
               exportCmd: "npm run openapi:export",
               generatedPath: "openapi/generated.json",
-              publishedPath: "docs/reference/openapi.json"
-            }
+              publishedPath: "docs/reference/openapi.json",
+            },
           },
           patch: {
-            targets: ["docs/reference/openapi.json"]
-          }
-        }
-      ]
+            targets: ["docs/reference/openapi.json"],
+          },
+        },
+      ],
     });
 
     expect(parsed.success).toBe(true);
@@ -53,13 +53,13 @@ describe("docDriftConfigSchema", () => {
         apiVersion: "v1",
         unlisted: true,
         maxAcuLimit: 2,
-        tags: ["docdrift"]
+        tags: ["docdrift"],
       },
       policy: {
         prCaps: { maxPrsPerDay: 1, maxFilesTouched: 12 },
         confidence: { autopatchThreshold: 0.8 },
         allowlist: ["docs/**"],
-        verification: { commands: ["npm run docs:check"] }
+        verification: { commands: ["npm run docs:check"] },
       },
       docAreas: [
         {
@@ -67,9 +67,9 @@ describe("docDriftConfigSchema", () => {
           mode: "conceptual",
           owners: { reviewers: ["team/docs"] },
           detect: {},
-          patch: {}
-        }
-      ]
+          patch: {},
+        },
+      ],
     });
 
     expect(parsed.success).toBe(false);

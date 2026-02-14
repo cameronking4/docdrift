@@ -16,5 +16,5 @@ export const emptyState = (): StateStore => ({
   idempotency: {},
   dailyPrCount: {},
   areaDailyPrOpened: {},
-  areaLatestPr: {}
+  areaLatestPr: {},
 });

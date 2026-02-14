@@ -11,17 +11,17 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
         params: {
           type: "object",
           properties: { id: { type: "string" } },
-          required: ["id"]
+          required: ["id"],
         },
         headers: {
           type: "object",
           properties: {
-            [AUTH_SCOPE_HEADER]: { type: "string", const: AUTH_SCOPE_VALUE }
+            [AUTH_SCOPE_HEADER]: { type: "string", const: AUTH_SCOPE_VALUE },
           },
-          required: [AUTH_SCOPE_HEADER]
+          required: [AUTH_SCOPE_HEADER],
         },
-        response: { 200: buildUserSchema() }
-      }
+        response: { 200: buildUserSchema() },
+      },
     },
     async (request) => {
       const params = request.params as { id: string };
@@ -31,7 +31,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
         email: "ada@datastack.dev",
         avatarUrl: "https://api.datastack.dev/avatars/ada.png",
         createdAt: "2024-01-15T10:00:00Z",
-        role: "admin"
+        role: "admin",
       };
     }
   );
@@ -45,18 +45,18 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
           type: "object",
           properties: {
             page: { type: "integer", default: 1 },
-            limit: { type: "integer", default: 20 }
-          }
+            limit: { type: "integer", default: 20 },
+          },
         },
         headers: {
           type: "object",
           properties: {
-            [AUTH_SCOPE_HEADER]: { type: "string", const: AUTH_SCOPE_VALUE }
+            [AUTH_SCOPE_HEADER]: { type: "string", const: AUTH_SCOPE_VALUE },
           },
-          required: [AUTH_SCOPE_HEADER]
+          required: [AUTH_SCOPE_HEADER],
         },
-        response: { 200: buildUserListSchema() }
-      }
+        response: { 200: buildUserListSchema() },
+      },
     },
     async (request) => {
       const q = request.query as { page?: number; limit?: number };
@@ -70,10 +70,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
             email: "ada@datastack.dev",
             avatarUrl: "https://api.datastack.dev/avatars/ada.png",
             createdAt: "2024-01-15T10:00:00Z",
-            role: "admin"
-          }
+            role: "admin",
+          },
         ],
-        totalCount: 1
+        totalCount: 1,
       };
     }
   );

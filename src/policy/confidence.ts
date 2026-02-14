@@ -4,7 +4,7 @@ const tierWeight: Record<number, number> = {
   0: 1,
   1: 0.9,
   2: 0.6,
-  3: 0.35
+  3: 0.35,
 };
 
 function clamp01(value: number): number {
@@ -26,7 +26,10 @@ export function scoreSignals(signals: Signal[]): number {
   return clamp01(1 - complement);
 }
 
-export function combineWithDevinPlan(detectorConfidence: number, devinPlanConfidence?: number): number {
+export function combineWithDevinPlan(
+  detectorConfidence: number,
+  devinPlanConfidence?: number
+): number {
   if (typeof devinPlanConfidence !== "number") {
     return detectorConfidence;
   }

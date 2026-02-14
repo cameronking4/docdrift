@@ -3,6 +3,7 @@
 Docs that never lie: detect drift between merged code and docs, then open low-noise, evidence-grounded remediation via Devin sessions.
 
 ## Deliverables
+
 - **npm package**: [@devinnn/docdrift](https://www.npmjs.com/package/@devinnn/docdrift) — TypeScript CLI (`docdrift`)
   - `validate`
   - `detect --base <sha> --head <sha>`
@@ -14,6 +15,7 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
 - PR template + Loom script
 
 ## Why this is low-noise
+
 - One PR per doc area per day (bundling rule).
 - Global PR/day cap.
 - Confidence gating and allowlist enforcement.
@@ -21,17 +23,20 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
 - Idempotency key prevents duplicate actions for same repo/SHAs/action.
 
 ## Detection tiers
+
 - Tier 0: docs checks (`npm run docs:check`)
 - Tier 1: OpenAPI drift (`openapi/generated.json` vs `docs/reference/openapi.json`)
 - Tier 2: heuristic path impacts (e.g. `apps/api/src/auth/**` -> `docs/guides/auth.md`)
 
 Output artifacts (under `.docdrift/`):
+
 - `drift_report.json`
 - `metrics.json` (after `run`)
 
 When you run docdrift as a package (e.g. `npx docdrift` or from another repo), all of this is written to **that repo’s** `.docdrift/` — i.e. the current working directory where the CLI is invoked, not inside the package. Add `.docdrift/` to the consuming repo’s `.gitignore` if you don’t want to commit run artifacts.
 
 ## Core flow (`docdrift run`)
+
 1. Validate config and command availability.
 2. Build drift report.
 3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`).
@@ -43,11 +48,11 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 
 ## Where the docs are (this repo)
 
-| Path | Purpose |
-|------|--------|
+| Path                          | Purpose                                                               |
+| ----------------------------- | --------------------------------------------------------------------- |
 | `docs/reference/openapi.json` | Published OpenAPI spec (source of truth for docs; should match code). |
-| `docs/reference/api.md` | Human-readable API reference (endpoints, request/response). |
-| `docs/guides/auth.md` | Conceptual auth guide (updated only for conceptual drift). |
+| `docs/reference/api.md`       | Human-readable API reference (endpoints, request/response).           |
+| `docs/guides/auth.md`         | Conceptual auth guide (updated only for conceptual drift).            |
 
 `docdrift.yaml` defines **patch targets** per doc area. For `api_reference` (autogen), the targets are `docs/reference/openapi.json` and `docs/reference/api.md`. The **generated** spec from code lives at `openapi/generated.json` (from `npm run openapi:export`). Drift = generated vs published differ.
 
@@ -60,6 +65,7 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 So the “fix” is a **PR opened by Devin** that you merge; the repo’s docs don’t change until that PR is merged.
 
 ## Local usage
+
 ```bash
 npm install
 npx tsx src/cli.ts validate
@@ -72,25 +78,29 @@ DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha>
 
 You can run a full end-to-end demo locally with no remote repo. Ensure `.env` has `DEVIN_API_KEY` (and optionally `GITHUB_TOKEN` only when you have a real repo).
 
-1. **One-time setup (already done if you have two commits with drift)**  
-   - Git is inited; baseline commit has docs in sync with API.  
+1. **One-time setup (already done if you have two commits with drift)**
+   - Git is inited; baseline commit has docs in sync with API.
    - A later commit changes `apps/api/src/model.ts` (e.g. `name` → `fullName`) and runs `npm run openapi:export`, so `openapi/generated.json` drifts from `docs/reference/openapi.json`.
 
 2. **Run the pipeline**
+
    ```bash
    npm install
    npx tsx src/cli.ts validate
    npx tsx src/cli.ts detect --base b0f624f --head 6030902
    ```
+
    - Use your own `git log --oneline -3` to get `base` (older) and `head` (newer) SHAs if you recreated the demo.
 
 3. **Run with Devin (no GitHub calls)**  
    Omit `GITHUB_TOKEN` so the CLI does not post comments or create issues. Devin session still runs; results are printed to stdout and written to `.docdrift/state.json` and `metrics.json`.
+
    ```bash
    export $(grep -v '^#' .env | xargs)
    unset GITHUB_TOKEN GITHUB_REPOSITORY GITHUB_SHA
    npx tsx src/cli.ts run --base b0f624f --head 6030902
    ```
+
    - `run` can take 1–3 minutes while the Devin session runs.
 
 4. **What you’ll see**
@@ -111,14 +121,15 @@ You can run a full end-to-end demo locally with no remote repo. Ensure `.env` ha
 ## Run on GitHub
 
 1. **Create a repo** on GitHub (e.g. `your-org/docdrift`), then add the remote and push:
+
    ```bash
    git remote add origin https://github.com/your-org/docdrift.git
    git push -u origin main
    ```
 
 2. **Add secret**  
-   Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**  
-   - Name: `DEVIN_API_KEY`  
+   Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+   - Name: `DEVIN_API_KEY`
    - Value: your Devin API key (same as in `.env` locally)
 
    `GITHUB_TOKEN` is provided automatically; the workflow uses it for commit comments and issues.
@@ -139,7 +150,7 @@ This repo has **intentional drift**: the API has been expanded (new fields `full
    ```
 3. **Add secret** in that repo: **Settings** → **Secrets and variables** → **Actions** → `DEVIN_API_KEY` = your Devin API key.
 4. **Trigger the workflow**
-   - Either push another small commit (e.g. README tweak), or  
+   - Either push another small commit (e.g. README tweak), or
    - **Actions** → **devin-doc-drift** → **Run workflow**.
 5. **Where to look**
    - **Actions** → open the run → **Run Doc Drift** step: the step logs print JSON with `sessionUrl`, `prUrl`, and `outcome` per doc area. Open any `sessionUrl` in your browser to see the Devin session.
@@ -177,8 +188,10 @@ Once published to npm, any repo can use the CLI locally or in GitHub Actions.
 - Only the `dist/` directory is included (`files` in `package.json`). Consumers get the built CLI; they provide their own `docdrift.yaml` in their repo.
 
 ## Demo scenario
+
 - Autogen drift: rename a field in `apps/api/src/model.ts`, merge to `main`, observe docs PR path.
 - Conceptual drift: change auth behavior under `apps/api/src/auth/**`, merge to `main`, observe single escalation issue.
 
 ## Loom
+
 See `/Users/cameronking/Desktop/sideproject/docdrift/loom.md` for the minute-by-minute recording script.

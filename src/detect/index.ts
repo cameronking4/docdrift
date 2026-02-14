@@ -7,7 +7,10 @@ import { runDocsChecks } from "./docsCheck";
 import { detectHeuristicImpacts } from "./heuristics";
 import { detectOpenApiDrift } from "./openapi";
 
-function defaultRecommendation(mode: "autogen" | "conceptual", signals: Signal[]): DriftItem["recommendedAction"] {
+function defaultRecommendation(
+  mode: "autogen" | "conceptual",
+  signals: Signal[]
+): DriftItem["recommendedAction"] {
   if (!signals.length) {
     return "NOOP";
   }
@@ -36,7 +39,7 @@ export async function buildDriftReport(input: {
     baseSha: input.baseSha,
     headSha: input.headSha,
     trigger: input.trigger,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   const evidenceRoot = path.resolve(".docdrift", "evidence", runInfo.runId);
@@ -89,7 +92,7 @@ export async function buildDriftReport(input: {
       signals,
       impactedDocs: [...impactedDocs],
       recommendedAction: defaultRecommendation(docArea.mode, signals),
-      summary: summaries.filter(Boolean).join(" | ")
+      summary: summaries.filter(Boolean).join(" | "),
     });
   }
 
@@ -99,16 +102,16 @@ export async function buildDriftReport(input: {
       baseSha: input.baseSha,
       headSha: input.headSha,
       trigger: input.trigger,
-      timestamp: runInfo.timestamp
+      timestamp: runInfo.timestamp,
     },
-    items
+    items,
   };
 
   writeJsonFile(path.resolve(".docdrift", "drift_report.json"), report);
   writeJsonFile(path.join(evidenceRoot, "changeset.json"), {
     changedPaths,
     diffSummary,
-    commits
+    commits,
   });
 
   return { report, changedPaths, evidenceRoot, runInfo, checkSummaries };

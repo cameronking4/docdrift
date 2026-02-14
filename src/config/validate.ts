@@ -22,7 +22,7 @@ export async function validateRuntimeConfig(config: DocDriftConfig): Promise<Val
     ...config.policy.verification.commands,
     ...config.docAreas
       .map((area) => area.detect.openapi?.exportCmd)
-      .filter((value): value is string => Boolean(value))
+      .filter((value): value is string => Boolean(value)),
   ]);
 
   for (const command of commandSet) {

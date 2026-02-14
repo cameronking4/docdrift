@@ -37,7 +37,7 @@ export function buildAutogenPrompt(input: PromptInput): string {
     "  e) get blocked (status=BLOCKED + questions),",
     "  f) complete (status=DONE).",
     "",
-    `Goal: Produce a PR for doc area ${input.item.docArea} using only the evidence.`
+    `Goal: Produce a PR for doc area ${input.item.docArea} using only the evidence.`,
   ].join("\n");
 }
 
@@ -58,6 +58,6 @@ export function buildConceptualPrompt(input: PromptInput): string {
     "- Update at planning, editing, verifying, open-pr, blocked, done milestones.",
     "- If blocked, fill blocked.questions with concrete, reviewer-actionable questions.",
     "",
-    "Goal: either open a very small PR with confidence or open an issue/comment with crisp questions and suggested patch text."
+    "Goal: either open a very small PR with confidence or open an issue/comment with crisp questions and suggested patch text.",
   ].join("\n");
 }
