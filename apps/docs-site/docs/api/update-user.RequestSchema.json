@@ -1,1 +1,1 @@
-{"title":"Body","body":{"content":{"application/json":{"schema":{"type":"object","properties":{"displayName":{"type":"string"},"role":{"type":"string","enum":["admin","editor","viewer"]},"status":{"type":"string","enum":["active","suspended"]}}}}}}}
+{"title":"Body","body":{"content":{"application/json":{"schema":{"type":"object","properties":{"fullName":{"type":"string"},"role":{"type":"string","enum":["admin","editor","viewer"]},"status":{"type":"string","enum":["active","suspended"]}}}}}}}
