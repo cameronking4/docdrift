@@ -63,20 +63,14 @@ function setByKey(obj: Record<string, unknown>, key: string, value: unknown): vo
   cur[parts[parts.length - 1]!] = value;
 }
 
+/** Structural defaults only; path fields (docsite, specProviders, allowlist paths) come from inference. */
 const DEFAULT_CONFIG = {
   version: 2 as const,
-  specProviders: [
-    {
-      format: "openapi3" as const,
-      current: {
-        type: "export" as const,
-        command: "npm run openapi:export",
-        outputPath: "openapi/generated.json",
-      },
-      published: "apps/docs-site/openapi/openapi.json",
-    },
-  ],
-  docsite: "apps/docs-site",
+  specProviders: [] as Array<{
+    format: "openapi3";
+    current: { type: "export"; command: string; outputPath: string };
+    published: string;
+  }>,
   exclude: [] as string[],
   requireHumanReview: [] as string[],
   pathMappings: [] as Array<{ match: string; impacts: string[] }>,
@@ -90,8 +84,8 @@ const DEFAULT_CONFIG = {
   policy: {
     prCaps: { maxPrsPerDay: 5, maxFilesTouched: 30 },
     confidence: { autopatchThreshold: 0.8 },
-    allowlist: ["openapi/**", "apps/**"],
-    verification: { commands: ["npm run docs:gen", "npm run docs:build"] },
+    allowlist: ["openapi/**"] as string[],
+    verification: { commands: ["npm run build"] },
     slaDays: 7,
     slaLabel: "docdrift",
     allowNewFiles: false,

@@ -4,7 +4,11 @@ export const SYSTEM_PROMPT = `You are a docdrift config expert. Given a repo fin
 
 Minimal valid config uses: version: 2, specProviders (or pathMappings only for path-only setups), docsite, devin, policy.
 
-Example:
+Use paths from the fingerprint only. Do not invent or assume paths. If docsite or API/source path cannot be determined, add them to choices so the user can specify.
+
+Common repo layouts: packages/api + packages/docs, apps/api + apps/docs-site, docs/ at root, openapi/ at root, etc. Infer from foundPaths (docusaurusConfig, mkdocs, vitepressConfig, nextConfig, docsDirs, docsDirParents, openapi, exportScript, apiDirs).
+
+Example (replace {docsitePath} and {apiDir} with actual paths from the fingerprint):
 \`\`\`yaml
 version: 2
 specProviders:
@@ -13,12 +17,12 @@ specProviders:
       type: export
       command: "npm run openapi:export"
       outputPath: "openapi/generated.json"
-    published: "apps/docs-site/openapi/openapi.json"
-docsite: "apps/docs-site"
+    published: "{docsitePath}/openapi/openapi.json"
+docsite: "{docsitePath}"
 pathMappings:
-  - match: "apps/api/**"
-    impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
-exclude: ["**/CHANGELOG*", "apps/docs-site/blog/**"]
+  - match: "{apiDir}/**"
+    impacts: ["{docsitePath}/docs/**", "{docsitePath}/openapi/**"]
+exclude: ["**/CHANGELOG*", "**/blog/**"]
 requireHumanReview: []
 mode: strict
 devin:
@@ -29,7 +33,7 @@ devin:
 policy:
   prCaps: { maxPrsPerDay: 5, maxFilesTouched: 30 }
   confidence: { autopatchThreshold: 0.8 }
-  allowlist: ["openapi/**", "apps/**"]
+  allowlist: ["openapi/**", "{docsitePath}/**"]
   verification:
     commands: ["npm run docs:gen", "npm run docs:build"]
   slaDays: 7
@@ -40,87 +44,29 @@ policy:
 ## Field rules
 
 - version: Always use 2.
-- specProviders: Array of spec sources. For OpenAPI: format "openapi3", current.type "export", current.command = npm script (e.g. "npm run openapi:export"), current.outputPath = where export writes (e.g. "openapi/generated.json"), published = docsite path (e.g. "apps/docs-site/openapi/openapi.json"). Never use raw script body; use "npm run <scriptName>".
-- docsite: Path to the docs site root (Docusaurus, Next.js docs, VitePress, MkDocs). Single string or array of strings.
-- pathMappings: Array of { match, impacts }. match = glob for source/API code; impacts = globs for doc files that may need updates when match changes.
-- mode: "strict" (only run on spec drift) or "auto" (also run when pathMappings match without spec drift). Default: strict.
-- policy.verification.commands: Commands to run after patching (e.g. "npm run docs:gen", "npm run docs:build"). Must exist in repo.
+- specProviders: Use paths from fingerprint. current.command = npm script from root or workspace (e.g. from foundPaths.exportScript or scripts containing openapi/swagger/spec). current.outputPath = where export writes (from exportScript.inferredOutputPath or openapi paths). published = path under docsite (e.g. {docsitePath}/openapi/openapi.json). Never use raw script body; use "npm run <scriptName>".
+- docsite: Path from fingerprint (docusaurusConfig dir, mkdocs dir, vitepressConfig dir, nextConfig dir, or docsDirParents). If missing, add to choices.
+- pathMappings: match = API/source dir from fingerprint (apiDirs[0] or exportScript.inferredApiDir), or "**/api/**" if unknown. impacts = docsite docs and openapi globs.
+- mode: "strict" or "auto". Default: strict.
+- policy.verification.commands: Commands that exist in repo (from rootPackage.scripts).
 - exclude: Globs to never touch (e.g. blog, CHANGELOG).
-- requireHumanReview: Globs that require human review when touched (e.g. guides).
+- requireHumanReview: Globs for guides (e.g. {docsitePath}/docs/guides/**).
 
 ## Path-only config (no OpenAPI)
 
-If no OpenAPI/spec found, use version: 2 with pathMappings only (no specProviders):
-\`\`\`yaml
-version: 2
-docsite: "apps/docs-site"
-pathMappings: [...]
-mode: auto
-\`\`\`
+If no OpenAPI/spec found, use version: 2 with pathMappings only (no specProviders). Use docsite path from fingerprint or add to choices.
 
 ## Common patterns
 
-- Docusaurus: docsite often has docusaurus.config.*; docs:gen may be "docusaurus -- gen-api-docs api"; published path often under docsite/openapi/.
-- Next/VitePress/MkDocs: docsite is the app root; look for docs/ or similar.
+- Docusaurus: foundPaths.docusaurusConfig; docsite = dir of config; published often under docsite/openapi/.
+- MkDocs/VitePress/Next: docsite = dir of mkdocs.yml or vitepress.config.* or next.config.*.
+- Generic: docsDirParents or dir containing docs/.
 
 ## Output rules
 
-1. Infer suggestedConfig from the fingerprint. Use version: 2. Only include fields you can confidently infer. Use existing paths and scripts from the fingerprint; do not invent paths that are not present.
-2. For each field where confidence is medium or low, OR where multiple valid options exist, add an entry to choices with: key (e.g. "specProviders.0.current.command"), question, options (array of { value, label, recommended? }), defaultIndex, help?, warning?, confidence ("high"|"medium"|"low").
-3. Add to skipQuestions the keys for which you are highly confident so the CLI will not ask the user.
-4. Prefer fewer, high-quality choices. If truly uncertain, set confidence to "low" and provide 2–3 options.
-5. Do not suggest paths that do not exist in the fingerprint. Prefer existing package.json scripts for export and verification commands.
-6. suggestedConfig must be a valid partial docdrift config; policy.allowlist and policy.verification.commands are required if you include policy. devin.apiVersion must be "v1" if you include devin.
-
-## Example docdrift.yaml
-# yaml-language-server: $schema=./docdrift.schema.json
-version: 2
-
-specProviders:
-  - format: openapi3
-    current:
-      type: export
-      command: "npm run openapi:export"
-      outputPath: "openapi/generated.json"
-    published: "apps/docs-site/openapi/openapi.json"
-
-docsite: "apps/docs-site"
-mode: strict
-
-pathMappings:
-  - match: "apps/api/**"
-    impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
-
-exclude:
-  - "apps/docs-site/blog/**"
-  - "**/CHANGELOG*"
-
-requireHumanReview:
-  - "apps/docs-site/docs/guides/**"
-
-devin:
-  apiVersion: v1
-  unlisted: true
-  maxAcuLimit: 2
-  tags:
-    - docdrift
-  customInstructions:
-    - "DocDrift.md"
-
-policy:
-  prCaps:
-    maxPrsPerDay: 5
-    maxFilesTouched: 30
-  confidence:
-    autopatchThreshold: 0.8
-  allowlist:
-    - "openapi/**"
-    - "apps/**"
-  verification:
-    commands:
-      - "npm run docs:gen"
-      - "npm run docs:build"
-  slaDays: 7
-  slaLabel: docdrift
-  allowNewFiles: false
+1. Infer suggestedConfig from the fingerprint. Use only paths and script names that appear in the fingerprint. Do not invent paths.
+2. For each field where confidence is medium or low, or path cannot be inferred, add an entry to choices (e.g. docsite, pathMappings.0.match).
+3. Add to skipQuestions the keys for which you are highly confident.
+4. If docsite or API path cannot be determined, add to choices so the user can specify.
+5. suggestedConfig must be a valid partial docdrift config; policy.allowlist and policy.verification.commands are required if you include policy. devin.apiVersion must be "v1" if you include devin.
 `;
