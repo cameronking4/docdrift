@@ -3,14 +3,15 @@ name: devin-doc-drift
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  # pull_request:
+  #   branches: ["main"]
   workflow_dispatch:
 
 jobs:
   docdrift:
-    # Skip when the triggering PR is itself a docdrift PR (avoids feedback loop)
-    if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
+    # PR trigger is disabled. When re-enabling: uncomment pull_request in on:, add job if:
+    # if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
+    # and restore PR SHA/number logic in Determine SHAs + cache keys
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,28 +31,23 @@ jobs:
       - name: Determine SHAs
         id: shas
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          else
-            HEAD_SHA="${GITHUB_SHA}"
-            BASE_SHA="${{ github.event.before }}"
-            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-              BASE_SHA="$(git rev-parse HEAD^)"
-            fi
+          HEAD_SHA="${GITHUB_SHA}"
+          BASE_SHA="${{ github.event.before }}"
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse HEAD^)"
           fi
           echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
           echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
-          echo "pr_number=${{ github.event.pull_request.number || '' }}" >> $GITHUB_OUTPUT
+          echo "pr_number=" >> $GITHUB_OUTPUT
 
       - name: Restore docdrift state
         uses: actions/cache/restore@v4
         id: docdrift-cache
         with:
           path: .docdrift
-          key: docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
+          key: docdrift-state-${{ github.event_name }}-main-${{ github.run_id }}
           restore-keys: |
-            docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-
+            docdrift-state-${{ github.event_name }}-main-
 
       - name: Validate config
         run: npx tsx src/cli.ts validate
@@ -84,7 +80,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .docdrift
-          key: docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
+          key: docdrift-state-${{ github.event_name }}-main-${{ github.run_id }}
 
       - name: Upload artifacts
         if: always()
