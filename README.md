@@ -2,6 +2,16 @@
 
 Docs that never lie: detect drift between merged code and docs, then open low-noise, evidence-grounded remediation via Devin sessions.
 
+## Table of contents
+
+- [Deliverables](#deliverables)
+- [Quick start](#quick-start)
+- [Modes & spec providers](#modes--spec-providers)
+- [Guides](#guides)
+- [Project docs layout](#project-docs-layout)
+
+---
+
 ## Deliverables
 
 - **npm package**: [@devinnn/docdrift](https://www.npmjs.com/package/@devinnn/docdrift) — TypeScript CLI (`docdrift`)
@@ -11,305 +21,79 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
   - `status --since 24h` — Show run status
   - `sla-check` — Check for doc-drift PRs open 7+ days and open a reminder issue
   - `setup` — Interactive setup (Devin analyzes repo, generates v2 docdrift.yaml)
-  - `generate-yaml` — Generate config from repo fingerprint [--output path] [--force]
+  - `generate-yaml` — Generate config from repo fingerprint `[--output path] [--force]`
 - GitHub Action: `.github/workflows/devin-doc-drift.yml`
 - Repo-local config: `docdrift.yaml`
 - Demo API + OpenAPI exporter + driftable docs
-- PR template + Loom script
+- PR template + [Loom script](loom.md)
 
-## CLI setup & generate-yaml
+---
 
-Two commands to create `docdrift.yaml` (both use Devin to analyze the repo):
-
-1. **`docdrift setup`** — Interactive setup. Devin analyzes your repo and generates config (requires `DEVIN_API_KEY`). Produces:
-   - `docdrift.yaml`
-   - `.docdrift/DocDrift.md` (custom instructions)
-   - `.github/workflows/docdrift.yml` and `docdrift-sla-check.yml`
-   - Updates `.gitignore`
-   - Prerequisite: add your repo in Devin's Machine first.
-
-2. **`docdrift generate-yaml`** — Same Devin-backed config generation, with options for scripted use:
-   - `--output <path>` — Write config to path (default: `docdrift.yaml`)
-   - `--force` — Overwrite existing file without prompting
+## Quick start
 
 ```bash
-# Interactive setup with Devin
+# Interactive setup (requires DEVIN_API_KEY; add repo in Devin Machine first)
 npx @devinnn/docdrift setup
 
-# Generate config (Devin session, scriptable)
-npx @devinnn/docdrift generate-yaml
+# Or generate config only (scriptable)
 npx @devinnn/docdrift generate-yaml --output docdrift.yaml --force
 ```
 
-## Auto vs strict modes
+→ [**Setup guide**](docs/guides/setup.md) — Setup options, prerequisites
 
-| Mode    | When drift is detected | Use case |
-| ------- | ---------------------- | -------- |
-| **strict** (default) | Only when **spec drift** is detected (OpenAPI, GraphQL, etc.). No spec drift → no Devin session. | API-first teams; gate only on real API changes. |
-| **auto** | Also runs when **pathMappings** match (changed files hit `match` patterns) even if no spec drift. Devin infers docs from file changes. | Conceptual docs, guides, or path-only setups. |
+---
 
-```yaml
-# docdrift.yaml
-mode: strict   # only on spec drift
-# or
-mode: auto     # also on pathMapping matches
-```
-
-## Spec providers
+## Modes & spec providers
 
-Docdrift supports several API spec formats. Configure via `specProviders`:
-
-| Format     | Description |
-| ---------- | ----------- |
-| **openapi3** | OpenAPI 3.x (default) |
-| **swagger2** | OpenAPI 2.0 / Swagger 2.0 |
-| **graphql** | GraphQL schema |
-| **fern**    | Fern API definition |
-| **postman** | Postman Collection JSON |
-
-Each provider defines `current` (source of truth: `export`, `local`, or `url`) and `published` (docs path to update):
-
-```yaml
-specProviders:
-  - format: openapi3
-    current:
-      type: export
-      command: "npm run openapi:export"
-      outputPath: "openapi/generated.json"
-    published: "apps/docs-site/openapi/openapi.json"
-```
-
-## Why this is low-noise
-
-- **Single session, single PR** — One Devin session handles the whole docsite (API reference + guides).
-- **Gate on API spec diff** — We only run when spec drift is detected (strict mode); no session for docs-check-only failures.
-- **requireHumanReview** — When the PR touches guides/prose, we open an issue after the PR to direct attention.
-- **7-day SLA** — If a doc-drift PR is open 7+ days, we open a reminder issue (configurable `slaDays`; use `sla-check` CLI or cron workflow).
-- Confidence gating and allowlist/exclude enforcement.
-- Idempotency key prevents duplicate actions for same repo/SHAs/action.
-
-## Detection and gate
-
-- **Gate:** We only run a Devin session when **spec drift** is detected (strict mode). No drift → no session. In auto mode, pathMapping matches also trigger a run.
-- Tier 1: Spec drift (generated vs published)
-- Tier 2: Heuristic path impacts from pathMappings (e.g. `apps/api/src/auth/**` → guides)
-
-Output artifacts (under `.docdrift/`):
-
-- `drift_report.json`
-- `metrics.json` (after `run`)
-
-When you run docdrift as a package (e.g. `npx docdrift` or from another repo), all of this is written to **that repo's** `.docdrift/` — i.e. the current working directory where the CLI is invoked, not inside the package. Add `.docdrift/` to the consuming repo's `.gitignore` if you don't want to commit run artifacts.
+| Mode | When it runs |
+| ---- | -------------- |
+| **strict** (default) | Only when spec drift is detected (OpenAPI, GraphQL, etc.). No spec drift → no Devin session. |
+| **auto** | Also when pathMappings match (file changes hit `match` patterns). |
 
-## Core flow (`docdrift run`)
+| Spec formats | openapi3, swagger2, graphql, fern, postman |
 
-1. Validate config and command availability.
-2. Build drift report. **Gate:** If no drift (strict mode: spec only; auto mode: spec or pathMappings), exit (no session).
-3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`).
-4. Build one aggregated evidence bundle for the whole docsite.
-5. One Devin session with whole-docsite prompt; poll to terminal status.
-6. If PR opened and touches `requireHumanReview` paths → create issue to direct attention.
-7. Surface result via GitHub commit comment; open issue on blocked/low-confidence paths.
-8. Persist state (including `lastDocDriftPrUrl` for SLA); write `.docdrift/metrics.json`.
+→ [**Configuration**](docs/guides/configuration.md) — Modes, spec providers, full config
 
-## Where the docs are (this repo)
+---
 
-| Path                                       | Purpose                                                                 |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| `apps/docs-site/openapi/openapi.json`      | Published OpenAPI spec (docdrift updates this when drift is detected).  |
-| `apps/docs-site/docs/api/`                 | API reference MDX generated from the spec (`npm run docs:gen`).        |
-| `apps/docs-site/docs/guides/auth.md`       | Conceptual auth guide (updated only for conceptual drift).              |
+## Guides
 
-The docsite is a Docusaurus app with `docusaurus-plugin-openapi-docs`. The **generated** spec from code lives at `openapi/generated.json` (from `npm run openapi:export`). Drift = generated vs published differ. Verification runs `docs:gen` and `docs:build` so the docsite actually builds.
+| Guide | What’s inside |
+| ----- | -------------- |
+| [Setup](docs/guides/setup.md) | `setup` vs `generate-yaml`, prerequisites |
+| [Configuration](docs/guides/configuration.md) | Modes, spec providers; links to full schema |
+| [How it works](docs/guides/how-it-works.md) | Detection, gate, core flow, low-noise design |
+| [Ecosystems](docs/guides/ecosystems.md) | OpenAPI, FastAPI, Fern, GraphQL, Mintlify, Postman, monorepos |
+| [Local development](docs/guides/local-development.md) | Local usage, demo without GitHub |
+| [CI & GitHub](docs/guides/ci-github.md) | GitHub Actions, secrets, demo on GitHub |
+| [Using in another repo](docs/guides/consuming-repo.md) | Published package, CLI, GitHub Actions |
+| [Publishing](docs/guides/publishing.md) | Publishing the npm package |
+| [Loom script](loom.md) | Recording script for demos |
 
-## How Devin updates them
+### Reference
 
-1. **Evidence bundle** — Docdrift builds a tarball with the drift report, spec diff, and impacted doc snippets, and uploads it to the Devin API as session attachments.
-2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`openapi/**`, `apps/docs-site/**`), make minimal correct edits, run verification (`npm run docs:gen`, `npm run docs:build`), and open **one PR** per doc area with a clear description.
-3. **PR** — Devin updates `apps/docs-site/openapi/openapi.json` to match the current API, runs `docs:gen` to regenerate API reference MDX, and opens a pull request. You review and merge; the docsite builds and the docs are updated.
+- [docdrift.yaml](docdrift-yml.md) — Full configuration schema and validation
 
-So the "fix" is a **PR opened by Devin** that you merge; the repo's docs don't change until that PR is merged.
+---
 
-## Real-world scenarios & demo order
+## Project docs layout (this repo)
 
-Docdrift supports multiple ecosystems. Here are focused greenfield demos for different providers:
+| Path | Purpose |
+| ---- | ------- |
+| `apps/docs-site/openapi/openapi.json` | Published OpenAPI spec (docdrift updates when drift detected) |
+| `apps/docs-site/docs/api/` | API reference MDX (`npm run docs:gen`) |
+| `apps/docs-site/docs/guides/` | Conceptual guides (auth, etc.) |
 
-### 1. OpenAPI3 + Node/Express (default)
-- **API:** Express + swagger-jsdoc or @nestjs/swagger → `openapi/generated.json`
-- **Docs:** Docusaurus + docusaurus-plugin-openapi-docs, or simple Markdown
-- **Flow:** Change a route or schema, run `openapi:export`, drift vs published spec, Devin fixes docs
+Generated spec from code: `openapi/generated.json` (`npm run openapi:export`). Drift = generated vs published differ.
 
-### 2. OpenAPI3 + FastAPI (Python)
-- **API:** FastAPI with OpenAPI export (`openapi.json` or `npm run openapi:export` script)
-- **Docs:** MkDocs + mkdocstrings or mkdocs-openapi
-- **Flow:** Add/change endpoints, regenerate spec, drift detected, Devin updates MkDocs docs
-
-### 3. Fern
-- **Layout:** `definition/` (API), `pages/` (MDX), `generators.yml`
-- **Config:** `specProviders` with `format: fern` and path mappings from `definition/**` to `pages/**`
-- **Flow:** Change Fern API definitions, docs drift, Devin updates guides and API reference
-
-### 4. GraphQL
-- **API:** Schema-first or code-first (e.g. Apollo, Pothos)
-- **Docs:** Docusaurus/GraphQL plugin or schema docs in Markdown
-- **Config:** `format: graphql` with schema export command
-- **Flow:** Update schema, regenerate, Devin syncs docs with new types/resolvers
-
-### 5. Mintlify
-- **Layout:** `docs/` (MDX), `mint.json`, OpenAPI for API reference
-- **Config:** Path mappings from `api/**` and `src/**` to `docs/**`
-- **Flow:** Change backend/API, Mintlify docs drift, Devin patches guides and reference
+---
 
-### 6. Postman Collection
-- **API:** Postman collection JSON as source of truth
-- **Config:** `format: postman` with export or copy command
-- **Flow:** Collection changes, Devin keeps external docs or README in sync
+## Why low-noise
 
-### 7. Swagger2 / OpenAPI 2
-- **API:** Old Swagger 2.0 (`swagger: "2.0"`)
-- **Config:** `format: swagger2` with export path
-- **Flow:** Same as OpenAPI3, with legacy spec format
-
-### 8. Monorepo (multiple packages)
-- **Layout:** `packages/api/`, `packages/sdk-ts/`, `docs/` or `apps/docs-site/`
-- **Config:** Path mappings per package (`packages/api/**` → `docs/api/**`, etc.)
-- **Flow:** Change API or SDK, Devin updates matching doc sections
-
-### Suggested demo order
-
-1. **OpenAPI3 + Docusaurus** — Matches the current docdrift repo, minimal setup.
-2. **FastAPI + MkDocs** — Good Python example.
-3. **Fern** — Structured API-defs + docs layout, common for API platforms.
-4. **GraphQL** — Different spec format and doc tooling.
-
-## Local usage
-
-```bash
-npm install
-npx tsx src/cli.ts validate
-npm run openapi:export
-npx tsx src/cli.ts detect --base <sha> --head <sha>
-DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> npx tsx src/cli.ts run --base <sha> --head <sha>
-```
-
-## Local demo (no GitHub)
-
-You can run a full end-to-end demo locally with no remote repo. Ensure `.env` has `DEVIN_API_KEY` (and optionally `GITHUB_TOKEN` only when you have a real repo).
-
-1. **One-time setup (already done if you have two commits with drift)**
-   - Git is inited; baseline commit has docs in sync with API.
-   - A later commit changes `apps/api/src/model.ts` (e.g. `name` → `fullName`) and runs `npm run openapi:export`, so `openapi/generated.json` drifts from `docs/reference/openapi.json`.
-
-2. **Run the pipeline**
-
-   ```bash
-   npm install
-   npx tsx src/cli.ts validate
-   npx tsx src/cli.ts detect --base b0f624f --head 6030902
-   ```
-
-   - Use your own `git log --oneline -3` to get `base` (older) and `head` (newer) SHAs if you recreated the demo.
-
-3. **Run with Devin (no GitHub calls)**  
-   Omit `GITHUB_TOKEN` so the CLI does not post comments or create issues. Devin session still runs; results are printed to stdout and written to `.docdrift/state.json` and `metrics.json`.
-
-   ```bash
-   export $(grep -v '^#' .env | xargs)
-   unset GITHUB_TOKEN GITHUB_REPOSITORY GITHUB_SHA
-   npx tsx src/cli.ts run --base b0f624f --head 6030902
-   ```
-
-   - `run` can take 1–3 minutes while the Devin session runs.
-
-4. **What you'll see**
-   - `.docdrift/drift_report.json` — drift items (e.g. OpenAPI `name` → `fullName`).
-   - `.docdrift/evidence/<runId>/` — evidence bundles and OpenAPI diff.
-   - Stdout — per–doc-area outcome (e.g. PR opened by Devin or blocked).
-   - `.docdrift/metrics.json` — counts and timing.
-
-## CI usage
-
-- Add secret: `DEVIN_API_KEY`
-- Push to `main` or run `workflow_dispatch`
-- Action uploads:
-  - `.docdrift/drift_report.json`
-  - `.docdrift/evidence/**`
-  - `.docdrift/metrics.json`
-
-## Run on GitHub
-
-1. **Create a repo** on GitHub (e.g. `your-org/docdrift`), then add the remote and push:
-
-   ```bash
-   git remote add origin https://github.com/your-org/docdrift.git
-   git push -u origin main
-   ```
-
-2. **Add secret**  
-   Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-   - Name: `DEVIN_API_KEY`
-   - Value: your Devin API key (same as in `.env` locally)
-
-   `GITHUB_TOKEN` is provided automatically; the workflow uses it for commit comments and issues.
-
-3. **Trigger the workflow**
-   - **Push to `main`** — runs on every push (compares previous commit vs current).
-   - **Manual run** — **Actions** tab → **devin-doc-drift** → **Run workflow** (uses `HEAD` and `HEAD^` as head/base).
-
-## See it work (demo on GitHub)
-
-This repo has **intentional drift**: the API has been expanded (new fields `fullName`, `avatarUrl`, `createdAt`, `role` and new endpoint `GET /v1/users` with pagination), but **docs are unchanged** (`docs/reference/openapi.json` and `docs/reference/api.md` still describe the old single-endpoint, `id`/`name`/`email` only). Running docdrift will detect that and hand a large diff to Devin to fix via a PR. To see it:
-
-1. **Create a new GitHub repo** (e.g. `docdrift-demo`) so you have a clean place to run the workflow.
-2. **Push this project with full history** (so both commits are on `main`):
-   ```bash
-   git remote add origin https://github.com/YOUR_ORG/docdrift-demo.git
-   git push -u origin main
-   ```
-3. **Add secret** in that repo: **Settings** → **Secrets and variables** → **Actions** → `DEVIN_API_KEY` = your Devin API key.
-4. **Trigger the workflow**
-   - Either push another small commit (e.g. README tweak), or
-   - **Actions** → **devin-doc-drift** → **Run workflow**.
-5. **Where to look**
-   - **Actions** → open the run → **Run Doc Drift** step: the step logs print JSON with `sessionUrl`, `prUrl`, and `outcome` per doc area. Open any `sessionUrl` in your browser to see the Devin session.
-   - **Artifacts**: download **docdrift-artifacts** for `.docdrift/drift_report.json`, `.docdrift/metrics.json`, and evidence.
-   - **Devin dashboard**: sessions are tagged `docdrift`; you'll see the run there once the step completes (often 1–3 minutes).
-
-## Using in another repo (published package)
-
-Once published to npm, any repo can use the CLI locally or in GitHub Actions.
-
-1. **Setup** — `npx @devinnn/docdrift setup` (requires `DEVIN_API_KEY`). Devin generates `docdrift.yaml`, `.docdrift/DocDrift.md`, and `.github/workflows/docdrift.yml`. Prerequisite: add your repo in Devin's Machine first. Or use `npx @devinnn/docdrift generate-yaml` for a quick config, or add `docdrift.yaml` manually (see `docdrift-yml.md`).
-2. **CLI**
-   ```bash
-   npx @devinnn/docdrift validate
-   npx @devinnn/docdrift detect --base <base-sha> --head <head-sha>
-   # With env for run:
-   DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> npx @devinnn/docdrift run --base <base-sha> --head <head-sha>
-   ```
-3. **GitHub Actions** — add a step that runs the CLI (e.g. after checkout and setting base/head):
-   ```yaml
-   - run: npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
-     env:
-       DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
-       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-       GITHUB_REPOSITORY: ${{ github.repository }}
-       GITHUB_SHA: ${{ github.sha }}
-   ```
-   Add repo secret `DEVIN_API_KEY`; `GITHUB_TOKEN` is provided by the runner.
-
-## Publishing the package
-
-- Set `"private": false` in `package.json` (or omit it).
-- Set `"repository": { "type": "git", "url": "https://github.com/your-org/docdrift.git" }`.
-- Run `pnpm build` (or `npm run build`), then `npm publish` (for a scoped package use `npm publish --access public`).
-- Only the `dist/` directory is included (`files` in `package.json`). Consumers get the built CLI; they provide their own `docdrift.yaml` in their repo.
-
-## Demo scenario
-
-- Autogen drift: rename a field in `apps/api/src/model.ts`, merge to `main`, observe docs PR path.
-- Conceptual drift: change auth behavior under `apps/api/src/auth/**`, merge to `main`, observe single escalation issue (auto mode with pathMappings).
-
-## Loom
-
-See `loom.md` for the minute-by-minute recording script.
+- **Single session, single PR** — One Devin session for the whole docsite
+- **Gate on spec diff** — No session when no drift (strict mode)
+- **requireHumanReview** — Issue when PR touches guides/prose
+- **7-day SLA** — Reminder issue for stale doc-drift PRs
+- **Confidence gating** — Allowlist, exclude, idempotency
+
+→ [**How it works**](docs/guides/how-it-works.md) — Detection, flow, evidence bundle

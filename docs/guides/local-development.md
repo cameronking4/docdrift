@@ -1,0 +1,56 @@
+# Local Development
+
+Run docdrift locally for development and testing.
+
+## Quick commands
+
+```bash
+npm install
+npx tsx src/cli.ts validate
+npm run openapi:export
+npx tsx src/cli.ts detect --base <sha> --head <sha>
+DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> npx tsx src/cli.ts run --base <sha> --head <sha>
+```
+
+## Local demo (no GitHub)
+
+You can run a full end-to-end demo locally with no remote repo. Ensure `.env` has `DEVIN_API_KEY` (and optionally `GITHUB_TOKEN` only when you have a real repo).
+
+### 1. One-time setup (already done if you have two commits with drift)
+
+- Git is inited; baseline commit has docs in sync with API.
+- A later commit changes `apps/api/src/model.ts` (e.g. `name` → `fullName`) and runs `npm run openapi:export`, so `openapi/generated.json` drifts from `docs/reference/openapi.json`.
+
+### 2. Run the pipeline
+
+```bash
+npm install
+npx tsx src/cli.ts validate
+npx tsx src/cli.ts detect --base b0f624f --head 6030902
+```
+
+Use your own `git log --oneline -3` to get `base` (older) and `head` (newer) SHAs if you recreated the demo.
+
+### 3. Run with Devin (no GitHub calls)
+
+Omit `GITHUB_TOKEN` so the CLI does not post comments or create issues. Devin session still runs; results are printed to stdout and written to `.docdrift/state.json` and `metrics.json`.
+
+```bash
+export $(grep -v '^#' .env | xargs)
+unset GITHUB_TOKEN GITHUB_REPOSITORY GITHUB_SHA
+npx tsx src/cli.ts run --base b0f624f --head 6030902
+```
+
+`run` can take 1–3 minutes while the Devin session runs.
+
+### 4. What you'll see
+
+- `.docdrift/drift_report.json` — drift items (e.g. OpenAPI `name` → `fullName`).
+- `.docdrift/evidence/<runId>/` — evidence bundles and OpenAPI diff.
+- Stdout — per–doc-area outcome (e.g. PR opened by Devin or blocked).
+- `.docdrift/metrics.json` — counts and timing.
+
+## Demo scenarios
+
+- **Autogen drift:** Rename a field in `apps/api/src/model.ts`, merge to `main`, observe docs PR path.
+- **Conceptual drift:** Change auth behavior under `apps/api/src/auth/**`, merge to `main`, observe single escalation issue (auto mode with pathMappings).
