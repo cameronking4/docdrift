@@ -139,12 +139,15 @@ function hasPrUrl(session: DevinSession): boolean {
   return false;
 }
 
+const PROGRESS_INTERVAL_MS = 30_000; // Print "still waiting" every 30s
+
 export async function pollUntilTerminal(
   apiKey: string,
   sessionId: string,
   timeoutMs = 30 * 60_000
 ): Promise<DevinSession> {
   const started = Date.now();
+  let lastProgressAt = 0;
   while (Date.now() - started < timeoutMs) {
     const session = await devinGetSession(apiKey, sessionId);
     const status = String(session.status_enum ?? session.status ?? "UNKNOWN").toLowerCase();
@@ -154,6 +157,12 @@ export async function pollUntilTerminal(
     // Session already produced a PR; stop polling so we don't timeout waiting for status to flip
     if (hasPrUrl(session)) {
       return session;
+    }
+    const now = Date.now();
+    if (now - lastProgressAt >= PROGRESS_INTERVAL_MS) {
+      const elapsed = Math.round((now - started) / 1000);
+      process.stdout.write(`  Still waiting for Devin… (${elapsed}s elapsed; open session URL in browser to watch)\n`);
+      lastProgressAt = now;
     }
     await new Promise((resolve) => setTimeout(resolve, 5000));
   }

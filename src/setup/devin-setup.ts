@@ -4,9 +4,12 @@ import "dotenv/config";
 import { devinCreateSession, devinUploadAttachment, pollUntilTerminal } from "../devin/v1";
 import { SetupOutputSchema } from "../devin/schemas";
 import { buildSetupPrompt } from "./setup-prompt";
-import { validateGeneratedConfig } from "./generate-yaml";
+import { buildConfigFromInference, validateGeneratedConfig, writeConfig } from "./generate-yaml";
 import { runValidate } from "../index";
-import { addSlaCheckWorkflow, ensureDocdriftDir, ensureGitignore } from "./onboard";
+import { addSlaCheckWorkflow, ensureDocdriftDir, ensureGitignore, runOnboarding } from "./onboard";
+import { buildRepoFingerprint } from "./repo-fingerprint";
+import { inferConfigFromFingerprint } from "./ai-infer";
+import { runInteractiveForm } from "./interactive-form";
 
 /** Resolve path to docdrift.schema.json in the package */
 function getSchemaPath(): string {
@@ -28,6 +31,56 @@ export interface DevinSetupResult {
   workflowYml?: string;
   summary: string;
   sessionUrl: string;
+}
+
+/** Generate docdrift.yaml from repo fingerprint + heuristic (no Devin). */
+export async function runSetupLocal(options: {
+  cwd?: string;
+  outputPath?: string;
+  force?: boolean;
+}): Promise<DevinSetupResult> {
+  const cwd = options.cwd ?? process.cwd();
+  const outputPath = path.resolve(cwd, options.outputPath ?? "docdrift.yaml");
+  const configExists = fs.existsSync(outputPath);
+
+  if (configExists && !options.force) {
+    const { confirm } = await import("@inquirer/prompts");
+    const overwrite = await confirm({
+      message: "docdrift.yaml already exists. Overwrite?",
+      default: false,
+    });
+    if (!overwrite) {
+      throw new Error("Setup cancelled.");
+    }
+  }
+
+  process.stdout.write("Scanning repo…\n");
+  const fingerprint = buildRepoFingerprint(cwd);
+  const inference = await inferConfigFromFingerprint(fingerprint, cwd);
+
+  process.stdout.write("Inferred config from repo layout. Adjust if needed.\n");
+  const formResult = await runInteractiveForm(inference, cwd);
+
+  const config = buildConfigFromInference(inference, formResult);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  writeConfig(config, outputPath);
+
+  const yamlContent = fs.readFileSync(outputPath, "utf8");
+
+  runOnboarding(cwd, formResult.onboarding);
+
+  const validation = validateGeneratedConfig(outputPath);
+  if (!validation.ok) {
+    throw new Error("Generated config failed validation:\n" + validation.errors.join("\n"));
+  }
+
+  return {
+    docdriftYaml: yamlContent,
+    docDriftMd: formResult.onboarding.addCustomInstructions ? "(created)" : undefined,
+    workflowYml: formResult.onboarding.addWorkflow ? "(added)" : undefined,
+    summary: "Generated from repo fingerprint (local detection, no Devin).",
+    sessionUrl: "",
+  };
 }
 
 function parseSetupOutput(session: { structured_output?: unknown; data?: Record<string, unknown> }): DevinSetupResult | null {
