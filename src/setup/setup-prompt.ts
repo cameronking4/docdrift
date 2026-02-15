@@ -4,11 +4,51 @@
  * Devin's Machine, so Devin has full context.
  */
 
+/** XML tag used as strict delimiter for fallback parsing from chat transcript */
+export const DOCDRIFT_SETUP_OUTPUT_TAG = "docdrift_setup_output";
+
 function attachmentBlock(urls: string[]): string {
   return urls.map((url, i) => `- ATTACHMENT ${i + 1}: ${url}`).join("\n");
 }
 
-export function buildSetupPrompt(attachmentUrls: string[]): string {
+function strictOutputBlock(): string {
+  return [
+    "",
+    "STRICT OUTPUT FORMAT (REQUIRED FOR PARSING):",
+    "You MUST include this exact block in your final message so we can reliably parse it.",
+    "Format: open with <" +
+      DOCDRIFT_SETUP_OUTPUT_TAG +
+      ">, then valid JSON, then close with </" +
+      DOCDRIFT_SETUP_OUTPUT_TAG +
+      ">.",
+    "Example (escape quotes in strings as \\\"):",
+    "",
+    `<${DOCDRIFT_SETUP_OUTPUT_TAG}>`,
+    '{"docdriftYaml":"# yaml...","docDriftMd":"# DocDrift...","workflowYml":"name: docdrift...","summary":"OpenAPI at..."}',
+    `</${DOCDRIFT_SETUP_OUTPUT_TAG}>`,
+    "",
+    "Rules: Valid JSON only. Newlines in YAML/yml strings become \\n. Escape \" as \\\".",
+  ].join("\n");
+}
+
+export function buildSetupPrompt(
+  attachmentUrls: string[],
+  options?: { openPr?: boolean }
+): string {
+  const openPr = options?.openPr ?? false;
+  const createFilesBlock = openPr
+    ? [
+        "",
+        "CREATE A PULL REQUEST:",
+        "- Create branch docdrift/setup from main",
+        "- Create docdrift.yaml, .docdrift/DocDrift.md, .github/workflows/docdrift.yml in the repo",
+        "- Commit with message: [docdrift] Add docdrift configuration",
+        "- Push and open a PR to main with title: [docdrift] Add docdrift configuration",
+        "- In the PR description, explain what was inferred (openapi export, docsite path, verification commands)",
+        "- You MUST still emit the strict output block below so we can validate the config",
+      ].join("\n")
+    : "Do NOT create files in the repo. Only produce the structured output and the strict output block.";
+
   return [
     "You are Devin. Task: set up docdrift for this repository.",
     "",
@@ -42,12 +82,12 @@ export function buildSetupPrompt(attachmentUrls: string[]): string {
     "   - Note: docdrift-sla-check.yml (daily cron for PRs open 7+ days) is added automatically",
     "",
     "OUTPUT:",
-    "Emit your final output in the provided structured output schema.",
+    "Emit your final output in the provided structured output schema if possible.",
     "- docdriftYaml: complete YAML string (no leading/trailing comments about the task)",
     "- docDriftMd: content for .docdrift/DocDrift.md, or empty string to omit",
     "- workflowYml: content for .github/workflows/docdrift.yml, or empty string to omit",
     "- summary: what you inferred (openapi export, docsite path, verification commands)",
-    "",
-    "Do NOT create files in the repo. Only produce the structured output.",
+    createFilesBlock,
+    strictOutputBlock(),
   ].join("\n");
 }

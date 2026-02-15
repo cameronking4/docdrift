@@ -32,7 +32,7 @@ async function main(): Promise<void> {
         "  status            Show run status [--since 24h]\n" +
         "  sla-check         Check SLA for unmerged PRs\n" +
         "  setup             Interactive setup (generates v2 docdrift.yaml)\n" +
-        "  generate-yaml     Generate config [--output path] [--force]"
+        "  generate-yaml     Generate config [--output path] [--force] [--open-pr]"
     );
   }
 
@@ -42,6 +42,7 @@ async function main(): Promise<void> {
     await runSetup({
       outputPath: getArg(args, "--output") ?? "docdrift.yaml",
       force: args.includes("--force"),
+      openPr: args.includes("--open-pr"),
     });
     return;
   }

@@ -6,7 +6,7 @@ export interface RunSetupOptions {
   outputPath?: string;
   cwd?: string;
   force?: boolean;
-  /** If true, Devin will open a PR with the setup files (future: not yet implemented) */
+  /** If true, Devin will create a branch, commit, push, and open a PR with the setup files */
   openPr?: boolean;
 }
 
@@ -85,6 +85,7 @@ export async function runSetup(options: RunSetupOptions = {}): Promise<void> {
   console.log("  .gitignore        updated");
   console.log("\nSummary: " + result.summary);
   if (result.sessionUrl) console.log("\nSession: " + result.sessionUrl);
+  if (result.prUrl) console.log("PR: " + result.prUrl);
   console.log("\nNext steps:");
   const usedLocal = mode === "local" || (mode === "devin" && !hasDevinKey) || usedLocalFallback;
   if (usedLocal) {

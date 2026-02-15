@@ -7,6 +7,13 @@ export interface CreateSessionResponse {
   is_new_session?: boolean | null;
 }
 
+/** Devin API session message (role + content) */
+export interface DevinSessionMessage {
+  role?: string;
+  content?: string;
+  text?: string;
+}
+
 export interface DevinSession {
   session_id?: string;
   id?: string;
@@ -17,6 +24,8 @@ export interface DevinSession {
   data?: Record<string, unknown>;
   pull_request_url?: string;
   pr_url?: string;
+  /** Chat messages - used for fallback parsing when structured_output is empty */
+  messages?: DevinSessionMessage[];
 }
 
 function ensureOk(response: Response, body: string, context: string): void {
