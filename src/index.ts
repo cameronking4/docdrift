@@ -2,7 +2,7 @@ import path from "node:path";
 import type { DocAreaConfig } from "./config/schema";
 import { loadConfig, loadNormalizedConfig } from "./config/load";
 import { validateRuntimeConfig } from "./config/validate";
-import { buildDriftReport } from "./detect";
+import { buildDriftReport, type RunGate } from "./detect";
 import { buildEvidenceBundle, writeMetrics } from "./evidence/bundle";
 import {
   createIssue,
@@ -162,6 +162,36 @@ async function executeSessionSingle(input: {
   };
 }
 
+/** Human-friendly label for run gate (used in detect output) */
+function runGateLabel(gate: RunGate): string {
+  switch (gate) {
+    case "spec_drift":
+      return "API spec drift";
+    case "conceptual_only":
+      return "path heuristics (no spec changes)";
+    case "infer":
+      return "inferred from file changes";
+    case "none":
+      return "none";
+    default:
+      return gate;
+  }
+}
+
+/** Format signal kinds for display (e.g. openapi_diff → OpenAPI) */
+function signalKindLabel(kind: string): string {
+  const labels: Record<string, string> = {
+    openapi_diff: "OpenAPI",
+    swagger2_diff: "Swagger 2",
+    graphql_diff: "GraphQL",
+    fern_diff: "Fern",
+    postman_diff: "Postman",
+    heuristic_path_impact: "Path heuristics",
+    infer_mode: "Inferred",
+  };
+  return labels[kind] ?? kind;
+}
+
 export async function runDetect(options: DetectOptions): Promise<{ hasDrift: boolean }> {
   const config = loadConfig();
   const runtimeValidation = await validateRuntimeConfig(config);
@@ -180,8 +210,29 @@ export async function runDetect(options: DetectOptions): Promise<{ hasDrift: boo
     prNumber: options.prNumber,
   });
 
-  logInfo(`Drift items detected: ${report.items.length} (runGate: ${runGate})`);
-  return { hasDrift: report.items.length > 0 };
+  if (report.items.length === 0) {
+    logInfo("No documentation drift detected.");
+    return { hasDrift: false };
+  }
+
+  const item = report.items[0]!;
+  const gateLabel = runGateLabel(runGate);
+  const signalLabels = [...new Set(item.signals.map((s) => signalKindLabel(s.kind)))].filter(Boolean);
+  const sources = signalLabels.length > 0 ? signalLabels.join(", ") : gateLabel;
+
+  logInfo("Documentation drift detected");
+  console.log("");
+  console.log("  What changed: " + (item.summary || "Docs are out of sync with code."));
+  console.log("  Source:       " + sources);
+  if (item.impactedDocs.length > 0) {
+    const shown = item.impactedDocs.slice(0, 5);
+    const more = item.impactedDocs.length - shown.length;
+    const docList = shown.join(", ") + (more > 0 ? ` (+${more} more)` : "");
+    console.log("  Impacted:     " + docList);
+  }
+  console.log("");
+  logInfo("Next step: run `npx @devinnn/docdrift run` to remediate.");
+  return { hasDrift: true };
 }
 
 export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> {

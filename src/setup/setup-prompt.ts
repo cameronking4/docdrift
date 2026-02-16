@@ -45,9 +45,9 @@ export function buildSetupPrompt(
         "- Commit with message: [docdrift] Add docdrift configuration",
         "- Push and open a PR to main with title: [docdrift] Add docdrift configuration",
         "- In the PR description, explain what was inferred (openapi export, docsite path, verification commands)",
-        "- You MUST still emit the strict output block below so we can validate the config",
+        "- You MUST still emit the strict output block below in your final message so we can validate and show a summary.",
       ].join("\n")
-    : "Do NOT create files in the repo. Only produce the structured output and the strict output block.";
+    : "Do NOT create files in the repo. Only produce the strict output block below.";
 
   return [
     "You are Devin. Task: set up docdrift for this repository.",
@@ -61,13 +61,18 @@ export function buildSetupPrompt(
     "",
     "1) docdrift.yaml (REQUIRED)",
     "   - Use version: 2",
-    "   - Use specProviders format with format: openapi3",
-    "   - Infer: current (type: export, command, outputPath), published path",
-    "   - Set docsite to your docs root (e.g. docs, apps/docs-site)",
+    "   - Set docsite to your docs root (e.g. docs, apps/docs-site, content/docs)",
+    "   - If OpenAPI/swagger exists or an export script exists:",
+    "     * Include specProviders with format: openapi3",
+    "     * current: { type: export, command: \"npm run <script>\", outputPath: \"path/to/generated.json\" }",
+    "     * published: path to the PUBLISHED SPEC FILE (e.g. apps/docs-site/openapi/openapi.json), NOT the docsite root",
+    "   - If NO OpenAPI/swagger/export script exists:",
+    "     * Do NOT include specProviders",
+    "     * Use pathMappings only (e.g. match: app/api/** impacts: [content/docs/**])",
     "   - devin: apiVersion v1, unlisted true, maxAcuLimit 2, tags [docdrift]",
     "   - If you find an OpenAPI/swagger file or export script, use it",
     "   - policy: prCaps, confidence, allowlist (paths Devin may edit), verification.commands (e.g. npm run docs:build, npm run build)",
-    "   - Add schema comment at top: # yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift/docdrift.schema.json",
+    "   - Add schema comment at top: # yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json",
     "",
     "2) .docdrift/DocDrift.md (RECOMMENDED)",
     "   - Starter custom instructions: PR title prefix [docdrift], tone, project-specific guidance",
@@ -82,7 +87,7 @@ export function buildSetupPrompt(
     "   - Note: docdrift-sla-check.yml (daily cron for PRs open 7+ days) is added automatically",
     "",
     "OUTPUT:",
-    "Emit your final output in the provided structured output schema if possible.",
+    "Emit the strict output block below (required for parsing).",
     "- docdriftYaml: complete YAML string (no leading/trailing comments about the task)",
     "- docDriftMd: content for .docdrift/DocDrift.md, or empty string to omit",
     "- workflowYml: content for .github/workflows/docdrift.yml, or empty string to omit",

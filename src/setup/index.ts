@@ -10,25 +10,25 @@ export interface RunSetupOptions {
   openPr?: boolean;
 }
 
-/** Ask user whether repo is set up with Devin; if not, we use local (manual) setup. */
-async function chooseSetupMode(): Promise<"devin" | "local"> {
+/** Choose setup path: Manual (local fingerprint + heuristic) or Devin PR (Devin creates PR; merge and pull to complete). */
+async function chooseSetupMode(): Promise<"manual" | "devin-pr"> {
   if (!process.stdin.isTTY) {
-    return "local";
+    return "manual";
   }
   const choice = await select({
-    message: "Is this repo already set up with Devin? (e.g. added in Devin's Machine)",
+    message: "How do you want to set up docdrift?",
     choices: [
       {
-        name: "No — use local setup (scan repo, answer a few questions)",
-        value: "local",
+        name: "Manual — use local detection (scan repo, answer a few questions)",
+        value: "manual",
       },
       {
-        name: "Yes — use Devin to generate config (requires repo in Devin + DEVIN_API_KEY)",
-        value: "devin",
+        name: "Devin PR — Devin creates a PR; you merge and pull to complete (requires DEVIN_API_KEY + repo in Devin)",
+        value: "devin-pr",
       },
     ],
   });
-  return choice as "devin" | "local";
+  return choice as "manual" | "devin-pr";
 }
 
 export async function runSetup(options: RunSetupOptions = {}): Promise<void> {
@@ -41,9 +41,9 @@ export async function runSetup(options: RunSetupOptions = {}): Promise<void> {
   let result: Awaited<ReturnType<typeof runSetupLocal>>;
   let usedLocalFallback = false;
 
-  if (mode === "local" || (mode === "devin" && !hasDevinKey)) {
-    if (mode === "devin" && !hasDevinKey) {
-      console.log("\nDEVIN_API_KEY is not set. Using local setup instead.\n");
+  if (mode === "manual" || (mode === "devin-pr" && !hasDevinKey)) {
+    if (mode === "devin-pr" && !hasDevinKey) {
+      console.log("\nDEVIN_API_KEY is not set. Using manual setup instead.\n");
     }
     result = await runSetupLocal({
       cwd,
@@ -56,7 +56,7 @@ export async function runSetup(options: RunSetupOptions = {}): Promise<void> {
         cwd,
         outputPath: options.outputPath ?? "docdrift.yaml",
         force: options.force,
-        openPr: options.openPr,
+        openPr: true,
       });
     } catch (err) {
       console.error("\nDevin setup failed:", err instanceof Error ? err.message : String(err));
@@ -68,6 +68,39 @@ export async function runSetup(options: RunSetupOptions = {}): Promise<void> {
         force: options.force,
       });
     }
+  }
+
+  const completedViaDevinPr = Boolean(result.prUrl);
+
+  if (completedViaDevinPr) {
+    console.log("\ndocdrift setup complete (PR created)\n");
+    console.log("  Session: " + result.sessionUrl);
+    console.log("  PR: " + result.prUrl);
+    if (result.summary) console.log("\nSummary: " + result.summary);
+    if (process.stdin.isTTY) {
+      const { confirm } = await import("@inquirer/prompts");
+      const checkout = await confirm({
+        message: "Checkout branch to review/edit before merging?",
+        default: false,
+      });
+      if (checkout) {
+        const { execSync } = await import("node:child_process");
+        try {
+          execSync("git fetch origin docdrift/setup 2>/dev/null || true", { cwd, stdio: "inherit" });
+          execSync("git checkout docdrift/setup", { cwd, stdio: "inherit" });
+          console.log("\nOn branch docdrift/setup. Edit files, push, then merge the PR.");
+        } catch {
+          console.log("\nCould not checkout branch. Merge the PR in GitHub, then run: git pull");
+        }
+      }
+    }
+    console.log("\nNext steps:");
+    console.log("  1. Merge the PR in GitHub (or edit on branch docdrift/setup, push, then merge)");
+    console.log("  2. Run: git pull");
+    console.log("  3. Run: npx @devinnn/docdrift validate");
+    console.log("  4. Add DEVIN_API_KEY to repo secrets (Settings > Secrets > Actions)");
+    console.log("  5. Run: npx @devinnn/docdrift detect  and  npx @devinnn/docdrift run");
+    return;
   }
 
   if (outputPath === path.resolve(cwd, "docdrift.yaml")) {
@@ -84,19 +117,17 @@ export async function runSetup(options: RunSetupOptions = {}): Promise<void> {
   }
   console.log("  .gitignore        updated");
   console.log("\nSummary: " + result.summary);
-  if (result.sessionUrl) console.log("\nSession: " + result.sessionUrl);
-  if (result.prUrl) console.log("PR: " + result.prUrl);
   console.log("\nNext steps:");
-  const usedLocal = mode === "local" || (mode === "devin" && !hasDevinKey) || usedLocalFallback;
+  const usedLocal = mode === "manual" || (mode === "devin-pr" && !hasDevinKey) || usedLocalFallback;
   if (usedLocal) {
     console.log("  1. Run: npx @devinnn/docdrift validate   — verify config");
     console.log("  2. Run: npx @devinnn/docdrift detect     — check for drift");
     if (usedLocalFallback) {
       console.log("  3. (Optional) Fix Devin and run setup again, or keep using local config");
-    } else if (mode === "local") {
-      console.log("  3. (Optional) Add repo to Devin and set DEVIN_API_KEY to use Devin for setup next time");
+    } else if (mode === "manual") {
+      console.log("  3. (Optional) Add repo to Devin and set DEVIN_API_KEY to use Devin PR setup next time");
     } else {
-      console.log("  3. (Optional) Set DEVIN_API_KEY and run setup again to use Devin");
+      console.log("  3. (Optional) Set DEVIN_API_KEY and run setup again to use Devin PR");
     }
   } else {
     console.log("  1. Add DEVIN_API_KEY to repo secrets (Settings > Secrets > Actions)");

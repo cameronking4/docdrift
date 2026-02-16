@@ -1,41 +1,43 @@
 # Setup Guide
 
-Get `docdrift.yaml` and GitHub workflows in place. Both setup options use Devin to analyze your repo.
+Get `docdrift.yaml` and GitHub workflows in place. You can use **Manual** (local detection) or **Devin PR** (Devin creates a PR; you merge and pull).
 
 ## `docdrift setup` — Interactive setup
 
-Interactive setup. Devin analyzes your repo and generates config (requires `DEVIN_API_KEY`). Produces:
+When you run `docdrift setup`, you choose:
 
-- `docdrift.yaml`
-- `.docdrift/DocDrift.md` (custom instructions)
-- `.github/workflows/docdrift.yml` and `docdrift-sla-check.yml`
-- Updates `.gitignore`
+| Option | Flow | Setup complete when |
+| ------ | ---- | ------------------- |
+| **Manual** | Local fingerprint + heuristic + a few questions → files written locally | `docdrift.yaml`, `.docdrift/DocDrift.md`, workflows, and `.gitignore` are written in your repo |
+| **Devin PR** | Devin analyzes the repo, creates branch `docdrift/setup`, commits, and opens a PR | PR is created; you merge the PR and run `git pull` to get the files |
 
-**Prerequisite:** Add your repo in Devin's Machine first.
+**Manual** does not require `DEVIN_API_KEY`. **Devin PR** requires `DEVIN_API_KEY` and the repo added in Devin's Machine.
 
-Setup prompts Devin to emit a strict output block (`<docdrift_setup_output>...</docdrift_setup_output>`) so we can reliably parse config even when structured output is not populated. We also fall back to parsing markdown blocks (`**docdriftYaml:**` + `\`\`\`yaml`) when needed.
+For Devin PR, setup is complete once the PR exists. The CLI does not write any files locally; you get the PR URL and can optionally checkout the branch to review or edit before merging. After merging, run `git pull` to get the config.
 
 ## `docdrift generate-yaml` — Scriptable config generation
 
-Same Devin-backed config generation, with options for CI/scripted use:
+Same two paths (Manual vs Devin PR when interactive). With options for CI/scripted use:
 
 | Option | Description |
 | ------ | ----------- |
 | `--output <path>` | Write config to path (default: `docdrift.yaml`) |
 | `--force` | Overwrite existing file without prompting |
-| `--open-pr` | Devin creates branch `docdrift/setup`, commits, pushes, and opens a PR |
+| `--open-pr` | (Devin path) Devin creates branch `docdrift/setup`, commits, pushes, and opens a PR |
 
 ```bash
-# Interactive setup with Devin
+# Interactive setup — choose Manual or Devin PR
 npx @devinnn/docdrift setup
 
-# Generate config (Devin session, scriptable)
+# Generate config (scriptable; non-interactive defaults to Manual)
 npx @devinnn/docdrift generate-yaml
 npx @devinnn/docdrift generate-yaml --output docdrift.yaml --force
 
 # Generate config and have Devin open a PR
 npx @devinnn/docdrift generate-yaml --open-pr
 ```
+
+Parsing uses a strict output block (`<docdrift_setup_output>...</docdrift_setup_output>`) from the Devin session transcript, with a fallback to markdown blocks (`**docdriftYaml:**` + code fences) when needed.
 
 ## Next steps
 

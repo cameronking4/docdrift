@@ -3,9 +3,8 @@ import fs from "node:fs";
 import "dotenv/config";
 import { devinCreateSession, devinUploadAttachment, pollUntilTerminal } from "../devin/v1";
 import type { DevinSession } from "../devin/v1";
-import { SetupOutputSchema } from "../devin/schemas";
 import { buildSetupPrompt, DOCDRIFT_SETUP_OUTPUT_TAG } from "./setup-prompt";
-import { buildConfigFromInference, validateGeneratedConfig, writeConfig } from "./generate-yaml";
+import { buildConfigFromInference, validateGeneratedConfig, validateYamlContent, writeConfig } from "./generate-yaml";
 import { runValidate } from "../index";
 import { addSlaCheckWorkflow, ensureDocdriftDir, ensureGitignore, runOnboarding } from "./onboard";
 import { buildRepoFingerprint } from "./repo-fingerprint";
@@ -86,12 +85,24 @@ export async function runSetupLocal(options: {
   };
 }
 
-/** Extract transcript text from session for fallback parsing */
+/** Extract transcript text from session for fallback parsing when structured_output is empty */
 function getSessionTranscript(session: DevinSession): string {
-  const messages = session.messages ?? (session as { data?: { messages?: Array<{ content?: string; text?: string }> } }).data?.messages;
+  const s = session as Record<string, unknown>;
+  const topLevel = (typeof s.output === "string" ? s.output : null) ?? (typeof s.result === "string" ? s.result : null) ?? (typeof s.transcript === "string" ? s.transcript : null);
+  if (topLevel) return topLevel;
+  const data = s.data as Record<string, unknown> | undefined;
+  const messages = (session.messages ?? data?.messages ?? s.events) as Array<Record<string, unknown>> | undefined;
   if (!Array.isArray(messages)) return "";
   return messages
-    .map((m) => (typeof m.content === "string" ? m.content : (m as { text?: string }).text ?? ""))
+    .map((m) => {
+      if (typeof m.content === "string") return m.content;
+      if (typeof (m as { text?: string }).text === "string") return (m as { text: string }).text;
+      if (typeof m.message === "string") return m.message;
+      if (typeof m.body === "string") return m.body;
+      if (m.message && typeof m.message === "object" && typeof (m.message as { content?: string }).content === "string")
+        return (m.message as { content: string }).content;
+      return "";
+    })
     .filter(Boolean)
     .join("\n");
 }
@@ -139,22 +150,8 @@ function parseFromMarkdownBlocks(text: string): DevinSetupResult | null {
   };
 }
 
+/** Parse setup output from session transcript only (strict tag or markdown blocks). See Devin API: messages / output / result. */
 function parseSetupOutput(session: DevinSession): DevinSetupResult | null {
-  const raw = session?.structured_output ?? (session as { data?: Record<string, unknown> })?.data?.structured_output;
-  if (raw && typeof raw === "object") {
-    const o = raw as Record<string, unknown>;
-    const yaml = o.docdriftYaml;
-    const summary = o.summary;
-    if (typeof yaml === "string" && typeof summary === "string") {
-      return {
-        docdriftYaml: yaml,
-        docDriftMd: typeof o.docDriftMd === "string" && o.docDriftMd ? o.docDriftMd : undefined,
-        workflowYml: typeof o.workflowYml === "string" && o.workflowYml ? o.workflowYml : undefined,
-        summary,
-        sessionUrl: "",
-      };
-    }
-  }
   const transcript = getSessionTranscript(session);
   if (transcript) {
     const fromTag = parseFromStrictTag(transcript);
@@ -204,9 +201,6 @@ export async function runSetupDevin(options: {
     max_acu_limit: 2,
     tags: ["docdrift", "setup"],
     attachments: [attachmentUrl],
-    structured_output: {
-      schema: SetupOutputSchema,
-    },
     metadata: { purpose: "docdrift-setup" },
   });
 
@@ -214,22 +208,60 @@ export async function runSetupDevin(options: {
   process.stdout.write(`Session: ${session.url}\n`);
 
   const finalSession = await pollUntilTerminal(apiKey, session.session_id, 15 * 60_000);
-  const result = parseSetupOutput(finalSession);
+  const prUrl =
+    finalSession.pull_request_url ??
+    finalSession.pr_url ??
+    (finalSession as { pull_request?: { url?: string } }).pull_request?.url;
 
-  if (!result) {
+  const parsed = parseSetupOutput(finalSession);
+
+  if (options.openPr && prUrl) {
+    return {
+      docdriftYaml: parsed?.docdriftYaml ?? "",
+      docDriftMd: parsed?.docDriftMd,
+      workflowYml: parsed?.workflowYml,
+      summary: parsed?.summary ?? "Devin created PR with docdrift configuration.",
+      sessionUrl: session.url,
+      prUrl,
+    };
+  }
+
+  if (!parsed) {
+    if (options.openPr) {
+      throw new Error(
+        "Devin session finished but did not open a PR. Check the session for details: " + session.url
+      );
+    }
     throw new Error(
       "Devin session did not return valid setup output. Check the session for details: " + session.url
     );
   }
 
+  const result = parsed;
+  const preValidation = validateYamlContent(result.docdriftYaml);
+  if (!preValidation.ok) {
+    throw new Error(
+      "Generated config failed validation (fix before writing):\n  " +
+        preValidation.errors.join("\n  ") +
+        "\n\nSession: " +
+        session.url
+    );
+  }
+
+  if (options.openPr && !prUrl) {
+    const { confirm } = await import("@inquirer/prompts");
+    const writeLocally = await confirm({
+      message: "Devin did not open a PR. Write config locally from session output?",
+      default: true,
+    });
+    if (!writeLocally) {
+      throw new Error("Setup cancelled. Check session: " + session.url);
+    }
+  }
+
   result.sessionUrl = session.url;
-  const prUrl =
-    finalSession.pull_request_url ??
-    finalSession.pr_url ??
-    (finalSession as { pull_request?: { url?: string } }).pull_request?.url;
   if (prUrl) result.prUrl = prUrl;
 
-  // Write files (always write for validation; when openPr, Devin also created PR)
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, result.docdriftYaml, "utf8");
 
@@ -258,6 +290,8 @@ export async function runSetupDevin(options: {
 
 export async function runSetupDevinAndValidate(options: Parameters<typeof runSetupDevin>[0]): Promise<DevinSetupResult> {
   const result = await runSetupDevin(options);
+  if (result.prUrl) return result;
+
   const cwd = options.cwd ?? process.cwd();
   const outputPath = path.resolve(cwd, options.outputPath ?? "docdrift.yaml");
 

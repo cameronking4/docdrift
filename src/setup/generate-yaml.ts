@@ -111,22 +111,30 @@ export function writeConfig(
   const dir = path.dirname(outputPath);
   fs.mkdirSync(dir, { recursive: true });
   const yamlContent = [
-    "# yaml-language-server: $schema=./docdrift.schema.json",
+    "# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json",
     yaml.dump(config, { lineWidth: 120, noRefs: true }),
   ].join("\n");
   fs.writeFileSync(outputPath, yamlContent, "utf8");
 }
 
-export function validateGeneratedConfig(configPath: string): { ok: boolean; errors: string[] } {
+export function validateYamlContent(yamlContent: string): { ok: boolean; errors: string[] } {
   try {
-    const content = fs.readFileSync(configPath, "utf8");
-    const parsed = yaml.load(content);
+    const parsed = yaml.load(yamlContent);
     const result = docDriftConfigSchema.safeParse(parsed);
     if (!result.success) {
       const errors = result.error.errors.map((e) => `${e.path.join(".") || "root"}: ${e.message}`);
       return { ok: false, errors };
     }
     return { ok: true, errors: [] };
+  } catch (err) {
+    return { ok: false, errors: [err instanceof Error ? err.message : String(err)] };
+  }
+}
+
+export function validateGeneratedConfig(configPath: string): { ok: boolean; errors: string[] } {
+  try {
+    const content = fs.readFileSync(configPath, "utf8");
+    return validateYamlContent(content);
   } catch (err) {
     return { ok: false, errors: [err instanceof Error ? err.message : String(err)] };
   }

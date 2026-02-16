@@ -9,13 +9,13 @@ This document describes every field in the repo-local config file `docdrift.yaml
 Add at the top of `docdrift.yaml`:
 
 ```yaml
-# yaml-language-server: $schema=./docdrift.schema.json
+# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json
 ```
 
 Or in consuming repos, reference the published schema:
 
 ```yaml
-# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift/docdrift.schema.json
+# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json
 ```
 
 Requires the [Red Hat YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) (commonly bundled in Cursor/VS Code).
