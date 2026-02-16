@@ -25,7 +25,7 @@ async function main(): Promise<void> {
 
   if (!command) {
     throw new Error(
-      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml|export> [options]\n" +
+      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml|export|mcp> [options]\n" +
         "  validate          Validate docdrift.yaml (v2 config)\n" +
         "  detect            Check for drift [--base SHA] [--head SHA]\n" +
         "  run               Full run with Devin [--base SHA] [--head SHA]\n" +
@@ -34,7 +34,8 @@ async function main(): Promise<void> {
         "  setup             Interactive setup (generates v2 docdrift.yaml)\n" +
         "  generate-yaml     Generate config [--output path] [--force] [--open-pr]\n" +
         "  export            Export DeepWiki to MDX [--repo owner/name] [--out path] [--fail-on-secrets]\n" +
-        "                    [--mintlify] [--docusaurus|--nextjs|--docsify|--vitepress|--mkdocs] (Devin creates PR)"
+        "                    [--mintlify] [--docusaurus|--nextjs|--docsify|--vitepress|--mkdocs] (Devin creates PR)\n" +
+        "  mcp               Start DataStack MCP server [--transport stdio|http] [--port 8080]"
     );
   }
 
@@ -110,6 +111,20 @@ async function main(): Promise<void> {
         failOnSecrets: args.includes("--fail-on-secrets") ? true : undefined,
         docsite,
       });
+      return;
+    }
+
+    case "mcp": {
+      require("dotenv").config();
+      const transportArg = getArg(args, "--transport") ?? "stdio";
+      const { startStdioServer, startHttpServer } = await import("./mcp");
+      if (transportArg === "http") {
+        const portArg = getArg(args, "--port");
+        const port = portArg ? parseInt(portArg, 10) : undefined;
+        await startHttpServer({ port });
+      } else {
+        await startStdioServer();
+      }
       return;
     }
 
