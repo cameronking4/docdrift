@@ -33,7 +33,8 @@ async function main(): Promise<void> {
         "  sla-check         Check SLA for unmerged PRs\n" +
         "  setup             Interactive setup (generates v2 docdrift.yaml)\n" +
         "  generate-yaml     Generate config [--output path] [--force] [--open-pr]\n" +
-        "  export            Export DeepWiki to MDX [--repo owner/name] [--out path] [--fail-on-secrets]"
+        "  export            Export DeepWiki to MDX [--repo owner/name] [--out path] [--fail-on-secrets]\n" +
+        "                    [--mintlify] [--docusaurus|--nextjs|--docsify|--vitepress|--mkdocs] (Devin creates PR)"
     );
   }
 
@@ -92,12 +93,22 @@ async function main(): Promise<void> {
     case "export": {
       require("dotenv").config();
       const { runExport } = await import("./export");
+      const docsiteFlags: Array<{ flag: string; type: "mintlify" | "docusaurus" | "nextjs" | "docsify" | "vitepress" | "mkdocs" }> = [
+        { flag: "--mintlify", type: "mintlify" },
+        { flag: "--docusaurus", type: "docusaurus" },
+        { flag: "--nextjs", type: "nextjs" },
+        { flag: "--docsify", type: "docsify" },
+        { flag: "--vitepress", type: "vitepress" },
+        { flag: "--mkdocs", type: "mkdocs" },
+      ];
+      const docsite = docsiteFlags.find(({ flag }) => args.includes(flag))?.type;
       await runExport({
         repo: getArg(args, "--repo"),
         outDir: getArg(args, "--out"),
         mode: (getArg(args, "--mode") as "local" | "pr" | "commit") ?? "local",
         server: (getArg(args, "--server") as "public" | "private" | "auto") ?? "auto",
         failOnSecrets: args.includes("--fail-on-secrets") ? true : undefined,
+        docsite,
       });
       return;
     }

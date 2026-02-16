@@ -1,4 +1,7 @@
-# docdrift export: DeepWiki Static Snapshot
+---
+title: docdrift export — DeepWiki Static Snapshot
+description: Export DeepWiki documentation to static Markdown/MDX for your docs site.
+---
 
 Export DeepWiki documentation to static Markdown/MDX files for your docs site. The `export` command fetches wiki structure and contents via the DeepWiki MCP server and writes deterministic files with manifest-driven stable filenames.
 
@@ -102,21 +105,4 @@ Add `.devin/wiki.json` in your repo to constrain what DeepWiki generates (public
 
 ## GitHub Action
 
-```yaml
-# .github/workflows/docdrift-export.yml
-name: docdrift-export
-on:
-  schedule:
-    - cron: "0 2 * * 0"  # weekly
-  workflow_dispatch:
-jobs:
-  export:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npx @devinnn/docdrift export --fail-on-secrets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional for private repos:
-          # DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
-```
+See the [docdrift-export workflow](/github-actions#docdrift-export) for a ready-to-use workflow that runs export on a schedule or manually.

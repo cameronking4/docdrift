@@ -6,8 +6,13 @@
 import path from "node:path";
 import { createMcpClient } from "./mcp-client";
 import { exportWiki } from "./wiki-exporter";
+import { runMintlifyConversion } from "./docsite-mintlify";
+import { runDocsiteDevin } from "./docsite-devin";
+import type { DocsiteOption } from "./docsite-coming-soon";
 import { execCommand } from "../utils/exec";
 import { logInfo } from "../utils/log";
+
+export type DocsiteType = "mintlify" | "docusaurus" | "nextjs" | "docsify" | "vitepress" | "mkdocs";
 
 export interface ExportOptions {
   repo?: string;
@@ -15,6 +20,8 @@ export interface ExportOptions {
   mode?: "local" | "pr" | "commit";
   server?: "public" | "private" | "auto";
   failOnSecrets?: boolean;
+  /** Skip prompt and run this docsite conversion. */
+  docsite?: DocsiteType;
 }
 
 /** Resolve repo as owner/name from git remote origin or env. */
@@ -78,5 +85,56 @@ export async function runExport(options: ExportOptions = {}): Promise<void> {
   if (mode === "pr" || mode === "commit") {
     logInfo(`Mode ${mode} not yet implemented. Docs written to ${outDir}/deepwiki`);
     // Phase 3: PR/commit logic would go here
+  }
+
+  // Docsite conversion step
+  let docsiteType = options.docsite;
+  if (!docsiteType && process.stdin.isTTY) {
+    const { select } = await import("@inquirer/prompts");
+    const choice = await select({
+      message: "Convert exported docs to a documentation site?",
+      choices: [
+        { name: "Skip", value: "skip" },
+        { name: "Mintlify (local)", value: "mintlify" },
+        { name: "Docusaurus (Devin creates PR)", value: "docusaurus" },
+        { name: "Next.js + MDX (Devin creates PR)", value: "nextjs" },
+        { name: "Docsify (Devin creates PR)", value: "docsify" },
+        { name: "VitePress (Devin creates PR)", value: "vitepress" },
+        { name: "MkDocs with mkdocs-material (Devin creates PR)", value: "mkdocs" },
+      ],
+      default: "skip",
+    });
+    if (choice !== "skip") {
+      docsiteType = choice as DocsiteType;
+    }
+  }
+
+  if (docsiteType) {
+    if (docsiteType === "mintlify") {
+      runMintlifyConversion(outDir);
+    } else {
+      const apiKey = process.env.DEVIN_API_KEY?.trim();
+      if (!apiKey) {
+        throw new Error(
+          "DEVIN_API_KEY is required for " +
+            docsiteType +
+            " docsite (Devin creates a PR). Set it in .env or export. Ensure the repo is added in Devin's Machine."
+        );
+      }
+      const result = await runDocsiteDevin({
+        repo,
+        outDir,
+        docsiteType: docsiteType as DocsiteOption,
+        apiKey,
+      });
+      console.log("");
+      if (result.prUrl) {
+        console.log("  PR opened: " + result.prUrl);
+        console.log("");
+      } else {
+        console.log("  Session complete. Check for PR: " + result.sessionUrl);
+        console.log("");
+      }
+    }
   }
 }

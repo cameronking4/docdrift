@@ -1,0 +1,139 @@
+---
+title: GitHub Actions
+description: All Docdrift workflows — drift detection, DeepWiki export, and SLA checks.
+---
+
+Docdrift provides three GitHub Actions workflows. Use the published package (`npx @devinnn/docdrift`) in your own repo, or copy the workflow files when developing from source.
+
+## Workflows overview
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **devin-doc-drift** | Push to `main`, manual | Detect and remediate documentation drift (Devin sessions, PRs, issues) |
+| **docdrift-export** | Weekly cron (Sun 2am UTC), manual | Export DeepWiki to static MDX for your docs site |
+| **docdrift-sla-check** | Daily cron (9am UTC), manual | Open reminder issues for doc-drift PRs open 7+ days |
+
+---
+
+## devin-doc-drift
+
+Main drift detection and remediation. Runs on every push to `main` and on manual dispatch.
+
+**Triggers:** `push` to `main`, `workflow_dispatch`
+
+**Key steps:**
+
+1. Checkout with full history (`fetch-depth: 0`)
+2. Setup Node.js 20
+3. Determine base/head SHAs (previous vs current commit; fallback to `HEAD^` when `event.before` is missing)
+4. Restore docdrift state from cache (optional)
+5. Validate config: `npx tsx src/cli.ts validate` (from source) or `npx @devinnn/docdrift validate` (package)
+6. Run Doc Drift: `npx tsx src/cli.ts run --base $base --head $head` (or `npx @devinnn/docdrift run ...`)
+7. Show Devin session URLs (on success)
+8. Save docdrift state to cache
+9. Upload artifacts: `drift_report.json`, `metrics.json`, `run-output.json`, `evidence/**`, `state.json`
+
+**Secrets:** `DEVIN_API_KEY` (required for run). `GITHUB_TOKEN` is provided automatically.
+
+**Reference:** [.github/workflows/devin-doc-drift.yml](https://github.com/cameronking4/docdrift/blob/main/.github/workflows/devin-doc-drift.yml)
+
+---
+
+## docdrift-export
+
+Exports DeepWiki documentation to static Markdown/MDX. Runs weekly or on demand.
+
+**Triggers:** `schedule` (cron: `0 2 * * 0` — Sunday 2am UTC), `workflow_dispatch`
+
+**Key step:** `npx @devinnn/docdrift export --fail-on-secrets`
+
+**Environment:** `GITHUB_TOKEN` (optional for private repos: `DEVIN_API_KEY`)
+
+**Reference:** [.github/workflows/docdrift-export.yml](https://github.com/cameronking4/docdrift/blob/main/.github/workflows/docdrift-export.yml)
+
+---
+
+## docdrift-sla-check
+
+Checks for doc-drift PRs open longer than the configured SLA (e.g. 7 days) and opens a reminder issue.
+
+**Triggers:** `schedule` (cron: `0 9 * * *` — daily 9am UTC), `workflow_dispatch`
+
+**Key steps:** Validate config, then `npx tsx src/cli.ts sla-check` (from source) or `npx @devinnn/docdrift sla-check` (package).
+
+**Environment:** `GITHUB_TOKEN`, `GITHUB_REPOSITORY` (auto-provided).
+
+**Reference:** [.github/workflows/docdrift-sla-check.yml](https://github.com/cameronking4/docdrift/blob/main/.github/workflows/docdrift-sla-check.yml)
+
+---
+
+## Consuming repo: ready-to-copy workflow
+
+For a repository that uses the **published package** (not the docdrift source), use this workflow. It uses `npx @devinnn/docdrift` and does not require cloning the docdrift repo.
+
+**Prerequisites:** `docdrift.yaml` at repo root, and repo secret `DEVIN_API_KEY`.
+
+```yaml
+name: doc-drift
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  docdrift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+        # Omit if your repo has no package.json; then add: run: npm init -y && npm install @devinnn/docdrift
+
+      - name: Determine SHAs
+        id: shas
+        run: |
+          HEAD_SHA="${GITHUB_SHA}"
+          BASE_SHA="${{ github.event.before }}"
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+          echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
+          echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Validate config
+        run: npx @devinnn/docdrift validate
+
+      - name: Run Doc Drift
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docdrift-artifacts
+          path: |
+            .docdrift/drift_report.json
+            .docdrift/metrics.json
+            .docdrift/evidence/
+            .docdrift/state.json
+```
+
+**Secrets:** Add `DEVIN_API_KEY` in **Settings** → **Secrets and variables** → **Actions**. `GITHUB_TOKEN` is provided by the runner.
+
+For more on CI setup, see [CI and GitHub](/guides/ci-github). For detailed CI/CD and other systems (Jenkins, GitLab), see [Examples and Use Cases](/deepwiki/pages/cicd-integration).

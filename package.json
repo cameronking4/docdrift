@@ -1,6 +1,6 @@
 {
   "name": "@devinnn/docdrift",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "private": false,
   "description": "Detect and remediate documentation drift with Devin sessions",
   "main": "dist/src/index.js",

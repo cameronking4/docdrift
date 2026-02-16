@@ -1,0 +1,90 @@
+---
+title: Real World Scenarios
+description: CLI commands, ecosystems, and end-to-end flows for every use case.
+---
+
+This page ties together all CLI commands, detection modes, ecosystems, and end-to-end flows so you can map your use case to the right setup and commands.
+
+## Command quick reference
+
+| Command | Purpose |
+|---------|---------|
+| `npx @devinnn/docdrift setup` | Interactive setup: Manual (local files) or Devin PR. Writes `docdrift.yaml`, workflows, `.gitignore`. |
+| `npx @devinnn/docdrift generate-yaml` | Generate `docdrift.yaml` scriptably; use `--force`, `--output`, `--open-pr` as needed. |
+| `npx @devinnn/docdrift validate` | Validate config and required commands (e.g. openapi:export, docs:check). |
+| `npx @devinnn/docdrift detect` | Run drift detection only; writes `.docdrift/drift_report.json`. No Devin, no GitHub writes. |
+| `npx @devinnn/docdrift run` | Full pipeline: detect → policy → evidence bundle → Devin session (and/or GitHub issue). |
+| `npx @devinnn/docdrift export` | Export DeepWiki to static MDX; optional `--mintlify`, `--docusaurus`, etc. |
+| `npx @devinnn/docdrift sla-check` | Check for doc-drift PRs open past SLA (e.g. 7 days) and open reminder issues. |
+| `npx @devinnn/docdrift status` | Session status (when applicable). |
+
+Use `--base` and `--head` with `detect` and `run` when you need explicit SHAs; in CI they can be omitted and default from `GITHUB_BASE_SHA` / `GITHUB_SHA` or merge-base with main.
+
+---
+
+## Scenario matrix
+
+| Scenario | Mode | Detection | Primary action | Where to look |
+|----------|------|-----------|----------------|---------------|
+| **API reference (OpenAPI/GraphQL)** | strict / autogen | Tier 1 (spec diff) | `OPEN_PR` via Devin | [Examples: Autogen API](/deepwiki/pages/examples-and-use-cases) |
+| **Conceptual docs (guides, tutorials)** | auto + conceptual | Tier 2 (path heuristics) | `OPEN_ISSUE` with questions | [Examples: Conceptual](/deepwiki/pages/examples-and-use-cases) |
+| **Multi-package monorepo** | Per doc area | Path mappings per package | One PR per doc area (or bundled) | [Ecosystems: Monorepo](/guides/ecosystems) |
+| **DeepWiki docsite** | N/A | N/A | `export` → Mintlify/Docusaurus/Next.js | [Export guide](/guides/export), [GitHub Actions: export](/github-actions#docdrift-export) |
+| **Creative GitHub Actions** | Any | Any | Scheduled export, SLA checks, drift on schedule | [GitHub Actions](/github-actions) |
+
+---
+
+## Ecosystem examples
+
+Each ecosystem pairs a spec/source with a doc tool. Configure `docdrift.yaml` (modes, specProviders, path mappings) then run `validate` → `detect` → `run`.
+
+| Ecosystem | Spec/source | Docs | Flow |
+|-----------|-------------|------|------|
+| **OpenAPI3 + Node/Express** | swagger-jsdoc, NestJS → `openapi/generated.json` | Docusaurus, Markdown | Change route/schema → export spec → drift → Devin fixes docs |
+| **OpenAPI3 + FastAPI** | FastAPI OpenAPI export | MkDocs + mkdocstrings / mkdocs-openapi | Regenerate spec → drift → Devin updates MkDocs |
+| **Fern** | `definition/`, `generators.yml` | `pages/` MDX | specProviders `format: fern`, path mappings → Devin updates guides + API ref |
+| **GraphQL** | Schema export command | Docusaurus/GraphQL plugin, Markdown | Update schema → regenerate → Devin syncs types/resolvers |
+| **Mintlify** | OpenAPI for API ref | `docs/` MDX, `mint.json` | Path mappings `api/**`, `src/**` → `docs/**` |
+| **Postman** | Postman Collection JSON | External docs / README | `format: postman` → collection changes → Devin keeps docs in sync |
+| **Swagger2 / OpenAPI 2** | Legacy Swagger 2.0 | Same as OpenAPI3 | `format: swagger2` |
+| **Monorepo** | Multiple packages | `docs/` or `apps/docs-site/` | Path mappings per package (`packages/api/**` → `docs/api/**`, etc.) |
+
+Suggested order to try: OpenAPI3 + Docusaurus → FastAPI + MkDocs → Fern → GraphQL. See [Ecosystem guides](/guides/ecosystems) for details.
+
+---
+
+## End-to-end flows
+
+### New repo: first-time setup
+
+1. `npx @devinnn/docdrift setup` (or `generate-yaml`).
+2. Add `DEVIN_API_KEY` (and in GitHub: repo secret).
+3. `npx @devinnn/docdrift validate`.
+4. Add a [GitHub Actions workflow](/github-actions#consuming-repo-ready-to-copy-workflow) that runs `npx @devinnn/docdrift run` on push to `main`.
+5. Push; workflow runs and creates PRs/issues as configured.
+
+### Existing repo: add drift checks
+
+1. Add `docdrift.yaml` (manually or via `generate-yaml` / `setup`).
+2. Add the [consuming-repo workflow](/github-actions#consuming-repo-ready-to-copy-workflow) and `DEVIN_API_KEY` secret.
+3. Run `validate`, then trigger the workflow (push or manual).
+
+### DeepWiki docsite: export and convert
+
+1. Index repo at [deepwiki.com](https://deepwiki.com) (or use Devin for private).
+2. `npx @devinnn/docdrift export` (optionally `--mintlify` or `--docusaurus` for conversion).
+3. In CI: add [docdrift-export](/github-actions#docdrift-export) workflow (weekly or manual) with `--fail-on-secrets`.
+
+### Creative GitHub Actions
+
+- **Scheduled drift run:** Trigger `doc-drift` workflow on a schedule (e.g. nightly) in addition to push, using a fixed base/head or `workflow_dispatch` inputs.
+- **Export + deploy:** Run `docdrift export` then build and deploy the docsite in the same or a follow-up job.
+- **SLA reminders:** Use [docdrift-sla-check](/github-actions#docdrift-sla-check) daily so stale doc-drift PRs get an issue reminder.
+
+---
+
+## Integration with existing content
+
+- **Detailed sequence diagrams and autogen/conceptual examples:** [Examples and Use Cases](/deepwiki/pages/examples-and-use-cases).
+- **CI/CD adapters (Jenkins, GitLab, SHA logic, permissions):** [CI/CD Integration](/deepwiki/pages/cicd-integration).
+- **Configuration reference:** [Configuration](/guides/configuration), [Detection rules](/deepwiki/pages/detection-rules).

@@ -1,0 +1,61 @@
+---
+title: CI and GitHub Setup
+description: Run docdrift in GitHub Actions and see it work on GitHub.
+---
+
+Run docdrift in GitHub Actions and see it work on GitHub.
+
+## CI configuration
+
+- Add secret: `DEVIN_API_KEY`
+- Push to `main` or run `workflow_dispatch`
+- Action uploads:
+  - `.docdrift/drift_report.json`
+  - `.docdrift/evidence/**`
+  - `.docdrift/metrics.json`
+
+## Run on GitHub
+
+### 1. Create a repo
+
+Create a repo on GitHub (e.g. `your-org/docdrift`), then add the remote and push:
+
+```bash
+git remote add origin https://github.com/your-org/docdrift.git
+git push -u origin main
+```
+
+### 2. Add secret
+
+Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+- Name: `DEVIN_API_KEY`
+- Value: your Devin API key (same as in `.env` locally)
+
+`GITHUB_TOKEN` is provided automatically; the workflow uses it for commit comments and issues.
+
+### 3. Trigger the workflow
+
+- **Push to `main`** — runs on every push (compares previous commit vs current).
+- **Manual run** — **Actions** tab → **devin-doc-drift** → **Run workflow** (uses `HEAD` and `HEAD^` as head/base).
+
+## See it work (demo on GitHub)
+
+This repo has **intentional drift**: the API has been expanded (new fields `fullName`, `avatarUrl`, `createdAt`, `role` and new endpoint `GET /v1/users` with pagination), but **docs are unchanged** (`docs/reference/openapi.json` and `docs/reference/api.md` still describe the old single-endpoint, `id`/`name`/`email` only). Running docdrift will detect that and hand a large diff to Devin to fix via a PR. To see it:
+
+1. **Create a new GitHub repo** (e.g. `docdrift-demo`) so you have a clean place to run the workflow.
+2. **Push this project with full history** (so both commits are on `main`):
+   ```bash
+   git remote add origin https://github.com/YOUR_ORG/docdrift-demo.git
+   git push -u origin main
+   ```
+3. **Add secret** in that repo: **Settings** → **Secrets and variables** → **Actions** → `DEVIN_API_KEY` = your Devin API key.
+4. **Trigger the workflow**
+   - Either push another small commit (e.g. README tweak), or
+   - **Actions** → **devin-doc-drift** → **Run workflow**.
+5. **Where to look**
+   - **Actions** → open the run → **Run Doc Drift** step: the step logs print JSON with `sessionUrl`, `prUrl`, and `outcome` per doc area. Open any `sessionUrl` in your browser to see the Devin session.
+   - **Artifacts**: download **docdrift-artifacts** for `.docdrift/drift_report.json`, `.docdrift/metrics.json`, and evidence.
+   - **Devin dashboard**: sessions are tagged `docdrift`; you'll see the run there once the step completes (often 1–3 minutes).
+
+For a full reference of all workflows, see [GitHub Actions](/github-actions).

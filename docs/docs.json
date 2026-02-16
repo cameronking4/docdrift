@@ -1,0 +1,152 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "DocDrift",
+  "description": "Documentation drift detection and remediation with Devin",
+  "colors": {
+    "primary": "#139a96",
+    "light": "#7FF4DF",
+    "dark": "#12706D"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "index",
+              "deepwiki/pages/installation-and-setup",
+              "deepwiki/pages/monorepo-structure-and-packages"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started",
+              "github-actions",
+              "real-world-scenarios"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/setup",
+              "guides/configuration",
+              "guides/how-it-works",
+              "guides/consuming-repo",
+              "guides/ci-github",
+              "guides/export",
+              "guides/local-development",
+              "guides/ecosystems",
+              "guides/publishing"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "deepwiki/pages/server-implementation",
+              "deepwiki/pages/mcpserver-high-level-api",
+              "deepwiki/pages/tool-registration-and-execution",
+              "deepwiki/pages/resource-and-prompt-management",
+              "deepwiki/pages/server-protocol-class"
+            ]
+          },
+          {
+            "group": "Detection System",
+            "pages": [
+              "deepwiki/pages/client-implementation",
+              "deepwiki/pages/client-class-and-high-level-api",
+              "deepwiki/pages/streamable-http-client-transport",
+              "deepwiki/pages/sse-client-transport"
+            ]
+          },
+          {
+            "group": "Policy Engine",
+            "pages": [
+              "deepwiki/pages/oauth-authentication",
+              "deepwiki/pages/oauth-client-flow-and-providers",
+              "deepwiki/pages/oauth-server-integration",
+              "deepwiki/pages/state-management"
+            ]
+          },
+          {
+            "group": "Devin Integration",
+            "pages": [
+              "deepwiki/pages/transport-system",
+              "deepwiki/pages/transport-interface-and-contract",
+              "deepwiki/pages/transport-comparison-and-selection",
+              "deepwiki/pages/prompts-and-modes"
+            ]
+          },
+          {
+            "group": "Output Artifacts",
+            "pages": [
+              "deepwiki/pages/development-guide",
+              "deepwiki/pages/building-and-testing",
+              "deepwiki/pages/conformance-testing",
+              "deepwiki/pages/cicd-and-release-process"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "deepwiki/pages/development",
+              "deepwiki/pages/project-structure",
+              "deepwiki/pages/building-and-testing--11.2",
+              "deepwiki/pages/configuration-loading"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/cameronking4/docdrift",
+          "icon": "github"
+        },
+        {
+          "anchor": "npm",
+          "href": "https://www.npmjs.com/package/@devinnn/docdrift",
+          "icon": "box"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/cameronking4/docdrift"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Watch Video",
+      "href": "https://www.npmjs.com/package/@devinnn/docdrift"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/cameronyking4`",
+      "github": "https://github.com/cameronking4/docdrift",
+      "linkedin": "https://linkedin.com/in/cameronyking"
+    }
+  }
+}

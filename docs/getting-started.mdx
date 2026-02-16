@@ -1,0 +1,109 @@
+---
+title: Getting Started
+description: Run DocDrift in under 2 minutes with npx — no clone required.
+---
+
+Run DocDrift in under 2 minutes using the published npm package. No need to clone the repo or install from source.
+
+## Prerequisites
+
+- **Node.js 20+**
+- **Git** (for `detect` and `run` with base/head SHAs)
+- **Devin API key** (for `run` — get one at [Devin](https://devin.ai/))
+- **GitHub token** (for `run` in CI or when posting comments/issues — auto-provided in GitHub Actions)
+
+## Step 1: Set up your repo
+
+From your repository root, run interactive setup or generate config scriptably.
+
+**Interactive setup** — Devin can analyze your repo and create `docdrift.yaml`, workflows, and `.gitignore` entries. Requires `DEVIN_API_KEY` and your repo added in Devin's Machine.
+
+```bash
+npx @devinnn/docdrift setup
+```
+
+Choose **Manual** (local files) or **Devin PR** (Devin opens a PR with the config).
+
+**Scriptable config** — Generate `docdrift.yaml` without prompts (defaults to Manual flow):
+
+```bash
+npx @devinnn/docdrift generate-yaml
+npx @devinnn/docdrift generate-yaml --output docdrift.yaml --force
+```
+
+Use `--open-pr` to have Devin create a PR with the config.
+
+If you prefer to write config by hand, see [Configuration](/guides/configuration) and the [docdrift.yaml reference](/deepwiki/pages/detection-rules).
+
+## Step 2: Add secrets (for `run`)
+
+For full drift detection and remediation:
+
+| Where | What to do |
+|-------|------------|
+| **Local** | Create a `.env` with `DEVIN_API_KEY=...` (optional: `GITHUB_TOKEN`, `GITHUB_REPOSITORY`, `GITHUB_SHA` for commit comments) |
+| **GitHub Actions** | Repo → **Settings** → **Secrets and variables** → **Actions** → add `DEVIN_API_KEY`. `GITHUB_TOKEN` is provided automatically. |
+
+## Step 3: Validate
+
+Check that your config and required commands are valid:
+
+```bash
+npx @devinnn/docdrift validate
+```
+
+Fix any reported errors before running detection or remediation.
+
+## Step 4: Run DocDrift
+
+- **Detection only** (no Devin, no GitHub writes):
+
+  ```bash
+  npx @devinnn/docdrift detect --base <base-sha> --head <head-sha>
+  ```
+
+  Omit `--base` and `--head` to use defaults (in CI: `GITHUB_BASE_SHA` / `GITHUB_SHA`; locally: merge-base with main and HEAD).
+
+- **Full run** (detect + remediate via Devin + optional GitHub comments/issues):
+
+  ```bash
+  DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<head-sha> \
+    npx @devinnn/docdrift run --base <base-sha> --head <head-sha>
+  ```
+
+In GitHub Actions, use the [GitHub Actions workflow](/github-actions) so base/head and env vars are set for you.
+
+## Quick reference
+
+| Command | Purpose |
+|---------|---------|
+| `npx @devinnn/docdrift setup` | Interactive setup (Manual or Devin PR) |
+| `npx @devinnn/docdrift generate-yaml` | Generate `docdrift.yaml` (scriptable) |
+| `npx @devinnn/docdrift validate` | Validate config and commands |
+| `npx @devinnn/docdrift detect` | Run drift detection only |
+| `npx @devinnn/docdrift run` | Detect + remediate (Devin + GitHub) |
+| `npx @devinnn/docdrift export` | Export DeepWiki static snapshot |
+| `npx @devinnn/docdrift sla-check` | Check for stale doc-drift PRs |
+
+## Next steps
+
+- [Setup guide](/guides/setup) — Manual vs Devin PR, `generate-yaml` options
+- [Configuration](/guides/configuration) — Modes (strict/auto), spec providers
+- [CI and GitHub](/guides/ci-github) — Add workflow, secrets, trigger runs
+- [GitHub Actions](/github-actions) — All three workflows (drift, export, SLA)
+- [Real World Scenarios](/real-world-scenarios) — Commands, ecosystems, end-to-end flows
+
+## Running from source (development)
+
+If you are contributing to DocDrift or need the latest unreleased code:
+
+```bash
+git clone https://github.com/cameronking4/docdrift.git
+cd docdrift
+npm install
+npx tsx src/cli.ts validate
+npx tsx src/cli.ts detect --base <base> --head <head>
+# For run: set DEVIN_API_KEY, GITHUB_* and use npx tsx src/cli.ts run ...
+```
+
+See [Local Development](/guides/local-development) for full local and demo workflows.
