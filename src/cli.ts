@@ -25,14 +25,15 @@ async function main(): Promise<void> {
 
   if (!command) {
     throw new Error(
-      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml> [options]\n" +
+      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml|export> [options]\n" +
         "  validate          Validate docdrift.yaml (v2 config)\n" +
         "  detect            Check for drift [--base SHA] [--head SHA]\n" +
         "  run               Full run with Devin [--base SHA] [--head SHA]\n" +
         "  status            Show run status [--since 24h]\n" +
         "  sla-check         Check SLA for unmerged PRs\n" +
         "  setup             Interactive setup (generates v2 docdrift.yaml)\n" +
-        "  generate-yaml     Generate config [--output path] [--force] [--open-pr]"
+        "  generate-yaml     Generate config [--output path] [--force] [--open-pr]\n" +
+        "  export            Export DeepWiki to MDX [--repo owner/name] [--out path] [--fail-on-secrets]"
     );
   }
 
@@ -85,6 +86,19 @@ async function main(): Promise<void> {
 
     case "sla-check": {
       await runSlaCheck();
+      return;
+    }
+
+    case "export": {
+      require("dotenv").config();
+      const { runExport } = await import("./export");
+      await runExport({
+        repo: getArg(args, "--repo"),
+        outDir: getArg(args, "--out"),
+        mode: (getArg(args, "--mode") as "local" | "pr" | "commit") ?? "local",
+        server: (getArg(args, "--server") as "public" | "private" | "auto") ?? "auto",
+        failOnSecrets: args.includes("--fail-on-secrets") ? true : undefined,
+      });
       return;
     }
 

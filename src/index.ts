@@ -1,4 +1,4 @@
-import path from "node:path";
+import path from "path";
 import type { DocAreaConfig } from "./config/schema";
 import { loadConfig, loadNormalizedConfig } from "./config/load";
 import { validateRuntimeConfig } from "./config/validate";
@@ -72,6 +72,12 @@ function inferQuestions(structured: any): string[] {
     "Which conceptual docs should be updated for this behavior change?",
     "What are the exact user-visible semantics after this merge?",
   ];
+}
+
+/** True when we have a real GitHub repo and a full commit SHA (e.g. in CI). Skip commit comment when false (local run). */
+function canPostCommitComment(repository: string, commitSha: string): boolean {
+  if (!repository || repository === "local/docdrift") return false;
+  return /^[0-9a-f]{40}$/i.test(commitSha);
 }
 
 async function executeSessionSingle(input: {
@@ -470,7 +476,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
 
   saveState(state);
 
-  if (githubToken) {
+  if (githubToken && canPostCommitComment(repo, commitSha)) {
     const body = renderRunComment({
       docArea: item.docArea,
       summary: sessionOutcome.summary,

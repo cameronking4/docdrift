@@ -22,6 +22,7 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
   - `sla-check` — Check for doc-drift PRs open 7+ days and open a reminder issue
   - `setup` — Interactive setup (Devin analyzes repo, generates v2 docdrift.yaml)
   - `generate-yaml` — Generate config from repo fingerprint `[--output path] [--force]`
+  - `export` — Export DeepWiki to static MDX `[--repo owner/name] [--out path] [--fail-on-secrets]`
 - GitHub Action: `.github/workflows/devin-doc-drift.yml`
 - Repo-local config: `docdrift.yaml`
 - Demo API + OpenAPI exporter + driftable docs
@@ -68,6 +69,7 @@ npx @devinnn/docdrift generate-yaml --output docdrift.yaml --force
 | [CI & GitHub](docs/guides/ci-github.md) | GitHub Actions, secrets, demo on GitHub |
 | [Using in another repo](docs/guides/consuming-repo.md) | Published package, CLI, GitHub Actions |
 | [Publishing](docs/guides/publishing.md) | Publishing the npm package |
+| [Export](docs/guides/export.md) | DeepWiki static snapshot to MDX |
 | [Loom script](loom.md) | Recording script for demos |
 
 ### Reference

@@ -1,0 +1,18 @@
+# docdrift export: DeepWiki static snapshot pipeline
+# Runs weekly and on manual trigger. For private repos, add DEVIN_API_KEY.
+name: docdrift-export
+on:
+  schedule:
+    - cron: "0 2 * * 0"  # Sunday 2am UTC
+  workflow_dispatch:
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npx @devinnn/docdrift export --fail-on-secrets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
