@@ -1,0 +1,604 @@
+---
+title: "export"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "3.7"
+generated: true
+last_synced: "2026-02-16"
+---
+# export
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [.github/workflows/docdrift-export.yml](.github/workflows/docdrift-export.yml)
+- [.vscode/settings.json](.vscode/settings.json)
+- [docs/guides/export.md](docs/guides/export.md)
+- [package-lock.json](package-lock.json)
+- [src/cli.ts](src/cli.ts)
+- [src/devin/v1.ts](src/devin/v1.ts)
+
+</details>
+
+
+
+## Purpose and Scope
+
+The `export` command generates static Markdown/MDX snapshots of documentation from DeepWiki, a documentation generation service that indexes repositories and creates comprehensive wikis. This command is designed for teams who want to:
+
+- Host documentation on their own static site generators (Docusaurus, Next.js, etc.)
+- Version-control documentation alongside code
+- Run automated CI checks on documentation content (secret scanning, link validation, etc.)
+
+For setting up initial docdrift configuration, see [setup and generate-yaml](#3.1). For detecting and remediating documentation drift, see [run](#3.4).
+
+**Sources:** [src/cli.ts:92-103](), [docs/guides/export.md:1-100]()
+
+---
+
+## Command Syntax and Options
+
+```bash
+docdrift export [options]
+```
+
+### Options Reference
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--repo owner/name` | string | Inferred from git remote | Target GitHub repository to export |
+| `--out path` | string | `docs` | Output directory (creates `deepwiki/` subdirectory inside) |
+| `--mode local\|pr\|commit` | string | `local` | Export mode: `local` writes to disk, `pr` and `commit` are planned for Phase 3 |
+| `--server public\|private\|auto` | string | `auto` | MCP server selection: `public` (no auth), `private` (requires `DEVIN_API_KEY`), or `auto` (detects based on repo visibility) |
+| `--fail-on-secrets` | boolean | `true` in CI, `false` locally | Exit with status 1 if sensitive patterns detected in content |
+
+### Environment Variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `GITHUB_TOKEN` | Yes | Repository metadata access |
+| `DEVIN_API_KEY` | Private repos only | Authentication for private DeepWiki MCP server |
+
+**Sources:** [src/cli.ts:92-103](), [docs/guides/export.md:54-62]()
+
+---
+
+## System Architecture
+
+The export command operates independently from the drift detection pipeline, fetching pre-generated documentation from DeepWiki's MCP (Model Context Protocol) server rather than analyzing code changes.
+
+```mermaid
+graph TB
+    CLI["docdrift export<br/>(src/cli.ts:92)"]
+    RunExport["runExport()<br/>(src/export)"]
+    
+    subgraph "Server Selection"
+        AutoDetect["Server Detection<br/>--server auto"]
+        PublicMCP["DeepWiki Public MCP<br/>deepwiki.com<br/>No auth"]
+        PrivateMCP["DeepWiki Private MCP<br/>mcp.devin.ai<br/>DEVIN_API_KEY"]
+    end
+    
+    subgraph "MCP Protocol"
+        FetchWiki["Fetch Wiki Structure<br/>List topics"]
+        FetchContent["Fetch Page Content<br/>Get markdown/MDX"]
+        FetchMeta["Fetch Metadata<br/>Hierarchy, IDs"]
+    end
+    
+    subgraph "Output Generation"
+        Manifest[".docdrift-manifest.json<br/>pageId → filename map"]
+        NavJSON["nav.json<br/>Hierarchical structure"]
+        MetaJSON["_meta.json<br/>generatedAt, repo, commit"]
+        Pages["pages/*.mdx<br/>Individual pages + frontmatter"]
+    end
+    
+    SecretsScanner["Secrets Scanner<br/>--fail-on-secrets"]
+    OutDir["docs/deepwiki/"]
+    
+    CLI --> RunExport
+    RunExport --> AutoDetect
+    AutoDetect -->|Public repo| PublicMCP
+    AutoDetect -->|Private repo| PrivateMCP
+    
+    PublicMCP --> FetchWiki
+    PrivateMCP --> FetchWiki
+    
+    FetchWiki --> FetchContent
+    FetchContent --> FetchMeta
+    
+    FetchMeta --> Manifest
+    FetchMeta --> NavJSON
+    FetchMeta --> MetaJSON
+    FetchContent --> Pages
+    
+    Pages --> SecretsScanner
+    SecretsScanner -->|Pass| OutDir
+    SecretsScanner -->|Fail| Exit1["Exit status 1"]
+```
+
+**Sources:** [src/cli.ts:92-103](), [docs/guides/export.md:23-34]()
+
+---
+
+## Output Directory Structure
+
+The export command writes to a deterministic directory structure designed for static site generator consumption:
+
+```
+docs/deepwiki/
+├── _meta.json                    # Export metadata
+├── nav.json                      # Navigation hierarchy
+├── .docdrift-manifest.json       # Stable filename mapping
+└── pages/
+    ├── overview.mdx
+    ├── architecture.mdx
+    ├── setup-system.mdx
+    └── ...
+```
+
+### File Format Specifications
+
+#### `_meta.json`
+
+```json
+{
+  "generatedAt": "2026-02-15T08:30:00Z",
+  "repo": "owner/name",
+  "sourceCommit": "abc123def456"
+}
+```
+
+#### `nav.json`
+
+Hierarchical navigation structure for site generators:
+
+```json
+{
+  "sections": [
+    {
+      "id": "1",
+      "title": "Overview",
+      "children": [
+        { "id": "1.1", "title": "Architecture" },
+        { "id": "1.2", "title": "Key Concepts" }
+      ]
+    }
+  ]
+}
+```
+
+#### `.docdrift-manifest.json`
+
+Maps DeepWiki page IDs to stable output filenames, ensuring consistent URLs across exports:
+
+```json
+{
+  "1": "overview.mdx",
+  "1.1": "architecture.mdx",
+  "1.2": "key-concepts.mdx"
+}
+```
+
+#### Page Frontmatter
+
+Each `.mdx` file includes YAML frontmatter:
+
+```yaml
+---
+title: "Architecture"
+source: deepwiki
+repo: owner/name
+topic_id: "1.1"
+generated: true
+last_synced: "2026-02-15"
+---
+```
+
+**Sources:** [docs/guides/export.md:23-47]()
+
+---
+
+## DeepWiki MCP Integration
+
+```mermaid
+graph LR
+    subgraph "Public Flow"
+        PubRepo["Public GitHub Repo"]
+        Index["Index at deepwiki.com"]
+        PubMCP["Public MCP Server<br/>No authentication"]
+    end
+    
+    subgraph "Private Flow"
+        PrivRepo["Private GitHub Repo"]
+        DevinAccount["Devin Account<br/>DEVIN_API_KEY"]
+        PrivMCP["Private MCP Server<br/>mcp.devin.ai"]
+    end
+    
+    subgraph "Export Command"
+        AutoServer["--server auto"]
+        ExportCmd["docdrift export"]
+    end
+    
+    PubRepo --> Index
+    Index --> PubMCP
+    PubMCP --> AutoServer
+    
+    PrivRepo --> DevinAccount
+    DevinAccount --> PrivMCP
+    PrivMCP --> AutoServer
+    
+    AutoServer --> ExportCmd
+    
+    ExportCmd --> Output["docs/deepwiki/"]
+```
+
+### Server Selection Logic
+
+| Repository Visibility | `--server` Value | MCP Server Used | Authentication Required |
+|-----------------------|------------------|-----------------|------------------------|
+| Public | `auto` (default) | `deepwiki.com` | No |
+| Public | `public` | `deepwiki.com` | No |
+| Public | `private` | `mcp.devin.ai` | Yes (`DEVIN_API_KEY`) |
+| Private | `auto` (default) | `mcp.devin.ai` | Yes (`DEVIN_API_KEY`) |
+| Private | `public` | Error: Cannot access | N/A |
+| Private | `private` | `mcp.devin.ai` | Yes (`DEVIN_API_KEY`) |
+
+### Repository Indexing
+
+**Public Repositories:**
+- Index your repo at [deepwiki.com](https://deepwiki.com) to make it available for export
+- No authentication required for export command
+- Documentation is publicly accessible
+
+**Private Repositories:**
+- Requires a Devin account with access to the repository
+- Set `DEVIN_API_KEY` environment variable
+- Uses private MCP server at `mcp.devin.ai`
+
+### Steering Wiki Generation
+
+Place a `.devin/wiki.json` file in your repository to constrain what DeepWiki generates:
+
+```json
+{
+  "public_safe": true,
+  "exclude_patterns": ["internal/**", "credentials/**"],
+  "structure": {
+    "sections": ["overview", "api", "guides"]
+  }
+}
+```
+
+The export command fetches whatever the MCP returns; the steering config is applied when DeepWiki indexes your repository.
+
+**Sources:** [docs/guides/export.md:49-78]()
+
+---
+
+## Secrets Detection
+
+The `--fail-on-secrets` flag (enabled by default in CI environments) scans exported content for sensitive patterns before writing to disk.
+
+### Detection Patterns
+
+```mermaid
+graph TB
+    Scanner["Secrets Scanner"]
+    
+    subgraph "Pattern Categories"
+        AWSKeys["AWS Keys<br/>AKIA..., ASIA..."]
+        PrivKeys["Private Keys<br/>-----BEGIN PRIVATE KEY-----"]
+        Tokens["Token Patterns<br/>ghp_, xoxb-, glpat-"]
+        Domains["Internal Domains<br/>.corp, .internal, svc.cluster.local"]
+        Phrases["Risky Phrases<br/>password=, secret:, api_key:"]
+    end
+    
+    Scanner --> AWSKeys
+    Scanner --> PrivKeys
+    Scanner --> Tokens
+    Scanner --> Domains
+    Scanner --> Phrases
+    
+    AWSKeys --> Match{Match<br/>Found?}
+    PrivKeys --> Match
+    Tokens --> Match
+    Domains --> Match
+    Phrases --> Match
+    
+    Match -->|Yes| Report["Report:<br/>file, line, pattern"]
+    Match -->|No| Continue["Continue export"]
+    
+    Report --> Exit["Exit status 1"]
+    Continue --> Write["Write files"]
+```
+
+### Pattern Reference
+
+| Category | Patterns | Example |
+|----------|----------|---------|
+| AWS Keys | `AKIA[0-9A-Z]{16}`, `ASIA[0-9A-Z]{16}` | `AKIAIOSFODNN7EXAMPLE` |
+| Private Keys | `-----BEGIN (PRIVATE\|RSA\|EC) KEY-----` | `-----BEGIN PRIVATE KEY-----` |
+| GitHub Tokens | `ghp_[a-zA-Z0-9]{36}` | `ghp_1234567890abcdefghij...` |
+| Slack Tokens | `xoxb-[0-9]{10,13}-[0-9]{10,13}-[a-zA-Z0-9]{24}` | `xoxb-123456789012-...` |
+| GitLab Tokens | `glpat-[a-zA-Z0-9_-]{20}` | `glpat-abcdefghij_1234567890` |
+| Internal Domains | `.corp`, `.internal`, `svc.cluster.local` | `api.corp`, `db.internal` |
+| Credentials | `password=`, `secret:`, `api_key:`, `token:` | `password=hunter2` |
+
+### Exit Behavior
+
+When secrets are detected:
+1. **Reports** offending file path and line number to stderr
+2. **Does not write** any output files
+3. **Exits** with status code 1
+4. **CI pipelines** fail, preventing merge
+
+**Sources:** [docs/guides/export.md:64-74]()
+
+---
+
+## GitHub Actions Integration
+
+```mermaid
+graph LR
+    subgraph "Triggers"
+        Schedule["Cron Schedule<br/>Sunday 2am UTC"]
+        Manual["workflow_dispatch<br/>Manual trigger"]
+    end
+    
+    subgraph "Export Job"
+        Checkout["actions/checkout@v4"]
+        NodeSetup["actions/setup-node@v4<br/>Node 20"]
+        ExportCmd["npx @devinnn/docdrift export<br/>--fail-on-secrets"]
+    end
+    
+    subgraph "Environment"
+        GitHubToken["GITHUB_TOKEN<br/>secrets.GITHUB_TOKEN"]
+        DevinKey["DEVIN_API_KEY<br/>secrets.DEVIN_API_KEY<br/>(optional)"]
+    end
+    
+    Schedule --> Checkout
+    Manual --> Checkout
+    
+    Checkout --> NodeSetup
+    NodeSetup --> ExportCmd
+    
+    GitHubToken --> ExportCmd
+    DevinKey --> ExportCmd
+    
+    ExportCmd --> Success["Commit exported docs"]
+    ExportCmd --> Fail["Secrets detected<br/>Workflow fails"]
+```
+
+### Example Workflow
+
+```yaml
+# .github/workflows/docdrift-export.yml
+name: docdrift-export
+on:
+  schedule:
+    - cron: "0 2 * * 0"  # Weekly: Sunday 2am UTC
+  workflow_dispatch:      # Manual trigger
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npx @devinnn/docdrift export --fail-on-secrets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # For private repos, add:
+          # DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+```
+
+### Workflow Configuration
+
+| Configuration | Purpose | Required |
+|---------------|---------|----------|
+| `schedule.cron` | Automated weekly refresh | No (can use manual only) |
+| `workflow_dispatch` | Manual triggering from Actions UI | Recommended |
+| `GITHUB_TOKEN` | Repository metadata access | Yes |
+| `DEVIN_API_KEY` | Private repo DeepWiki access | Private repos only |
+| `--fail-on-secrets` | Prevent leaking sensitive data | Strongly recommended |
+
+**Sources:** [.github/workflows/docdrift-export.yml:1-19](), [docs/guides/export.md:82-99]()
+
+---
+
+## Code Implementation
+
+### Entry Point Flow
+
+```mermaid
+graph TB
+    CLI["src/cli.ts:23<br/>main()"]
+    ParseArgs["Parse command line args<br/>src/cli.ts:92-103"]
+    
+    subgraph "Export Handler"
+        LoadEnv["require('dotenv').config()<br/>Load .env file"]
+        ImportExport["import { runExport }<br/>from './export'"]
+        CallRunExport["await runExport(options)"]
+    end
+    
+    subgraph "Options Construction"
+        RepoArg["getArg(args, '--repo')<br/>owner/name or undefined"]
+        OutArg["getArg(args, '--out')<br/>path or undefined"]
+        ModeArg["getArg(args, '--mode')<br/>local | pr | commit"]
+        ServerArg["getArg(args, '--server')<br/>public | private | auto"]
+        FailSecrets["args.includes('--fail-on-secrets')"]
+    end
+    
+    CLI --> ParseArgs
+    ParseArgs -->|"command === 'export'"| LoadEnv
+    LoadEnv --> ImportExport
+    ImportExport --> RepoArg
+    
+    RepoArg --> CallRunExport
+    OutArg --> CallRunExport
+    ModeArg --> CallRunExport
+    ServerArg --> CallRunExport
+    FailSecrets --> CallRunExport
+```
+
+### Command-Line Argument Extraction
+
+The export command uses the `getArg()` helper function to extract named arguments:
+
+```typescript
+// src/cli.ts:15-21
+function getArg(args: string[], flag: string): string | undefined {
+  const index = args.indexOf(flag);
+  if (index === -1) {
+    return undefined;
+  }
+  return args[index + 1];
+}
+```
+
+### Export Options Interface
+
+The `runExport()` function receives the following options object:
+
+| Option | Type | Default | Source |
+|--------|------|---------|--------|
+| `repo` | `string \| undefined` | Inferred from git | `--repo` flag |
+| `outDir` | `string \| undefined` | `docs` | `--out` flag |
+| `mode` | `"local" \| "pr" \| "commit"` | `"local"` | `--mode` flag |
+| `server` | `"public" \| "private" \| "auto"` | `"auto"` | `--server` flag |
+| `failOnSecrets` | `boolean \| undefined` | Conditional | `--fail-on-secrets` flag |
+
+**Sources:** [src/cli.ts:15-21](), [src/cli.ts:92-103]()
+
+---
+
+## Usage Examples
+
+### Basic Export (Public Repository)
+
+```bash
+# Export from current repository (infers owner/name from git remote)
+npx @devinnn/docdrift export
+
+# Output: docs/deepwiki/ directory with all files
+```
+
+### Custom Output Directory
+
+```bash
+# Write to custom directory
+npx @devinnn/docdrift export --out website/docs
+
+# Output: website/docs/deepwiki/
+```
+
+### Private Repository Export
+
+```bash
+# Requires DEVIN_API_KEY environment variable
+export DEVIN_API_KEY="your-devin-api-key"
+npx @devinnn/docdrift export --server private
+
+# Or specify in command:
+DEVIN_API_KEY="..." npx @devinnn/docdrift export
+```
+
+### CI with Secret Scanning
+
+```bash
+# CI environment (fail-on-secrets enabled by default)
+npx @devinnn/docdrift export
+
+# Explicitly enable secret scanning
+npx @devinnn/docdrift export --fail-on-secrets
+
+# Disable secret scanning (not recommended)
+npx @devinnn/docdrift export # omit --fail-on-secrets flag locally
+```
+
+### Export Specific Repository
+
+```bash
+# Export documentation for a different repository
+npx @devinnn/docdrift export --repo octocat/hello-world
+```
+
+**Sources:** [docs/guides/export.md:6-18]()
+
+---
+
+## Integration with Static Site Generators
+
+### Docusaurus Integration
+
+```javascript
+// docusaurus.config.js
+module.exports = {
+  presets: [
+    [
+      '@docusaurus/preset-classic',
+      {
+        docs: {
+          path: 'docs/deepwiki/pages',
+          routeBasePath: 'wiki',
+        },
+      },
+    ],
+  ],
+};
+```
+
+### Next.js Integration
+
+```javascript
+// next.config.js
+const deepwikiNav = require('./docs/deepwiki/nav.json');
+
+module.exports = {
+  async redirects() {
+    return deepwikiNav.sections.map(section => ({
+      source: `/wiki/${section.id}`,
+      destination: `/wiki/${section.slug}`,
+      permanent: false,
+    }));
+  },
+};
+```
+
+### Manifest-Driven Routing
+
+The `.docdrift-manifest.json` file ensures stable URLs across exports by maintaining consistent filename mappings:
+
+```javascript
+// Custom routing logic
+const manifest = require('./docs/deepwiki/.docdrift-manifest.json');
+
+function getPagePath(pageId) {
+  return `/wiki/${manifest[pageId].replace('.mdx', '')}`;
+}
+```
+
+**Sources:** [docs/guides/export.md:23-34]()
+
+---
+
+## Comparison with Other Commands
+
+| Command | Purpose | Modifies Repository | Creates PRs/Issues | Interacts with DeepWiki |
+|---------|---------|--------------------|--------------------|------------------------|
+| [`export`](#3.7) | Export DeepWiki snapshots | No (local files only) | No | Yes (read-only) |
+| [`setup`](#3.1) | Initialize configuration | Yes (`docdrift.yaml`) | Optional (with Devin) | No |
+| [`run`](#3.4) | Detect and remediate drift | No (Devin creates PRs) | Yes (via Devin) | No |
+| [`detect`](#3.3) | Check for drift | No | No | No |
+
+The `export` command is unique in that it:
+- Operates independently from drift detection
+- Does not require a `docdrift.yaml` configuration file
+- Produces static documentation snapshots rather than dynamic remediation
+- Interacts with DeepWiki MCP servers rather than analyzing repository code
+
+**Sources:** [src/cli.ts:23-108](), [docs/guides/export.md:1-100]()
+
+---

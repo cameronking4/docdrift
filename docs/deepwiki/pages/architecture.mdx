@@ -1,0 +1,267 @@
+---
+title: "Getting Started"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "2"
+generated: true
+last_synced: "2026-02-16"
+---
+# Getting Started
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [.gitignore](.gitignore)
+- [README.md](README.md)
+- [package.json](package.json)
+
+</details>
+
+
+
+This page guides you through the complete getting started journey with docdrift, from installation to running your first drift detection and remediation. The process consists of three main steps:
+
+1. **Installation** — Install the `@devinnn/docdrift` npm package
+2. **Setup** — Generate a `docdrift.yaml` configuration file
+3. **First Run** — Execute drift detection and remediation
+
+Each step is covered in detail in the child pages. This overview introduces the workflow and key concepts.
+
+## Overview of Getting Started Flow
+
+The getting started workflow follows a linear progression from installation through configuration to execution:
+
+```mermaid
+graph TD
+    Start["New User"] --> Install["Installation<br/>Page 2.1"]
+    Install --> Setup["Initial Setup<br/>Page 2.2"]
+    Setup --> FirstRun["Quick Start Guide<br/>Page 2.3"]
+    
+    Install -->|produces| CLI["docdrift CLI binary"]
+    Setup -->|produces| Config["docdrift.yaml"]
+    Setup -->|produces| Workflows[".github/workflows/<br/>devin-doc-drift.yml"]
+    FirstRun -->|produces| Artifacts[".docdrift/<br/>drift_report.json<br/>state.json<br/>metrics.json"]
+    
+    CLI -.uses.-> Config
+    Workflows -.invokes.-> CLI
+    FirstRun -.uses.-> CLI
+    FirstRun -.reads.-> Config
+```
+
+**Sources:** [README.md:33-41](), [package.json:8]()
+
+## Prerequisites
+
+Before starting, ensure your environment meets these requirements:
+
+| Requirement | Details | Verified By |
+|------------|---------|-------------|
+| Node.js | >=20 | `node --version` |
+| Git repository | At least 2 commits | `git log --oneline` |
+| DEVIN_API_KEY | For AI remediation | Environment variable |
+| GITHUB_TOKEN | Optional, for GitHub API | Environment variable |
+
+The CLI performs commit-to-commit comparisons to detect drift, so a Git repository with history is required. The `DEVIN_API_KEY` is needed only for the `run` command (full remediation); the `detect` command (drift checking only) does not require it.
+
+**Sources:** [package.json:11-13](), [README.md:36-40]()
+
+## Installation Overview
+
+The `@devinnn/docdrift` package can be installed via npm or used directly with `npx`. The package exposes a `docdrift` CLI binary that provides eight commands:
+
+```mermaid
+graph LR
+    Package["@devinnn/docdrift<br/>npm package"] --> Binary["docdrift CLI binary"]
+    Binary --> Setup["docdrift setup"]
+    Binary --> GenYAML["docdrift generate-yaml"]
+    Binary --> Validate["docdrift validate"]
+    Binary --> Detect["docdrift detect"]
+    Binary --> Run["docdrift run"]
+    Binary --> Status["docdrift status"]
+    Binary --> SLA["docdrift sla-check"]
+    Binary --> Export["docdrift export"]
+    
+    Setup -.writes.-> Config["docdrift.yaml"]
+    GenYAML -.writes.-> Config
+    Validate -.reads.-> Config
+    Detect -.reads.-> Config
+    Run -.reads.-> Config
+```
+
+The three primary installation methods are:
+
+1. **Direct execution with npx** — No installation required, recommended for first-time setup
+2. **Local package installation** — Install as a dependency for scripting
+3. **CI/CD integration** — Use in GitHub Actions workflows
+
+For detailed installation instructions, environment setup, and verification steps, see [Installation](#2.1).
+
+**Sources:** [package.json:7-8](), [README.md:17-25]()
+
+## Setup Overview
+
+After installation, you must generate a `docdrift.yaml` configuration file that defines how drift is detected and remediated for your repository. The setup system provides two modes:
+
+**Setup Command Modes**
+
+| Mode | Command | Method | Output Location |
+|------|---------|--------|-----------------|
+| **Interactive** | `docdrift setup` | Manual or Devin PR | Local files or PR |
+| **Scriptable** | `docdrift generate-yaml` | Manual only | Local files |
+
+```mermaid
+graph TD
+    User["User"] --> Choice{"Choose<br/>Setup Mode"}
+    
+    Choice -->|Interactive| SetupCmd["docdrift setup"]
+    Choice -->|Scriptable| GenYAML["docdrift generate-yaml"]
+    
+    SetupCmd --> HasKey{"DEVIN_API_KEY<br/>present?"}
+    HasKey -->|Yes| DevinPath["Devin PR Path"]
+    HasKey -->|No| ManualPath["Manual Path"]
+    
+    GenYAML --> ManualPath
+    
+    ManualPath --> Fingerprint["buildRepoFingerprint"]
+    Fingerprint --> Infer["inferConfigFromFingerprint"]
+    Infer --> Interactive["Interactive prompts"]
+    Interactive --> WriteLocal["Write local files"]
+    
+    DevinPath --> CreateSession["devinCreateSession"]
+    CreateSession --> Poll["pollUntilTerminal"]
+    Poll --> ParsePR["parseSetupOutput"]
+    ParsePR --> PRCreated["PR with config"]
+    
+    WriteLocal --> Files["docdrift.yaml<br/>.docdrift/DocDrift.md<br/>.github/workflows/"]
+    PRCreated -.user merges.-> Files
+```
+
+The **Manual path** scans your repository, infers configuration using AI or heuristics, prompts for confirmation, and writes files locally. The **Devin PR path** creates a Devin AI session that analyzes your repository and opens a PR with generated configuration files.
+
+For detailed setup instructions, configuration inference, and the interactive workflow, see [Initial Setup](#2.2).
+
+**Sources:** [README.md:33-41]()
+
+## Running Your First Drift Detection
+
+After setup completes, you can run drift detection. The workflow consists of three progressively more comprehensive commands:
+
+**Core Commands Workflow**
+
+```mermaid
+graph LR
+    Validate["docdrift validate"] --> Detect["docdrift detect<br/>--base SHA --head SHA"]
+    Detect --> Run["docdrift run<br/>--base SHA --head SHA"]
+    
+    Validate -.checks.-> Config["docdrift.yaml<br/>schema & commands"]
+    Detect -.produces.-> Report[".docdrift/<br/>drift_report.json"]
+    Run -.produces.-> State[".docdrift/<br/>state.json<br/>metrics.json<br/>evidence/"]
+    Run -.creates.-> Session["Devin AI session"]
+    Session -.opens.-> PR["GitHub PR"]
+```
+
+| Command | Purpose | Requires API Key | Creates PR |
+|---------|---------|-----------------|------------|
+| `validate` | Check config validity | No | No |
+| `detect` | Detect drift only | No | No |
+| `run` | Full detection + remediation | Yes | Yes |
+
+**Basic Execution Pattern**
+
+```bash
+# Step 1: Validate configuration
+npx @devinnn/docdrift validate
+
+# Step 2: Detect drift (dry run)
+npx @devinnn/docdrift detect --base <base-sha> --head <head-sha>
+
+# Step 3: Run full workflow (requires DEVIN_API_KEY)
+export DEVIN_API_KEY=your_api_key_here
+npx @devinnn/docdrift run --base <base-sha> --head <head-sha>
+```
+
+The `run` command executes the complete pipeline: validates config, builds drift report, applies policy decisions, creates evidence bundles, uploads to Devin, creates AI session, polls for completion, and posts GitHub comments.
+
+For a detailed walkthrough with real examples, output interpretation, and troubleshooting, see [Quick Start Guide](#2.3).
+
+**Sources:** [README.md:17-25](), [README.md:47-56]()
+
+## Understanding Output Artifacts
+
+All docdrift outputs are written to the `.docdrift/` directory in your repository root. This directory contains detection reports, state files, metrics, and evidence bundles:
+
+**Output Directory Structure**
+
+```mermaid
+graph TD
+    Root[".docdrift/"]
+    Root --> Report["drift_report.json"]
+    Root --> State["state.json"]
+    Root --> Metrics["metrics.json"]
+    Root --> RunOutput["run-output.json"]
+    Root --> Evidence["evidence/"]
+    Root --> Logs["*.log files"]
+    
+    Evidence --> RunID["{timestamp}-{runId}/"]
+    RunID --> DocArea["{docArea}/"]
+    DocArea --> Manifest["manifest.json"]
+    DocArea --> Attachments["attachments/"]
+    DocArea --> ImpactedDocs["impacted_docs/"]
+    DocArea --> Tarball["{docArea}.tar.gz"]
+    
+    Tarball -.uploaded to.-> Devin["Devin API"]
+```
+
+| File | Generated By | Purpose |
+|------|--------------|---------|
+| `drift_report.json` | `detect`, `run` | Structured drift findings with confidence scores |
+| `state.json` | `run` | Persistent state for PR history and rate limiting |
+| `metrics.json` | `run` | Timing data, drift counts, policy decisions |
+| `run-output.json` | `run` | Per-area outcomes and session URLs |
+| `evidence/{runId}/` | `run` | Evidence bundles uploaded to Devin |
+
+The `.docdrift/` directory should typically be added to `.gitignore` to avoid committing transient artifacts. Only `docdrift.yaml` and potentially `.docdrift/DocDrift.md` should be version-controlled.
+
+For detailed documentation of each artifact's structure and contents, see [Output and Artifacts](#10).
+
+**Sources:** [.gitignore:5-8]()
+
+## Verification and Troubleshooting
+
+After completing setup and first run, verify the system is working correctly:
+
+**Verification Checklist**
+
+| Check | Command | Expected Output |
+|-------|---------|-----------------|
+| Config valid | `docdrift validate` | "Configuration is valid" |
+| CLI accessible | `which docdrift` | Path to binary |
+| Git history | `git log --oneline \| wc -l` | At least 2 commits |
+| Environment | `echo $DEVIN_API_KEY` | Non-empty for `run` |
+
+**Common Issues**
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| `command not found: docdrift` | Package not installed | Run `npm install -g @devinnn/docdrift` |
+| "No drift detected" | No API spec changes | Change an API endpoint and commit |
+| Session timeout | Network issues | Check firewall, retry with `--verbose` |
+| Config validation fails | Invalid YAML | Check syntax with `yamllint docdrift.yaml` |
+
+For detailed troubleshooting steps and advanced configuration examples, see [Quick Start Guide](#2.3).
+
+**Sources:** [README.md:17-25]()
+
+## Next Steps
+
+After completing initial setup and running your first drift detection, explore:
+
+- [Configuration](#2.2) for detailed configuration options
+- [CLI Reference](#3) for complete command documentation  
+- [Detection System](#4) to understand the three-tier detection mechanism
+- [Policy Engine](#5) to learn about decision logic and noise reduction
+- [Devin Integration](#6) for information about AI-powered remediation
+
+---

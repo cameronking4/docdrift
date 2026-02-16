@@ -1,0 +1,659 @@
+---
+title: "AI Inference and Heuristics"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "5.5"
+generated: true
+last_synced: "2026-02-16"
+---
+# AI Inference and Heuristics
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [src/setup/ai-infer.ts](src/setup/ai-infer.ts)
+- [src/setup/generate-yaml.ts](src/setup/generate-yaml.ts)
+- [src/setup/prompts.ts](src/setup/prompts.ts)
+- [src/setup/repo-fingerprint.ts](src/setup/repo-fingerprint.ts)
+- [test/setup-infer.test.ts](test/setup-infer.test.ts)
+
+</details>
+
+
+
+## Purpose and Scope
+
+This page documents the AI inference and heuristic fallback system used during setup to automatically generate `docdrift.yaml` configuration from repository structure. The inference system analyzes the repository fingerprint (see [Repository Fingerprinting](#5.4)) and produces a suggested configuration plus interactive choices for uncertain fields.
+
+The system operates in two modes: **AI inference** using Claude via the AI SDK Gateway, and **heuristic fallback** using rule-based logic when AI is unavailable. Both modes produce identical output structures but differ in sophistication and accuracy.
+
+For the overall setup flow, see [Setup Overview](#5.1). For how the inference output is consumed, see [Manual Setup Flow](#5.2).
+
+---
+
+## Inference Architecture
+
+The inference system provides a unified interface that delegates to either AI or heuristics based on API key availability:
+
+```mermaid
+graph TB
+    subgraph "Entry Point"
+        InferFunc["inferConfigFromFingerprint()<br/>src/setup/ai-infer.ts:255-295"]
+    end
+    
+    subgraph "Decision Logic"
+        CheckKey{"AI_GATEWAY_API_KEY<br/>present?"}
+        CheckCache{"Cache hit for<br/>fingerprintHash?"}
+    end
+    
+    subgraph "AI Inference Path"
+        Gateway["createGateway()<br/>AI SDK Gateway<br/>anthropic/claude-opus-4.6"]
+        
+        Prompt["SYSTEM_PROMPT<br/>src/setup/prompts.ts:1-72<br/>+ fingerprint JSON"]
+        
+        Generate["generateText()<br/>experimental_output<br/>InferenceSchema"]
+        
+        Validate["InferenceSchema.safeParse()<br/>Zod validation"]
+        
+        WriteCache["writeCache()<br/>.docdrift/setup-cache.json"]
+    end
+    
+    subgraph "Heuristic Path"
+        Heuristic["heuristicInference()<br/>src/setup/ai-infer.ts:111-253"]
+        
+        Rules["Rule-Based Logic:<br/>- Script detection<br/>- Path matching<br/>- Framework detection"]
+    end
+    
+    subgraph "Output"
+        ConfigInference["ConfigInference<br/>- suggestedConfig<br/>- choices[]<br/>- skipQuestions[]"]
+    end
+    
+    InferFunc --> CheckCache
+    CheckCache -->|Hit| ConfigInference
+    CheckCache -->|Miss| CheckKey
+    
+    CheckKey -->|Yes| Gateway
+    CheckKey -->|No| Heuristic
+    
+    Gateway --> Prompt
+    Prompt --> Generate
+    Generate --> Validate
+    Validate -->|Success| WriteCache
+    Validate -->|Failure| Heuristic
+    WriteCache --> ConfigInference
+    
+    Heuristic --> Rules
+    Rules --> ConfigInference
+```
+
+**Sources:** [src/setup/ai-infer.ts:255-295](), [src/setup/prompts.ts:1-72]()
+
+---
+
+## Inference Schema
+
+The `InferenceSchema` defines the output structure for both AI and heuristic inference. It uses Zod for runtime validation:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `suggestedConfig` | Partial config object | Pre-filled configuration values with high confidence |
+| `choices[]` | Array of interactive questions | Fields requiring user input due to low confidence |
+| `skipQuestions[]` | Array of keys | Fields to skip in interactive form (high confidence) |
+
+### ConfigInference Type Structure
+
+```typescript
+// From src/setup/ai-infer.ts:75
+type ConfigInference = {
+  suggestedConfig: {
+    version?: 2
+    specProviders?: Array<SpecProvider>
+    docsite?: string | string[]
+    exclude?: string[]
+    requireHumanReview?: string[]
+    pathMappings?: Array<PathRule>
+    mode?: "strict" | "auto"
+    devin?: DevinConfig
+    policy?: PolicyConfig
+  }
+  choices: Array<{
+    key: string                    // Dot-notation path (e.g., "docsite", "pathMappings.0.match")
+    question: string               // Human-readable question
+    options: Array<{
+      value: string
+      label: string
+      recommended?: boolean
+    }>
+    defaultIndex: number
+    help?: string
+    warning?: string
+    confidence: "high" | "medium" | "low"
+  }>
+  skipQuestions?: string[]
+}
+```
+
+**Sources:** [src/setup/ai-infer.ts:25-75]()
+
+---
+
+## AI Inference Pipeline
+
+### System Prompt Design
+
+The AI inference uses a carefully crafted system prompt that instructs Claude to analyze the repository fingerprint and generate configuration:
+
+```mermaid
+graph LR
+    subgraph "Prompt Components"
+        SystemPrompt["SYSTEM_PROMPT<br/>src/setup/prompts.ts:1-72"]
+        
+        Instructions["Instructions:<br/>- Config format<br/>- Field rules<br/>- Path constraints<br/>- Output rules"]
+        
+        Examples["Examples:<br/>- Docusaurus layout<br/>- MkDocs layout<br/>- Path-only config<br/>- Common patterns"]
+        
+        Constraints["Constraints:<br/>- Use fingerprint paths only<br/>- No invented paths<br/>- Add choices for uncertainty<br/>- Validate commands"]
+    end
+    
+    subgraph "User Message"
+        Fingerprint["JSON.stringify(fingerprint)"]
+    end
+    
+    SystemPrompt --> Instructions
+    Instructions --> Examples
+    Examples --> Constraints
+    
+    Constraints --> Generate["generateText()<br/>Claude Opus 4.6"]
+    Fingerprint --> Generate
+```
+
+**Key Prompt Directives** (from [src/setup/prompts.ts:1-72]()):
+
+- **Path-only rule**: Use paths from `foundPaths` only; never invent paths
+- **Choice generation**: Add fields with low confidence to `choices[]` for user input
+- **Command validation**: Use npm script names from `rootPackage.scripts`, never raw script bodies
+- **Common patterns**: Recognize Docusaurus, MkDocs, VitePress, Next.js layouts
+- **Path-only mode**: Support configurations without spec providers if no OpenAPI detected
+
+### AI Generation Flow
+
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant InferFunc as inferConfigFromFingerprint
+    participant Gateway as AI SDK Gateway
+    participant Claude as Claude Opus 4.6
+    participant Cache as .docdrift/setup-cache.json
+    
+    Caller->>InferFunc: fingerprint, cwd
+    InferFunc->>InferFunc: fingerprintHash(fingerprint)
+    InferFunc->>Cache: readCache(cwd)
+    
+    alt Cache hit with matching hash
+        Cache-->>InferFunc: cached inference
+        InferFunc-->>Caller: return cached
+    else No cache or hash mismatch
+        InferFunc->>Gateway: createGateway(AI_GATEWAY_API_KEY)
+        InferFunc->>Claude: generateText({<br/>  model: claude-opus-4.6,<br/>  system: SYSTEM_PROMPT,<br/>  prompt: JSON.stringify(fingerprint),<br/>  experimental_output: InferenceSchema<br/>})
+        Claude-->>InferFunc: structured output
+        InferFunc->>InferFunc: InferenceSchema.safeParse(output)
+        
+        alt Parse success
+            InferFunc->>Cache: writeCache(cwd, hash, inference)
+            Cache-->>InferFunc: written
+            InferFunc-->>Caller: return inference
+        else Parse failure or timeout
+            InferFunc->>InferFunc: heuristicInference(fingerprint)
+            InferFunc-->>Caller: return heuristic result
+        end
+    end
+```
+
+**Sources:** [src/setup/ai-infer.ts:255-295](), [src/setup/prompts.ts:1-72]()
+
+### AI Configuration Parameters
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| Model | `anthropic/claude-opus-4.6` | High-quality structured output generation |
+| Gateway | `https://ai-gateway.vercel.sh/v1/ai` | Vercel AI SDK Gateway for provider abstraction |
+| Output mode | `experimental_output` with Zod schema | Structured JSON output matching `InferenceSchema` |
+| Max retries | 2 | Limited retries for fast fallback to heuristics |
+| Timeout | 60 seconds | Prevent hanging; fall back to heuristics on timeout |
+
+**Sources:** [src/setup/ai-infer.ts:267-284]()
+
+---
+
+## Heuristic Fallback
+
+The `heuristicInference` function provides rule-based configuration generation when AI is unavailable or fails. It analyzes the `RepoFingerprint` using deterministic logic:
+
+```mermaid
+graph TB
+    subgraph "Input Analysis"
+        FP["RepoFingerprint<br/>- foundPaths<br/>- rootPackage<br/>- fileTree"]
+    end
+    
+    subgraph "Detection Logic"
+        ExportScript["Export Script Detection<br/>foundPaths.exportScript<br/>→ command, outputPath"]
+        
+        DocsiteDetect["Docsite Detection<br/>Priority order:<br/>1. docusaurusConfig<br/>2. mkdocs<br/>3. vitepressConfig<br/>4. nextConfig<br/>5. docsDirParents<br/>6. docsDirs parent"]
+        
+        ApiDirDetect["API Directory Detection<br/>foundPaths.apiDirs[0]<br/>or generic **/api/**"]
+        
+        PublishedPath["Published Path<br/>Heuristic:<br/>firstOpenapi in docsite?<br/>→ use it<br/>else: docsite/openapi/openapi.json"]
+    end
+    
+    subgraph "Config Assembly"
+        SpecProvider["specProviders[0]<br/>format: openapi3<br/>current: { type: export }<br/>published: heuristic path"]
+        
+        PathMapping["pathMappings[0]<br/>match: apiDir/** or **/api/**<br/>impacts: docsite globs"]
+        
+        Allowlist["policy.allowlist<br/>- openapi/**<br/>- docsite/**<br/>- openapi dir/**"]
+        
+        Verification["policy.verification.commands<br/>Priority:<br/>1. docs:gen<br/>2. docs:build<br/>3. build"]
+        
+        RequireReview["requireHumanReview<br/>docsite/docs/guides/**"]
+    end
+    
+    subgraph "Choices Generation"
+        Choices["choices[]<br/>- specProviders.0.current.command (medium)<br/>- docsite (medium/low)<br/>- pathMappings.0.match (low if no apiDir)"]
+    end
+    
+    FP --> ExportScript
+    FP --> DocsiteDetect
+    FP --> ApiDirDetect
+    
+    ExportScript --> SpecProvider
+    DocsiteDetect --> SpecProvider
+    DocsiteDetect --> PathMapping
+    DocsiteDetect --> RequireReview
+    ApiDirDetect --> PathMapping
+    
+    SpecProvider --> Allowlist
+    DocsiteDetect --> Allowlist
+    PathMapping --> Verification
+    
+    ExportScript --> Choices
+    DocsiteDetect --> Choices
+    ApiDirDetect --> Choices
+    
+    SpecProvider --> Output["suggestedConfig"]
+    PathMapping --> Output
+    Allowlist --> Output
+    Verification --> Output
+    RequireReview --> Output
+    Choices --> Output
+```
+
+**Sources:** [src/setup/ai-infer.ts:111-253]()
+
+### Heuristic Decision Table
+
+| Field | Detection Logic | Confidence |
+|-------|----------------|------------|
+| `specProviders[0].current.command` | Use `exportScript.scriptName` wrapped in `npm run`, or default to `npm run openapi:export` | medium |
+| `specProviders[0].current.outputPath` | Use `exportScript.inferredOutputPath`, or first OpenAPI not in docs/, or `openapi/generated.json` | medium |
+| `specProviders[0].published` | If first OpenAPI is under docsite, use it; else `{docsite}/openapi/openapi.json` | medium |
+| `docsite` | First match from: docusaurusConfig dir → mkdocs dir → vitepressConfig dir → nextConfig dir → docsDirParents[0] → docsDirs[0] parent | medium if found, low if missing |
+| `pathMappings[0].match` | Use `apiDirs[0]/**` if available, else generic `**/api/**` | medium if apiDir, low otherwise |
+| `pathMappings[0].impacts` | If docsite: `[{docsite}/docs/**, {docsite}/openapi/**]`, else `[**/docs/**, **/openapi/**]` | medium |
+| `policy.allowlist` | Always includes `openapi/**`, plus docsite glob, plus OpenAPI dir glob if different | high |
+| `policy.verification.commands` | Priority: `docs:gen` → `docs:build` → `build` (from scripts) | medium |
+| `requireHumanReview` | If docsite and docs dirs exist: `[{docsite}/docs/guides/**]` else `[]` | medium |
+
+**Sources:** [src/setup/ai-infer.ts:111-253]()
+
+### Example Heuristic Output
+
+From test case [test/setup-infer.test.ts:42-64](), showing packages/api + packages/docs layout:
+
+```typescript
+{
+  suggestedConfig: {
+    version: 2,
+    specProviders: [{
+      format: "openapi3",
+      current: {
+        type: "export",
+        command: "npm run openapi:export",
+        outputPath: "openapi/generated.json"
+      },
+      published: "packages/docs/openapi/openapi.json"
+    }],
+    docsite: "packages/docs",
+    pathMappings: [{
+      match: "packages/api/**",
+      impacts: ["packages/docs/docs/**", "packages/docs/openapi/**"]
+    }],
+    exclude: ["**/CHANGELOG*", "**/blog/**"],
+    requireHumanReview: ["packages/docs/docs/guides/**"],
+    mode: "strict",
+    policy: {
+      allowlist: ["openapi/**", "packages/docs/**"],
+      verification: { commands: ["npm run docs:gen", "npm run docs:build"] }
+      // ... other policy fields
+    }
+  },
+  choices: [
+    {
+      key: "specProviders.0.current.command",
+      question: "OpenAPI export command",
+      options: [{ value: "npm run openapi:export", label: "npm run openapi:export", recommended: true }],
+      defaultIndex: 0,
+      confidence: "medium"
+    },
+    {
+      key: "docsite",
+      question: "Docsite path",
+      options: [{ value: "packages/docs", label: "packages/docs", recommended: true }],
+      defaultIndex: 0,
+      confidence: "medium"
+    }
+  ]
+}
+```
+
+**Sources:** [test/setup-infer.test.ts:42-64]()
+
+---
+
+## Caching Strategy
+
+The inference system caches AI results to avoid redundant API calls for unchanged repositories:
+
+```mermaid
+graph TB
+    subgraph "Cache File Structure"
+        CacheFile[".docdrift/setup-cache.json"]
+        
+        Fields["Cache Fields:<br/>- fingerprintHash: string<br/>- inference: ConfigInference<br/>- timestamp: number"]
+    end
+    
+    subgraph "Cache Operations"
+        Read["readCache(cwd)<br/>src/setup/ai-infer.ts:84-99"]
+        
+        Write["writeCache(cwd, hash, inference)<br/>src/setup/ai-infer.ts:101-109"]
+        
+        Hash["fingerprintHash(fingerprint)<br/>src/setup/repo-fingerprint.ts:330-333<br/>SHA-256 of canonical JSON"]
+    end
+    
+    subgraph "Cache Validation"
+        Exists{"Cache file<br/>exists?"}
+        ParseOK{"Parse and<br/>validate<br/>InferenceSchema?"}
+        HashMatch{"fingerprintHash<br/>matches current?"}
+    end
+    
+    subgraph "Cache Behavior"
+        CacheHit["Return cached<br/>inference"]
+        CacheMiss["Run inference<br/>(AI or heuristic)"]
+    end
+    
+    CacheFile --> Read
+    Fields --> Read
+    
+    Read --> Exists
+    Exists -->|No| CacheMiss
+    Exists -->|Yes| ParseOK
+    ParseOK -->|No| CacheMiss
+    ParseOK -->|Yes| HashMatch
+    HashMatch -->|No| CacheMiss
+    HashMatch -->|Yes| CacheHit
+    
+    Hash --> HashMatch
+    
+    CacheMiss --> Write
+    Write --> CacheFile
+```
+
+**Sources:** [src/setup/ai-infer.ts:77-109](), [src/setup/repo-fingerprint.ts:330-333]()
+
+### Cache Invalidation Rules
+
+The cache is invalidated when:
+
+1. **Fingerprint hash mismatch**: Repository structure, package.json, or detected paths change
+2. **Schema validation failure**: Cached inference no longer matches current `InferenceSchema`
+3. **Missing cache file**: First run or manual deletion of `.docdrift/setup-cache.json`
+
+The `fingerprintHash` function generates a deterministic SHA-256 hash from the canonicalized fingerprint JSON (sorted keys), ensuring any structural change invalidates the cache.
+
+**Sources:** [src/setup/repo-fingerprint.ts:330-333](), [src/setup/ai-infer.ts:260-263]()
+
+---
+
+## Choice Generation
+
+Both AI and heuristic inference produce a `choices[]` array for interactive user input. Choices represent configuration fields where the system has low or medium confidence:
+
+```mermaid
+graph LR
+    subgraph "Choice Generation Logic"
+        Confidence{"Field<br/>confidence?"}
+        
+        FieldMissing{"Required field<br/>missing?"}
+        
+        Generate["Add to choices[]"]
+    end
+    
+    subgraph "Choice Structure"
+        Key["key: dot-notation path<br/>(e.g. 'pathMappings.0.match')"]
+        
+        Question["question: human-readable<br/>(e.g. 'API/source code path')"]
+        
+        Options["options[]:<br/>- value<br/>- label<br/>- recommended flag"]
+        
+        Meta["Metadata:<br/>- defaultIndex<br/>- help text<br/>- warning text<br/>- confidence level"]
+    end
+    
+    subgraph "Interactive Form Usage"
+        Form["interactive-form.ts<br/>Prompts user for each choice"]
+        
+        Override["Applies answer to<br/>configOverrides[key]"]
+    end
+    
+    Confidence -->|low or medium| Generate
+    FieldMissing -->|Yes| Generate
+    
+    Generate --> Key
+    Generate --> Question
+    Generate --> Options
+    Generate --> Meta
+    
+    Key --> Form
+    Question --> Form
+    Options --> Form
+    Meta --> Form
+    
+    Form --> Override
+```
+
+**Sources:** [src/setup/ai-infer.ts:181-218]()
+
+### Example Choice Objects
+
+From heuristic inference [src/setup/ai-infer.ts:181-218]():
+
+```typescript
+// High confidence field: docsite detected
+{
+  key: "docsite",
+  question: "Docsite path",
+  options: [{ value: "packages/docs", label: "packages/docs", recommended: true }],
+  defaultIndex: 0,
+  confidence: "medium"
+}
+
+// Low confidence field: docsite NOT detected
+{
+  key: "docsite",
+  question: "Docsite path",
+  options: [{ value: "", label: "(specify path to docs site root)", recommended: false }],
+  defaultIndex: 0,
+  help: "Path to Docusaurus, MkDocs, VitePress, or other docs site root.",
+  confidence: "low"
+}
+
+// Low confidence field: API directory not detected
+{
+  key: "pathMappings.0.match",
+  question: "API/source code path (pathMappings.match)",
+  options: [{ value: "**/api/**", label: "**/api/** (generic)", recommended: true }],
+  defaultIndex: 0,
+  help: "Glob for API or source code that, when changed, may require doc updates.",
+  confidence: "low"
+}
+```
+
+**Sources:** [src/setup/ai-infer.ts:181-218]()
+
+---
+
+## Integration with Setup Flow
+
+The inference output flows into the manual setup's interactive form:
+
+```mermaid
+sequenceDiagram
+    participant Setup as setup command
+    participant Fingerprint as buildRepoFingerprint
+    participant Infer as inferConfigFromFingerprint
+    participant Form as runInteractiveForm
+    participant Build as buildConfigFromInference
+    participant Write as writeConfig
+    
+    Setup->>Fingerprint: cwd
+    Fingerprint-->>Setup: RepoFingerprint
+    
+    Setup->>Infer: fingerprint, cwd
+    
+    alt AI available
+        Infer->>Infer: AI inference via Claude
+    else AI unavailable or fails
+        Infer->>Infer: heuristicInference(fingerprint)
+    end
+    
+    Infer-->>Setup: ConfigInference { suggestedConfig, choices[], skipQuestions }
+    
+    Setup->>Form: inference.choices
+    
+    loop For each choice not in skipQuestions
+        Form->>Form: Prompt user
+        Form->>Form: Store answer in configOverrides[key]
+    end
+    
+    Form-->>Setup: FormResult { configOverrides }
+    
+    Setup->>Build: inference, formResult
+    Build->>Build: deepMerge(suggestedConfig, configOverrides)
+    Build-->>Setup: final config
+    
+    Setup->>Write: config, "docdrift.yaml"
+    Write-->>Setup: file written
+```
+
+**Sources:** [src/setup/ai-infer.ts:255-295](), [src/setup/generate-yaml.ts:95-105]()
+
+### Configuration Assembly
+
+The `buildConfigFromInference` function merges the inference output with user overrides:
+
+1. **Start with defaults**: Structural defaults from `DEFAULT_CONFIG` [src/setup/generate-yaml.ts:67-93]()
+2. **Merge suggested config**: Deep merge `inference.suggestedConfig` over defaults
+3. **Apply user overrides**: Apply `formResult.configOverrides` using dot-notation keys
+4. **Write YAML**: Serialize with schema hint comment for IDE support
+
+**Sources:** [src/setup/generate-yaml.ts:95-105]()
+
+---
+
+## Error Handling and Fallback Chain
+
+The system provides multiple fallback layers:
+
+```mermaid
+graph TD
+    Start["inferConfigFromFingerprint()"]
+    
+    CheckCache{"Cache hit?"}
+    CheckKey{"AI_GATEWAY_API_KEY?"}
+    
+    AICall["AI inference<br/>Claude Opus 4.6"]
+    
+    Timeout{"Timeout<br/>(60s)?"}
+    ParseFail{"Parse<br/>failure?"}
+    
+    Heuristic["heuristicInference()"]
+    
+    Return["Return ConfigInference"]
+    
+    Start --> CheckCache
+    CheckCache -->|Yes| Return
+    CheckCache -->|No| CheckKey
+    
+    CheckKey -->|Yes| AICall
+    CheckKey -->|No| Heuristic
+    
+    AICall --> Timeout
+    Timeout -->|Yes| Heuristic
+    Timeout -->|No| ParseFail
+    
+    ParseFail -->|Yes| Heuristic
+    ParseFail -->|No| Return
+    
+    Heuristic --> Return
+```
+
+**Fallback Guarantees:**
+
+- **Cache miss → AI fails → Heuristic always succeeds**: The heuristic path never throws; it always produces valid output
+- **Timeout protection**: 60-second abort signal prevents hanging on slow AI responses
+- **Parse validation**: Zod schema validation catches malformed AI output
+- **Zero user-facing errors**: All error paths resolve to heuristic fallback, ensuring setup always completes
+
+**Sources:** [src/setup/ai-infer.ts:274-294]()
+
+---
+
+## Testing and Validation
+
+The inference system includes comprehensive test coverage for heuristic logic:
+
+### Test Scenarios
+
+From [test/setup-infer.test.ts]():
+
+| Test Case | Layout | Expected Behavior |
+|-----------|--------|-------------------|
+| Packages layout | packages/api + packages/docs | Uses exact paths, no generic globs |
+| Root docs | docs/ + openapi/ at root | No workspace-specific paths in allowlist |
+| MkDocs | mkdocs.yml in docs/ | Detects docs/ as docsite |
+| Export script | exportScript with inferredApiDir | Uses script command and API dir |
+| Missing docsite | OpenAPI but no doc framework | Adds docsite to choices with low confidence |
+| Generic API | No apiDirs detected | Uses `**/api/**` with low confidence choice |
+
+**Sources:** [test/setup-infer.test.ts:41-148]()
+
+---
+
+## Summary
+
+The AI inference and heuristics system provides a robust, multi-layered approach to configuration generation:
+
+- **Dual-mode architecture**: AI for sophisticated analysis, heuristics for reliability
+- **Caching**: Avoids redundant API calls with fingerprint-based cache invalidation
+- **Structured output**: Zod schema ensures consistent output format from both modes
+- **Interactive refinement**: Low-confidence fields surface as user choices
+- **Zero-failure design**: All error paths resolve to working heuristic output
+
+**Key Functions:**
+- `inferConfigFromFingerprint`: Main entry point with cache and AI/heuristic dispatch
+- `heuristicInference`: Rule-based fallback with framework detection
+- `fingerprintHash`: Cache invalidation via SHA-256 hash
+
+**Sources:** [src/setup/ai-infer.ts](), [src/setup/prompts.ts](), [src/setup/repo-fingerprint.ts]()
+
+---

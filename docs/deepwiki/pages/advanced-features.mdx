@@ -1,0 +1,446 @@
+---
+title: "Policy Engine"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "7"
+generated: true
+last_synced: "2026-02-16"
+---
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [.gitignore](.gitignore)
+- [README.md](README.md)
+- [docdrift-yml.md](docdrift-yml.md)
+- [src/index.ts](src/index.ts)
+
+</details>
+
+
+
+The Policy Engine is the gating layer that determines what action to take after drift is detected. It receives drift items from the Detection System ([#4](#4)) and routes them to appropriate remediation paths based on doc area mode, signal confidence, existing state, and configured policies. The engine enforces noise reduction through PR caps, bundling, confidence thresholds, and idempotency checks.
+
+For detailed decision logic, see [Decision Logic](#5.1). For noise reduction mechanisms, see [Noise Reduction](#5.2). For state persistence, see [State Management](#5.3).
+
+**Sources:** [README.md:16-21](), [src/index.ts:179-377]()
+
+---
+
+## Policy Architecture
+
+The policy engine operates as a pure decision function that takes drift items and returns policy decisions without side effects. The orchestration layer ([src/index.ts:179-377]()) then executes those decisions by calling external services or updating state.
+
+```mermaid
+graph TB
+    DriftReport["drift_report.json<br/>Drift Items"]
+    PolicyEngine["decidePolicy()<br/>src/policy/engine.ts"]
+    State["state.json<br/>loadState()"]
+    Config["docdrift.yaml<br/>docAreas config"]
+    
+    DriftReport --> Loop["For each drift item"]
+    Loop --> PolicyEngine
+    Config --> PolicyEngine
+    State --> PolicyEngine
+    
+    PolicyEngine --> Decision{"Policy Action"}
+    
+    Decision -->|"NOOP"| Skip["Skip<br/>Already handled"]
+    Decision -->|"UPDATE_EXISTING_PR"| Bundle["Bundle into<br/>existing PR"]
+    Decision -->|"OPEN_PR"| DevinSession["executeSession()<br/>Create Devin PR"]
+    Decision -->|"OPEN_ISSUE"| IssueEscalation["createIssue()<br/>Human judgment needed"]
+    Decision -->|"BLOCKED"| BlockedPath["Out of scope<br/>or cap reached"]
+    
+    Skip --> UpdateState["applyDecisionToState()"]
+    Bundle --> UpdateState
+    DevinSession --> UpdateState
+    IssueEscalation --> UpdateState
+    BlockedPath --> UpdateState
+    
+    UpdateState --> SaveState["saveState()<br/>Persist to state.json"]
+    
+    SaveState --> NextItem["Next drift item"]
+    NextItem --> Loop
+```
+
+**Sources:** [src/index.ts:213-263](), [README.md:34-42]()
+
+---
+
+## Policy Actions
+
+The policy engine returns one of five action types from the `decidePolicy()` function:
+
+| Action | Description | When Used | Next Step |
+|--------|-------------|-----------|-----------|
+| `NOOP` | No operation; skip this item | Idempotency key already exists in state | Continue to next item |
+| `OPEN_PR` | Create new Devin session for PR | High confidence, low tier, within caps, no existing PR | Execute Devin session with evidence bundle |
+| `UPDATE_EXISTING_PR` | Bundle changes into existing PR | PR cap reached but existing PR exists for this doc area today | Add to evidence, skip Devin session |
+| `OPEN_ISSUE` | Escalate to GitHub issue | Conceptual mode, low confidence, or high tier | Create issue with questions for humans |
+| `BLOCKED` | Cannot process | Changes outside allowlist, caps exhausted without fallback | Log reason, possibly create issue |
+
+**Sources:** [src/index.ts:221-263](), [README.md:37]()
+
+---
+
+## Decision Function Interface
+
+The core policy decision function is `decidePolicy()`, invoked once per drift item:
+
+```mermaid
+graph LR
+    Input["Policy Decision Input"]
+    Function["decidePolicy()"]
+    Output["Policy Decision Output"]
+    
+    Input --> Function
+    Function --> Output
+    
+    subgraph "Input Structure"
+        Item["item: DriftItem<br/>- docArea<br/>- mode<br/>- tier<br/>- confidence<br/>- summary"]
+        DocAreaConfig["docAreaConfig<br/>- name<br/>- mode<br/>- owners<br/>- patch.allowlist"]
+        Config["config<br/>- policy.caps<br/>- policy.confidence<br/>- policy.verification"]
+        StateObj["state<br/>- actions<br/>- areaLatestPr<br/>- areaPrCountToday"]
+        Shas["baseSha, headSha<br/>repo"]
+    end
+    
+    subgraph "Output Structure"
+        Action["action: string<br/>OPEN_PR | UPDATE_EXISTING_PR<br/>| OPEN_ISSUE | NOOP | BLOCKED"]
+        Reason["reason: string<br/>Human-readable explanation"]
+        IdempotencyKey["idempotencyKey?: string<br/>Unique key for deduplication"]
+    end
+    
+    Item -.-> Input
+    DocAreaConfig -.-> Input
+    Config -.-> Input
+    StateObj -.-> Input
+    Shas -.-> Input
+    
+    Output -.-> Action
+    Output -.-> Reason
+    Output -.-> IdempotencyKey
+```
+
+**Sources:** [src/index.ts:221-229]()
+
+---
+
+## Orchestration Flow
+
+The orchestration layer in `runDocDrift()` executes policy decisions:
+
+```mermaid
+sequenceDiagram
+    participant Main as runDocDrift()
+    participant Load as loadState()
+    participant Policy as decidePolicy()
+    participant Execute as executeSession()
+    participant GitHub as GitHub API
+    participant Apply as applyDecisionToState()
+    participant Save as saveState()
+    
+    Main->>Load: Load .docdrift/state.json
+    Load-->>Main: Current state
+    
+    loop For each drift item
+        Main->>Policy: Call with item, config, state
+        Policy-->>Main: Decision object
+        
+        alt Decision: NOOP
+            Main->>Main: Skip processing
+        else Decision: UPDATE_EXISTING_PR
+            Main->>Main: Bundle with existing PR
+        else Decision: OPEN_PR
+            Main->>Execute: Build evidence, call Devin
+            Execute-->>Main: SessionOutcome (PR_OPENED)
+        else Decision: OPEN_ISSUE
+            Main->>Execute: Optional Devin session
+            Execute-->>Main: SessionOutcome (BLOCKED)
+            Main->>GitHub: createIssue()
+            GitHub-->>Main: issueUrl
+        end
+        
+        Main->>Apply: Update state with outcome
+        Apply-->>Main: New state
+        
+        Main->>GitHub: postCommitComment()
+    end
+    
+    Main->>Save: Save final state
+```
+
+**Sources:** [src/index.ts:179-377]()
+
+---
+
+## Confidence and Tier Gating
+
+The policy engine uses confidence scores and tier levels to route drift:
+
+| Tier | Confidence Range | Typical Action | Rationale |
+|------|------------------|----------------|-----------|
+| 0 (docs:check fail) | N/A | `OPEN_ISSUE` | Build/validation failure requires investigation |
+| 1 (OpenAPI diff) | ≥ autopatchThreshold | `OPEN_PR` | Structural API changes are mechanically fixable |
+| 1 (OpenAPI diff) | < autopatchThreshold | `OPEN_ISSUE` | Low confidence suggests ambiguous changes |
+| 2 (heuristic) | Any | `OPEN_ISSUE` | Path-based detection is conceptual, needs human review |
+
+The `autopatchThreshold` is configured in `docdrift.yaml` under `policy.confidence.autopatchThreshold` (default: 0.7).
+
+**Sources:** [README.md:23-26](), [src/index.ts:83-97]()
+
+---
+
+## Idempotency and Deduplication
+
+The policy engine prevents duplicate actions using idempotency keys. The key format is:
+
+```
+{repo}:{baseSha}:{headSha}:{docArea}:{action}
+```
+
+Before taking any action, `decidePolicy()` checks if this key exists in `state.actions`. If found, it returns `NOOP`.
+
+```mermaid
+graph TD
+    Start["Drift Item Detected"]
+    BuildKey["Build idempotency key:<br/>repo:base:head:area:action"]
+    CheckState{"Key exists in<br/>state.actions?"}
+    
+    Start --> BuildKey
+    BuildKey --> CheckState
+    
+    CheckState -->|Yes| ReturnNOOP["Return NOOP action<br/>reason: Already processed"]
+    CheckState -->|No| ContinuePolicy["Continue policy checks<br/>mode, tier, confidence, caps"]
+    
+    ReturnNOOP --> End["Decision returned"]
+    ContinuePolicy --> End
+```
+
+**Sources:** [README.md:21](), [src/index.ts:231-238]()
+
+---
+
+## PR Cap Enforcement
+
+The policy engine enforces two types of caps to limit noise:
+
+1. **Global Daily Cap**: Maximum PRs opened per day across all doc areas
+2. **Per-Area Bundling**: Maximum one PR per doc area per day
+
+```mermaid
+graph TD
+    CheckCaps{"Global PR cap<br/>reached today?"}
+    
+    CheckCaps -->|No| AllowPR["action: OPEN_PR"]
+    CheckCaps -->|Yes| CheckAreaPR{"Existing PR for<br/>this doc area<br/>today?"}
+    
+    CheckAreaPR -->|Yes| BundlePR["action: UPDATE_EXISTING_PR<br/>Add to existing evidence"]
+    CheckAreaPR -->|No| EscalateIssue["action: OPEN_ISSUE<br/>Cap reached, escalate"]
+    
+    AllowPR --> RecordState["Increment areaPrCountToday<br/>Set areaLatestPr"]
+    BundlePR --> RecordState
+    EscalateIssue --> RecordState
+```
+
+Cap configuration in `docdrift.yaml`:
+
+```yaml
+policy:
+  caps:
+    maxPrsPerDay: 5
+    resetHour: 0  # UTC hour when counters reset
+```
+
+**Sources:** [README.md:17-18](), [src/index.ts:241-263]()
+
+---
+
+## Mode-Based Routing
+
+The doc area mode determines the default remediation path:
+
+```mermaid
+graph LR
+    DriftItem["Drift Item"]
+    CheckMode{"item.mode"}
+    
+    DriftItem --> CheckMode
+    
+    CheckMode -->|"autogen"| CheckTierConf["Check tier & confidence<br/>for PR eligibility"]
+    CheckMode -->|"conceptual"| DirectIssue["action: OPEN_ISSUE<br/>Requires human judgment"]
+    
+    CheckTierConf --> HighConfidence["tier ≤ 1 &&<br/>confidence ≥ threshold"]
+    HighConfidence -->|Yes| CheckCaps["Check PR caps"]
+    HighConfidence -->|No| EscalateIssue["action: OPEN_ISSUE"]
+    
+    CheckCaps --> CapCheck{"Caps allow?"}
+    CapCheck -->|Yes| OpenPR["action: OPEN_PR"]
+    CapCheck -->|No| UpdateOrIssue["UPDATE_EXISTING_PR<br/>or OPEN_ISSUE"]
+```
+
+**Sources:** [README.md:20](), [src/index.ts:82-97]()
+
+---
+
+## Allowlist Enforcement
+
+The policy engine ensures that Devin sessions only modify files within configured allowlists:
+
+| Doc Area | Allowlist Example | Purpose |
+|----------|------------------|---------|
+| `api_reference` | `["docs/reference/**", "openapi/**"]` | Limit autogen to API docs and specs |
+| `auth_guide` | `["docs/guides/auth.md"]` | Restrict conceptual updates to specific guides |
+
+The allowlist is passed to the Devin prompt ([src/index.ts:88]()) and validated in the session. If changes are detected outside the allowlist, the session returns `BLOCKED`.
+
+```mermaid
+graph TD
+    Session["Devin Session Executing"]
+    FileChanges["Files modified by Devin"]
+    CheckAllowlist{"All changes within<br/>patch.allowlist?"}
+    
+    Session --> FileChanges
+    FileChanges --> CheckAllowlist
+    
+    CheckAllowlist -->|Yes| Success["structured_output:<br/>status: SUCCESS<br/>pr.url: ..."]
+    CheckAllowlist -->|No| Blocked["structured_output:<br/>status: BLOCKED<br/>blocked.reason: ..."]
+    
+    Success --> PROpened["outcome: PR_OPENED"]
+    Blocked --> IssueCreated["outcome: BLOCKED<br/>→ createIssue()"]
+```
+
+**Sources:** [src/index.ts:86-89](), [README.md:57]()
+
+---
+
+## State Application
+
+After executing a decision, `applyDecisionToState()` updates the state object:
+
+```mermaid
+graph TD
+    Decision["Policy Decision"]
+    CurrentState["Current State Object"]
+    Apply["applyDecisionToState()"]
+    NewState["Updated State"]
+    
+    Decision --> Apply
+    CurrentState --> Apply
+    Apply --> NewState
+    
+    subgraph "State Updates"
+        AddAction["Add idempotency key<br/>to state.actions"]
+        IncrementCount["Increment<br/>areaPrCountToday[area]"]
+        SetLatestPR["Set areaLatestPr[area]<br/>if PR opened"]
+        RecordLink["Store prUrl or issueUrl<br/>for reference"]
+    end
+    
+    Apply -.-> AddAction
+    Apply -.-> IncrementCount
+    Apply -.-> SetLatestPR
+    Apply -.-> RecordLink
+```
+
+The updated state is persisted to `.docdrift/state.json` via `saveState()` after all drift items are processed.
+
+**Sources:** [src/index.ts:256-262](), [src/index.ts:356-363]()
+
+---
+
+## Integration with Execution Layer
+
+The policy engine is stateless and returns decisions; the orchestration layer executes them:
+
+| Policy Action | Execution Path | Code Location |
+|---------------|----------------|---------------|
+| `NOOP` | Skip processing, continue loop | [src/index.ts:231-238]() |
+| `UPDATE_EXISTING_PR` | Log bundling, skip Devin session | [src/index.ts:241-263]() |
+| `OPEN_PR` | Build evidence bundle, call `executeSession()` | [src/index.ts:265-293]() |
+| `OPEN_ISSUE` | Call `executeSession()` then `createIssue()` | [src/index.ts:295-316]() |
+| `BLOCKED` | Create issue with blocking reason | [src/index.ts:295-316]() |
+
+The separation of decision and execution enables testing policy logic without side effects and allows policy configuration to change without modifying orchestration code.
+
+**Sources:** [src/index.ts:213-363]()
+
+---
+
+## Policy Configuration Schema
+
+The policy engine reads configuration from `docdrift.yaml`:
+
+```yaml
+policy:
+  caps:
+    maxPrsPerDay: 5        # Global daily cap
+    resetHour: 0           # UTC hour for reset (0-23)
+  
+  confidence:
+    autopatchThreshold: 0.7  # Minimum confidence for OPEN_PR
+  
+  verification:
+    commands:              # Commands to run post-patch
+      - "npm run docs:check"
+      - "npm run docs:build"
+  
+  allowlist:               # Default allowlist (overridden per doc area)
+    - "docs/**"
+    - "openapi/**"
+```
+
+Doc area-specific overrides:
+
+```yaml
+docAreas:
+  - name: api_reference
+    mode: autogen
+    patch:
+      allowlist:
+        - "docs/reference/openapi.json"
+        - "docs/reference/api.md"
+        - "openapi/generated.json"
+```
+
+**Sources:** [README.md:52](), [src/index.ts:86-89]()
+
+---
+
+## Example Policy Flow
+
+Consider a drift item detected from an OpenAPI schema change:
+
+```json
+{
+  "docArea": "api_reference",
+  "mode": "autogen",
+  "tier": 1,
+  "confidence": 0.85,
+  "summary": "Field 'name' renamed to 'fullName' in User model"
+}
+```
+
+Policy evaluation:
+
+1. **Idempotency**: Key `org/repo:abc123:def456:api_reference:OPEN_PR` not in state → Continue
+2. **Mode**: `autogen` → Check tier and confidence
+3. **Tier**: `1` (≤ 1) → Eligible for PR
+4. **Confidence**: `0.85` (≥ 0.7 threshold) → Eligible for PR
+5. **Global Cap**: 2 PRs today, max 5 → Within limit
+6. **Area Cap**: No PR for `api_reference` today → No bundling needed
+7. **Decision**: `OPEN_PR`
+
+Execution:
+
+1. Build evidence bundle with OpenAPI diff
+2. Upload to Devin, create session
+3. Poll until terminal status
+4. Devin opens PR
+5. Post commit comment with PR link
+6. Update state: add idempotency key, increment `areaPrCountToday.api_reference`, set `areaLatestPr.api_reference`
+7. Save state to `.docdrift/state.json`
+
+**Sources:** [README.md:34-42](), [src/index.ts:213-363]()
+
+---

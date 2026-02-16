@@ -1,0 +1,658 @@
+---
+title: "Server Examples and Patterns"
+source: deepwiki
+repo: modelcontextprotocol/typescript-sdk
+topic_id: "3.7"
+generated: true
+last_synced: "2026-02-16"
+---
+# Server Examples and Patterns
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [docs/server.md](docs/server.md)
+- [examples/server/src/elicitationUrlExample.ts](examples/server/src/elicitationUrlExample.ts)
+- [examples/server/src/jsonResponseStreamableHttp.ts](examples/server/src/jsonResponseStreamableHttp.ts)
+- [examples/server/src/simpleStatelessStreamableHttp.ts](examples/server/src/simpleStatelessStreamableHttp.ts)
+- [examples/server/src/simpleStreamableHttp.ts](examples/server/src/simpleStreamableHttp.ts)
+- [packages/server/package.json](packages/server/package.json)
+- [packages/server/src/experimental/tasks/mcpServer.ts](packages/server/src/experimental/tasks/mcpServer.ts)
+- [pnpm-lock.yaml](pnpm-lock.yaml)
+- [pnpm-workspace.yaml](pnpm-workspace.yaml)
+
+</details>
+
+
+
+This page provides a walkthrough of the example server implementations and common architectural patterns for building MCP servers. For API documentation of server classes and methods, see [McpServer High-Level API](#3.1) and [Server Protocol Class](#3.4). For transport configuration details, see [Streamable HTTP Server Transport](#3.5) and [Middleware Integration](#3.6).
+
+## Example Server Index
+
+The SDK includes several reference implementations that demonstrate different server patterns and features. All examples are located under [`examples/server/src/`]() and can be run directly with `tsx`.
+
+| Example File | Pattern | Features Demonstrated |
+|-------------|---------|----------------------|
+| `simpleStreamableHttp.ts` | Full-featured stateful server | Sessions, resumability, EventStore, tools, resources, prompts, logging, OAuth hooks |
+| `simpleStatelessStreamableHttp.ts` | Stateless server | No session tracking, simple request/response |
+| `jsonResponseStreamableHttp.ts` | JSON-only mode | HTTP POST request/response without SSE notifications |
+| `standaloneSseWithGetStreamableHttp.ts` | Notification-only SSE | GET endpoint for SSE streaming separate from POST requests |
+| `simpleSseServer.ts` | Legacy HTTP+SSE transport | Backwards compatibility with 2024-11-05 protocol version |
+| `sseAndStreamableHttpCompatibleServer.ts` | Multi-transport server | Supports both modern and legacy clients simultaneously |
+| `toolWithSampleServer.ts` | Sampling integration | Demonstrates server-side LLM completion requests |
+
+**Running an example:**
+
+```bash
+# From repo root
+pnpm --filter @modelcontextprotocol/examples-server exec tsx src/simpleStreamableHttp.ts
+
+# Or from examples/server directory
+cd examples/server
+pnpm tsx src/simpleStreamableHttp.ts
+```
+
+Sources: [README.md:85-126](), [docs/server.md:13-19]()
+
+## Example Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "Example Categories"
+        SIMPLE["simpleStreamableHttp.ts<br/>Full-featured reference"]
+        STATELESS["simpleStatelessStreamableHttp.ts<br/>No session tracking"]
+        JSON_ONLY["jsonResponseStreamableHttp.ts<br/>No SSE"]
+        SSE_STANDALONE["standaloneSseWithGetStreamableHttp.ts<br/>Notifications via GET"]
+    end
+    
+    subgraph "Compatibility Examples"
+        LEGACY["simpleSseServer.ts<br/>HTTP+SSE legacy"]
+        COMPAT["sseAndStreamableHttpCompatibleServer.ts<br/>Multi-transport"]
+    end
+    
+    subgraph "Feature Examples"
+        SAMPLE["toolWithSampleServer.ts<br/>LLM sampling"]
+    end
+    
+    subgraph "Core Components Used"
+        MCP_SERVER["McpServer"]
+        NODE_TRANSPORT["NodeStreamableHTTPServerTransport"]
+        EVENT_STORE["EventStore interface"]
+        EXPRESS_APP["Express app"]
+    end
+    
+    SIMPLE --> MCP_SERVER
+    SIMPLE --> NODE_TRANSPORT
+    SIMPLE --> EVENT_STORE
+    SIMPLE --> EXPRESS_APP
+    
+    STATELESS --> MCP_SERVER
+    STATELESS --> NODE_TRANSPORT
+    
+    JSON_ONLY --> MCP_SERVER
+    JSON_ONLY --> NODE_TRANSPORT
+    
+    LEGACY -.->|deprecated| MCP_SERVER
+    COMPAT --> MCP_SERVER
+    
+    SAMPLE --> MCP_SERVER
+```
+
+Sources: [README.md:85-126](), [docs/server.md:13-70]()
+
+## Simple Streamable HTTP Pattern
+
+The `simpleStreamableHttp.ts` example demonstrates a full-featured stateful MCP server with all major capabilities enabled.
+
+### Architecture
+
+```mermaid
+graph TB
+    subgraph "HTTP Layer"
+        EXPRESS["Express app<br/>via createMcpExpressApp()"]
+        ROUTE_POST["POST /mcp<br/>Request handling"]
+        ROUTE_GET["GET /mcp<br/>SSE notifications"]
+        ROUTE_DELETE["DELETE /mcp<br/>Session cleanup"]
+    end
+    
+    subgraph "Transport Layer"
+        NODE_TRANSPORT["NodeStreamableHTTPServerTransport"]
+        EVENT_STORE["InMemoryEventStore"]
+        SESSION_GEN["sessionIdGenerator:<br/>randomUUID()"]
+    end
+    
+    subgraph "MCP Layer"
+        MCP_SERVER["McpServer"]
+        TOOLS["registerTool()"]
+        RESOURCES["registerResource()"]
+        PROMPTS["registerPrompt()"]
+        CAPABILITIES["capabilities:<br/>logging, sampling"]
+    end
+    
+    subgraph "Features Demonstrated"
+        AUTH_HOOKS["beforeGetToken<br/>beforeUseToken"]
+        LOGGING["sendLoggingMessage()"]
+        ELICITATION["Form and URL elicitation"]
+        TASKS["Task-based execution"]
+    end
+    
+    EXPRESS --> ROUTE_POST
+    EXPRESS --> ROUTE_GET
+    EXPRESS --> ROUTE_DELETE
+    
+    ROUTE_POST --> NODE_TRANSPORT
+    ROUTE_GET --> NODE_TRANSPORT
+    ROUTE_DELETE --> NODE_TRANSPORT
+    
+    NODE_TRANSPORT --> EVENT_STORE
+    NODE_TRANSPORT --> SESSION_GEN
+    NODE_TRANSPORT --> MCP_SERVER
+    
+    MCP_SERVER --> TOOLS
+    MCP_SERVER --> RESOURCES
+    MCP_SERVER --> PROMPTS
+    MCP_SERVER --> CAPABILITIES
+    
+    MCP_SERVER -.implements.-> AUTH_HOOKS
+    MCP_SERVER -.implements.-> LOGGING
+    MCP_SERVER -.implements.-> ELICITATION
+    MCP_SERVER -.implements.-> TASKS
+```
+
+### Key Implementation Details
+
+The example creates a server with session management and resumability:
+
+1. **Express app with DNS rebinding protection** via `createMcpExpressApp()` from [`@modelcontextprotocol/express`]()
+2. **Event storage** using `InMemoryEventStore` for notification persistence
+3. **Session ID generation** using `randomUUID()` for unique session tracking
+4. **OAuth integration hooks** (`beforeGetToken`, `beforeUseToken`) for authentication flows
+5. **Capability registration** including tools, resources, prompts with schema validation
+6. **Logging and notifications** via `sendLoggingMessage()` within tool handlers
+
+Sources: [docs/server.md:33-36](), [docs/server.md:64-70]()
+
+## Stateless Server Pattern
+
+The `simpleStatelessStreamableHttp.ts` example demonstrates a minimal server with no session tracking.
+
+### When to Use Stateless Mode
+
+| Scenario | Use Stateless | Use Stateful |
+|----------|--------------|--------------|
+| Simple API-style servers | ✓ | |
+| No server-to-client notifications needed | ✓ | |
+| Horizontal scaling without shared state | ✓ | |
+| Task resumability required | | ✓ |
+| Event replay needed | | ✓ |
+| Multiple concurrent client sessions | | ✓ |
+
+### Stateless Configuration
+
+```mermaid
+graph LR
+    CLIENT["Client Request"] --> POST["/mcp POST"]
+    POST --> TRANSPORT["NodeStreamableHTTPServerTransport<br/>sessionIdGenerator: undefined"]
+    TRANSPORT --> MCP["McpServer"]
+    MCP --> RESPONSE["JSON Response"]
+    RESPONSE --> CLIENT
+    
+    NOTE["No EventStore<br/>No session tracking<br/>No SSE stream<br/>Pure request/response"]
+```
+
+The key difference from stateful mode is passing `sessionIdGenerator: undefined` to `NodeStreamableHTTPServerTransport`, which disables session creation and tracking.
+
+Sources: [docs/server.md:40-50]()
+
+## JSON Response Mode Pattern
+
+The `jsonResponseStreamableHttp.ts` example shows how to disable SSE notifications entirely and return responses as plain JSON.
+
+### Architecture
+
+```mermaid
+graph TB
+    CLIENT["Client POST /mcp"] --> TRANSPORT["NodeStreamableHTTPServerTransport<br/>enableJsonResponse: true"]
+    TRANSPORT --> MCP["McpServer"]
+    MCP --> RESPONSE["HTTP 200 OK<br/>Content-Type: application/json"]
+    RESPONSE --> CLIENT
+    
+    NO_SSE["No SSE connection<br/>No GET /mcp endpoint<br/>No notifications"]
+    
+    style NO_SSE fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
+```
+
+### Configuration
+
+Setting `enableJsonResponse: true` in transport options changes the response format from SSE to plain JSON:
+- Server responds with `Content-Type: application/json`
+- No SSE stream opened
+- Notifications are not supported
+- Simpler for clients that don't need server-initiated messages
+
+Sources: [docs/server.md:35-36]()
+
+## Session Management and Resumability Pattern
+
+Session management enables clients to disconnect and reconnect while preserving state and replaying missed notifications.
+
+### EventStore Interface
+
+The `EventStore` interface defines the contract for persisting and replaying notification events:
+
+```mermaid
+classDiagram
+    class EventStore {
+        <<interface>>
+        +storeEvent(streamId: string, message: JSONRPCMessage) Promise~string~
+        +replayEventsAfter(lastEventId: string, handlers) Promise~string~
+    }
+    
+    class InMemoryEventStore {
+        -events: Map~string, Event~
+        +storeEvent(streamId, message) Promise~string~
+        +replayEventsAfter(lastEventId, handlers) Promise~string~
+    }
+    
+    class RedisEventStore {
+        -redis: RedisClient
+        +storeEvent(streamId, message) Promise~string~
+        +replayEventsAfter(lastEventId, handlers) Promise~string~
+    }
+    
+    EventStore <|.. InMemoryEventStore
+    EventStore <|.. RedisEventStore
+    
+    note for EventStore "Used by NodeStreamableHTTPServerTransport<br/>for session resumability"
+```
+
+### InMemoryEventStore Implementation
+
+The test suite demonstrates a complete `InMemoryEventStore` implementation:
+
+[test/integration/test/taskResumability.test.ts:15-44]()
+
+This implementation:
+1. Generates unique event IDs combining stream ID, timestamp, and random suffix
+2. Stores events in a `Map<string, {streamId, message}>`
+3. Replays events after a given `lastEventId` by sorting and filtering
+4. Returns the stream ID for validation
+
+### Resumability Flow
+
+```mermaid
+sequenceDiagram
+    participant C1 as Client Session 1
+    participant T as Transport
+    participant ES as EventStore
+    participant S as Server
+    
+    C1->>T: Connect (sessionId: abc123)
+    T->>ES: Initialize stream
+    C1->>T: POST /mcp (tool call)
+    T->>S: Execute tool
+    S->>T: Send notification 1
+    T->>ES: storeEvent(abc123, notif1)
+    ES-->>T: eventId: abc123_001
+    T->>C1: SSE: id: abc123_001, data: notif1
+    S->>T: Send notification 2
+    T->>ES: storeEvent(abc123, notif2)
+    ES-->>T: eventId: abc123_002
+    Note over C1: Client disconnects before receiving notif2
+    
+    participant C2 as Client Session 2
+    C2->>T: GET /mcp?sessionId=abc123<br/>Last-Event-ID: abc123_001
+    T->>ES: replayEventsAfter(abc123_001)
+    ES->>T: Replay notif2
+    T->>C2: SSE: id: abc123_002, data: notif2
+```
+
+Sources: [test/integration/test/taskResumability.test.ts:1-298]()
+
+## Multi-Node Deployment Patterns
+
+For production deployments, MCP servers can be scaled horizontally with proper session affinity and shared state.
+
+### Deployment Architecture Options
+
+```mermaid
+graph TB
+    subgraph "Load Balancer Layer"
+        LB["Load Balancer<br/>with session affinity"]
+    end
+    
+    subgraph "Application Nodes"
+        NODE1["MCP Server Node 1<br/>McpServer + Transport"]
+        NODE2["MCP Server Node 2<br/>McpServer + Transport"]
+        NODE3["MCP Server Node 3<br/>McpServer + Transport"]
+    end
+    
+    subgraph "Shared State Layer"
+        REDIS["Redis EventStore<br/>Persistent event log"]
+        DB["Session Database<br/>Optional metadata"]
+    end
+    
+    LB -->|sessionId-based routing| NODE1
+    LB -->|sessionId-based routing| NODE2
+    LB -->|sessionId-based routing| NODE3
+    
+    NODE1 --> REDIS
+    NODE2 --> REDIS
+    NODE3 --> REDIS
+    
+    NODE1 -.optional.-> DB
+    NODE2 -.optional.-> DB
+    NODE3 -.optional.-> DB
+```
+
+### Session Affinity Configuration
+
+| Approach | Implementation | Trade-offs |
+|----------|---------------|-----------|
+| **Sticky sessions** | Route by `sessionId` in URL or cookie | Simple, but node failures lose sessions |
+| **Shared EventStore** | Redis-based EventStore implementation | Enables failover, adds latency |
+| **Stateless mode** | No sessions, pure request/response | Easiest to scale, no resumability |
+
+### EventStore Implementation for Production
+
+A Redis-based EventStore would implement:
+
+```mermaid
+classDiagram
+    class RedisEventStore {
+        -redis: RedisClient
+        -keyPrefix: string
+        +storeEvent(streamId, message)
+        +replayEventsAfter(lastEventId, handlers)
+        -getStreamKey(streamId) string
+        -parseEventId(eventId) object
+    }
+    
+    class StorageStrategy {
+        <<enumeration>>
+        SORTED_SET
+        STREAM
+        TIME_SERIES
+    }
+    
+    RedisEventStore --> StorageStrategy
+    
+    note for RedisEventStore "Uses Redis sorted sets<br/>with event IDs as scores<br/>for efficient range queries"
+```
+
+Key implementation considerations:
+1. Use Redis sorted sets with event IDs as scores for range queries
+2. Implement TTL for old events to prevent unbounded growth
+3. Consider Redis Streams for native append-log semantics
+4. Handle connection failures with retry logic
+
+Sources: [docs/server.md:211-214]()
+
+## Backwards Compatibility Pattern
+
+The `sseAndStreamableHttpCompatibleServer.ts` example demonstrates serving both modern Streamable HTTP clients and legacy HTTP+SSE clients from a single server.
+
+### Multi-Transport Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Detection"
+        REQUEST["Incoming Request"]
+        DETECT["Detect protocol version<br/>from initialize"]
+    end
+    
+    subgraph "Modern Transport"
+        STREAMABLE["StreamableHTTPServerTransport"]
+        ENDPOINTS_NEW["POST /mcp<br/>GET /mcp<br/>DELETE /mcp"]
+    end
+    
+    subgraph "Legacy Transport"
+        SSE["SSEServerTransport"]
+        ENDPOINTS_OLD["POST /message<br/>GET /sse"]
+    end
+    
+    subgraph "Shared Logic"
+        MCP["McpServer<br/>Tools, Resources, Prompts"]
+    end
+    
+    REQUEST --> DETECT
+    DETECT -->|2025-03-26 protocol| STREAMABLE
+    DETECT -->|2024-11-05 protocol| SSE
+    
+    STREAMABLE --> ENDPOINTS_NEW
+    SSE --> ENDPOINTS_OLD
+    
+    ENDPOINTS_NEW --> MCP
+    ENDPOINTS_OLD --> MCP
+```
+
+### Implementation Strategy
+
+1. **Single McpServer instance** shared by both transports
+2. **Protocol version detection** during initialization handshake
+3. **Separate endpoint paths** to avoid routing conflicts
+4. **Capability normalization** to handle differences between protocol versions
+
+Sources: [docs/server.md:54-60](), [docs/server.md:217-223]()
+
+## DNS Rebinding Protection Pattern
+
+MCP servers running on localhost are vulnerable to DNS rebinding attacks. The SDK provides helper functions to enable automatic protection.
+
+### Protection Architecture
+
+```mermaid
+graph TB
+    subgraph "Request Flow"
+        REQ["HTTP Request"]
+        MIDDLEWARE["Host header validation<br/>middleware"]
+        DECISION{"Host matches<br/>allowed list?"}
+        REJECT["403 Forbidden"]
+        ACCEPT["Route to MCP handler"]
+    end
+    
+    subgraph "Configuration"
+        DEFAULT["createMcpExpressApp()<br/>default: '127.0.0.1'"]
+        LOCALHOST["createMcpExpressApp<br/>({ host: 'localhost' })"]
+        ALL_IF["createMcpExpressApp({ host: '0.0.0.0',<br/>allowedHosts: [...] })"]
+    end
+    
+    REQ --> MIDDLEWARE
+    MIDDLEWARE --> DECISION
+    DECISION -->|No| REJECT
+    DECISION -->|Yes| ACCEPT
+    
+    DEFAULT -.enables.-> MIDDLEWARE
+    LOCALHOST -.enables.-> MIDDLEWARE
+    ALL_IF -.enables.-> MIDDLEWARE
+```
+
+### Automatic Protection Rules
+
+| Binding Host | Auto-Protected | Requires Manual Config |
+|-------------|----------------|----------------------|
+| `127.0.0.1` | ✓ | |
+| `localhost` | ✓ | |
+| `0.0.0.0` or `::` | | ✓ (provide `allowedHosts`) |
+| Specific IP | | ✓ (provide `allowedHosts`) |
+
+### Usage Examples
+
+**Automatic protection (default):**
+
+[docs/server.md:76-87]()
+
+**Manual allow-list for 0.0.0.0:**
+
+[docs/server.md:90-98]()
+
+The middleware implementation is located in:
+- [`packages/server/src/server/middleware/hostHeaderValidation.ts`]()
+- [`packages/middleware/express/src/index.ts`]()
+- [`packages/middleware/hono/src/index.ts`]()
+
+Sources: [docs/server.md:72-98]()
+
+## Tool, Resource, and Prompt Registration Patterns
+
+While the API details are covered in [Tool Registration and Execution](#3.2) and [Resource and Prompt Management](#3.3), the examples demonstrate common registration patterns.
+
+### Tool Registration Pattern
+
+```mermaid
+graph LR
+    SERVER["McpServer"] --> REG["registerTool()"]
+    REG --> NAME["tool name"]
+    REG --> META["metadata:<br/>title, description"]
+    REG --> INPUT["inputSchema:<br/>Zod schema"]
+    REG --> OUTPUT["outputSchema:<br/>Zod schema"]
+    REG --> HANDLER["async handler<br/>(args, context)"]
+    
+    HANDLER --> CONTENT["content: ContentItem[]"]
+    HANDLER --> STRUCT["structuredContent:<br/>validated output"]
+    
+    CONTEXT["context"] --> NOTIFY["sendNotification()"]
+    CONTEXT --> LOG["sendLoggingMessage()"]
+    CONTEXT --> ELICIT["elicitForm()<br/>elicitUrl()"]
+```
+
+Example tool registration from the examples demonstrates:
+1. **Schema-driven input validation** using Zod
+2. **Structured output** with both text and typed data
+3. **Context access** for notifications, logging, and elicitation
+4. **ResourceLink outputs** for referencing large resources
+
+Sources: [docs/server.md:104-140]()
+
+### Resource Registration Pattern
+
+```mermaid
+graph LR
+    SERVER["McpServer"] --> REG["registerResource()"]
+    REG --> ID["resource ID"]
+    REG --> URI["URI template"]
+    REG --> META["metadata:<br/>title, description, mimeType"]
+    REG --> HANDLER["async handler<br/>(uri)"]
+    
+    HANDLER --> CONTENTS["contents:<br/>ResourceContents[]"]
+    
+    TEMPLATE["ResourceTemplate"] --> PARAMS["uriTemplate with params"]
+    PARAMS --> COMPLETE["completion support"]
+```
+
+Resources support:
+1. **Static resources** with fixed URIs
+2. **Dynamic resources** using `ResourceTemplate` with URI parameters
+3. **Completion support** for parameter suggestions
+4. **Multiple content items** per resource
+
+Sources: [docs/server.md:142-165]()
+
+### Prompt Registration Pattern
+
+```mermaid
+graph LR
+    SERVER["McpServer"] --> REG["registerPrompt()"]
+    REG --> NAME["prompt name"]
+    REG --> META["metadata:<br/>title, description"]
+    REG --> ARGS["argsSchema:<br/>Zod schema"]
+    REG --> HANDLER["handler<br/>(args)"]
+    
+    HANDLER --> MESSAGES["messages:<br/>PromptMessage[]"]
+    MESSAGES --> ROLE["role: user|assistant"]
+    MESSAGES --> CONTENT["content:<br/>text or embedded resources"]
+```
+
+Prompts provide:
+1. **Reusable templates** for consistent LLM interactions
+2. **Argument validation** via Zod schemas
+3. **Message formatting** with role-based structure
+4. **Embedded resources** for context injection
+
+Sources: [docs/server.md:167-196]()
+
+## Running Examples Workflow
+
+### Development Workflow
+
+```mermaid
+graph TB
+    INSTALL["pnpm install<br/>Install dependencies"]
+    BUILD["pnpm build:all<br/>Build all packages"]
+    START_SERVER["pnpm --filter @modelcontextprotocol/examples-server<br/>exec tsx src/simpleStreamableHttp.ts"]
+    START_CLIENT["pnpm --filter @modelcontextprotocol/examples-client<br/>exec tsx src/simpleStreamableHttp.ts"]
+    INTERACT["Interact with client<br/>List tools, call tools, etc."]
+    
+    INSTALL --> BUILD
+    BUILD --> START_SERVER
+    START_SERVER --> START_CLIENT
+    START_CLIENT --> INTERACT
+    
+    MODIFY["Modify example code"] --> BUILD
+```
+
+### Alternative: Direct Execution
+
+From within the example package directory:
+
+```bash
+cd examples/server
+pnpm tsx src/simpleStreamableHttp.ts
+```
+
+This bypasses the filter syntax and runs directly in the package context.
+
+Sources: [README.md:85-126](), [CONTRIBUTING.md:113-125]()
+
+## Example Selection Guide
+
+### Decision Tree for Choosing an Example
+
+```mermaid
+graph TB
+    START{{"What do you<br/>need to build?"}}
+    
+    START -->|Production server| PROD{{"Session<br/>management?"}}
+    START -->|Learning/prototype| SIMPLE["simpleStreamableHttp.ts"]
+    START -->|Legacy client support| COMPAT["sseAndStreamableHttpCompatibleServer.ts"]
+    
+    PROD -->|Yes, with resumability| SESSION["simpleStreamableHttp.ts<br/>+ Redis EventStore"]
+    PROD -->|No, stateless| STATELESS["simpleStatelessStreamableHttp.ts"]
+    
+    SESSION --> SCALE{{"Multi-node<br/>deployment?"}}
+    SCALE -->|Yes| REDIS["Implement Redis EventStore<br/>+ session affinity"]
+    SCALE -->|No| MEMORY["InMemoryEventStore OK"]
+    
+    SIMPLE --> FEATURES{{"Need<br/>notifications?"}}
+    FEATURES -->|No| JSON["jsonResponseStreamableHttp.ts"]
+    FEATURES -->|Yes| SSE["simpleStreamableHttp.ts"]
+```
+
+### Feature Matrix
+
+| Example | Sessions | Resumability | SSE Notifications | JSON-only | OAuth | Multi-node Ready |
+|---------|----------|--------------|-------------------|-----------|-------|------------------|
+| `simpleStreamableHttp.ts` | ✓ | ✓ | ✓ | | ✓ | with shared EventStore |
+| `simpleStatelessStreamableHttp.ts` | | | | ✓ | | ✓ |
+| `jsonResponseStreamableHttp.ts` | ✓ | | | ✓ | | with shared EventStore |
+| `sseAndStreamableHttpCompatibleServer.ts` | ✓ | ✓ | ✓ | | | with shared EventStore |
+| `simpleSseServer.ts` | ✓ | | ✓ | | | |
+
+Sources: [docs/server.md:13-70]()
+
+## Summary
+
+The SDK provides a comprehensive set of examples demonstrating:
+
+1. **Stateful vs stateless** server patterns for different scaling needs
+2. **Session management** with EventStore for resumability and fault tolerance
+3. **Multi-node deployment** patterns using session affinity and shared state
+4. **Backwards compatibility** supporting both modern and legacy protocol versions
+5. **Security patterns** including DNS rebinding protection
+6. **Feature integration** showing tools, resources, prompts, logging, and authentication
+
+Each example is self-contained and runnable, providing both a learning resource and a starting point for production implementations. For detailed API documentation, refer to the related pages on [McpServer High-Level API](#3.1), [Server Protocol Class](#3.4), and [Streamable HTTP Server Transport](#3.5).
+
+---

@@ -1,0 +1,380 @@
+[
+  {
+    "id": "1",
+    "title": "Overview",
+    "path": "pages/overview",
+    "slug": "overview"
+  },
+  {
+    "id": "2",
+    "title": "Getting Started",
+    "path": "pages/architecture",
+    "slug": "architecture"
+  },
+  {
+    "id": "3",
+    "title": "CLI Reference",
+    "path": "pages/server-implementation",
+    "slug": "server-implementation"
+  },
+  {
+    "id": "4",
+    "title": "Configuration System",
+    "path": "pages/client-implementation",
+    "slug": "client-implementation"
+  },
+  {
+    "id": "5",
+    "title": "Setup System",
+    "path": "pages/oauth-authentication",
+    "slug": "oauth-authentication"
+  },
+  {
+    "id": "6",
+    "title": "Drift Detection System",
+    "path": "pages/transport-system",
+    "slug": "transport-system"
+  },
+  {
+    "id": "7",
+    "title": "Policy Engine",
+    "path": "pages/advanced-features",
+    "slug": "advanced-features"
+  },
+  {
+    "id": "8",
+    "title": "Devin AI Integration",
+    "path": "pages/development-guide",
+    "slug": "development-guide"
+  },
+  {
+    "id": "9",
+    "title": "GitHub Integration",
+    "path": "pages/migration-guides",
+    "slug": "migration-guides"
+  },
+  {
+    "id": "10",
+    "title": "Output and Artifacts",
+    "path": "pages/troubleshooting-and-faq",
+    "slug": "troubleshooting-and-faq"
+  },
+  {
+    "id": "11",
+    "title": "Example: DataStack API",
+    "path": "pages/development",
+    "slug": "development"
+  },
+  {
+    "id": "12",
+    "title": "Development Guide",
+    "path": "pages/examples-and-use-cases",
+    "slug": "examples-and-use-cases"
+  },
+  {
+    "id": "1.1",
+    "title": "Architecture",
+    "path": "pages/installation-and-setup",
+    "slug": "installation-and-setup"
+  },
+  {
+    "id": "1.2",
+    "title": "Key Concepts",
+    "path": "pages/monorepo-structure-and-packages",
+    "slug": "monorepo-structure-and-packages"
+  },
+  {
+    "id": "2.1",
+    "title": "Installation",
+    "path": "pages/protocol-foundation",
+    "slug": "protocol-foundation"
+  },
+  {
+    "id": "2.2",
+    "title": "Initial Setup",
+    "path": "pages/type-system-and-message-schemas",
+    "slug": "type-system-and-message-schemas"
+  },
+  {
+    "id": "2.3",
+    "title": "Quick Start Guide",
+    "path": "pages/communication-lifecycle",
+    "slug": "communication-lifecycle"
+  },
+  {
+    "id": "3.1",
+    "title": "setup and generate-yaml",
+    "path": "pages/mcpserver-high-level-api",
+    "slug": "mcpserver-high-level-api"
+  },
+  {
+    "id": "3.2",
+    "title": "validate",
+    "path": "pages/tool-registration-and-execution",
+    "slug": "tool-registration-and-execution"
+  },
+  {
+    "id": "3.3",
+    "title": "detect",
+    "path": "pages/resource-and-prompt-management",
+    "slug": "resource-and-prompt-management"
+  },
+  {
+    "id": "3.4",
+    "title": "run",
+    "path": "pages/server-protocol-class",
+    "slug": "server-protocol-class"
+  },
+  {
+    "id": "3.5",
+    "title": "status",
+    "path": "pages/status",
+    "slug": "status"
+  },
+  {
+    "id": "3.6",
+    "title": "sla-check",
+    "path": "pages/sla-check",
+    "slug": "sla-check"
+  },
+  {
+    "id": "3.7",
+    "title": "export",
+    "path": "pages/export",
+    "slug": "export"
+  },
+  {
+    "id": "4.1",
+    "title": "Configuration Schema",
+    "path": "pages/client-class-and-high-level-api",
+    "slug": "client-class-and-high-level-api"
+  },
+  {
+    "id": "4.2",
+    "title": "Validation and Normalization",
+    "path": "pages/streamable-http-client-transport",
+    "slug": "streamable-http-client-transport"
+  },
+  {
+    "id": "4.3",
+    "title": "Configuration File Reference",
+    "path": "pages/sse-client-transport",
+    "slug": "sse-client-transport"
+  },
+  {
+    "id": "4.4",
+    "title": "Spec Providers",
+    "path": "pages/spec-providers",
+    "slug": "spec-providers"
+  },
+  {
+    "id": "4.5",
+    "title": "Path Mappings",
+    "path": "pages/path-mappings",
+    "slug": "path-mappings"
+  },
+  {
+    "id": "4.6",
+    "title": "Policy Configuration",
+    "path": "pages/policy-configuration",
+    "slug": "policy-configuration"
+  },
+  {
+    "id": "5.1",
+    "title": "Setup Overview",
+    "path": "pages/oauth-client-flow-and-providers",
+    "slug": "oauth-client-flow-and-providers"
+  },
+  {
+    "id": "5.2",
+    "title": "Manual Setup Flow",
+    "path": "pages/oauth-server-integration",
+    "slug": "oauth-server-integration"
+  },
+  {
+    "id": "5.3",
+    "title": "Devin PR Setup Flow",
+    "path": "pages/state-management",
+    "slug": "state-management"
+  },
+  {
+    "id": "5.4",
+    "title": "Repository Fingerprinting",
+    "path": "pages/repository-fingerprinting",
+    "slug": "repository-fingerprinting"
+  },
+  {
+    "id": "5.5",
+    "title": "AI Inference and Heuristics",
+    "path": "pages/ai-inference-and-heuristics",
+    "slug": "ai-inference-and-heuristics"
+  },
+  {
+    "id": "6.1",
+    "title": "Detection Pipeline",
+    "path": "pages/transport-interface-and-contract",
+    "slug": "transport-interface-and-contract"
+  },
+  {
+    "id": "6.2",
+    "title": "Spec Provider Detection",
+    "path": "pages/transport-comparison-and-selection",
+    "slug": "transport-comparison-and-selection"
+  },
+  {
+    "id": "6.3",
+    "title": "Path Mapping Heuristics",
+    "path": "pages/prompts-and-modes",
+    "slug": "prompts-and-modes"
+  },
+  {
+    "id": "6.4",
+    "title": "Run Gate Logic",
+    "path": "pages/run-gate-logic",
+    "slug": "run-gate-logic"
+  },
+  {
+    "id": "7.1",
+    "title": "Policy Decision Logic",
+    "path": "pages/session-management-and-resumability",
+    "slug": "session-management-and-resumability"
+  },
+  {
+    "id": "7.2",
+    "title": "Confidence and Noise Reduction",
+    "path": "pages/experimental-task-system",
+    "slug": "experimental-task-system"
+  },
+  {
+    "id": "7.3",
+    "title": "State Management",
+    "path": "pages/elicitation-system",
+    "slug": "elicitation-system"
+  },
+  {
+    "id": "8.1",
+    "title": "Devin Client API",
+    "path": "pages/building-and-testing",
+    "slug": "building-and-testing"
+  },
+  {
+    "id": "8.2",
+    "title": "Evidence Bundles",
+    "path": "pages/conformance-testing",
+    "slug": "conformance-testing"
+  },
+  {
+    "id": "8.3",
+    "title": "Session Lifecycle",
+    "path": "pages/cicd-and-release-process",
+    "slug": "cicd-and-release-process"
+  },
+  {
+    "id": "8.4",
+    "title": "Prompt Generation",
+    "path": "pages/prompt-generation",
+    "slug": "prompt-generation"
+  },
+  {
+    "id": "8.5",
+    "title": "Structured Output Parsing",
+    "path": "pages/structured-output-parsing",
+    "slug": "structured-output-parsing"
+  },
+  {
+    "id": "9.1",
+    "title": "GitHub Actions Workflow",
+    "path": "pages/migrating-from-v1-to-v2",
+    "slug": "migrating-from-v1-to-v2"
+  },
+  {
+    "id": "9.2",
+    "title": "PR Lifecycle Management",
+    "path": "pages/doc-areas-configuration",
+    "slug": "doc-areas-configuration"
+  },
+  {
+    "id": "9.3",
+    "title": "Issues and Notifications",
+    "path": "pages/detection-rules",
+    "slug": "detection-rules"
+  },
+  {
+    "id": "10.1",
+    "title": "drift_report.json",
+    "path": "pages/api-overview",
+    "slug": "api-overview"
+  },
+  {
+    "id": "10.2",
+    "title": "metrics.json",
+    "path": "pages/user-endpoints",
+    "slug": "user-endpoints"
+  },
+  {
+    "id": "10.3",
+    "title": "state.json",
+    "path": "pages/openapi-generation",
+    "slug": "openapi-generation"
+  },
+  {
+    "id": "10.4",
+    "title": "Evidence Directory",
+    "path": "pages/authentication",
+    "slug": "authentication"
+  },
+  {
+    "id": "10.5",
+    "title": "run-output.json",
+    "path": "pages/run-outputjson",
+    "slug": "run-outputjson"
+  },
+  {
+    "id": "11.1",
+    "title": "DataStack API Overview",
+    "path": "pages/project-structure",
+    "slug": "project-structure"
+  },
+  {
+    "id": "11.2",
+    "title": "OpenAPI Specification",
+    "path": "pages/building-and-testing--11.2",
+    "slug": "building-and-testing--11.2"
+  },
+  {
+    "id": "11.3",
+    "title": "Schema Generation Script",
+    "path": "pages/configuration-loading",
+    "slug": "configuration-loading"
+  },
+  {
+    "id": "11.4",
+    "title": "Example API Endpoints",
+    "path": "pages/example-api-endpoints",
+    "slug": "example-api-endpoints"
+  },
+  {
+    "id": "12.1",
+    "title": "Project Structure",
+    "path": "pages/autogen-api-reference",
+    "slug": "autogen-api-reference"
+  },
+  {
+    "id": "12.2",
+    "title": "Building and Testing",
+    "path": "pages/conceptual-documentation",
+    "slug": "conceptual-documentation"
+  },
+  {
+    "id": "12.3",
+    "title": "Adding Detection Mechanisms",
+    "path": "pages/cicd-integration",
+    "slug": "cicd-integration"
+  },
+  {
+    "id": "12.4",
+    "title": "Extending Prompt Generation",
+    "path": "pages/extending-prompt-generation",
+    "slug": "extending-prompt-generation"
+  }
+]
