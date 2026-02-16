@@ -1,0 +1,55 @@
+---
+title: "How It Works"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "2"
+generated: true
+last_synced: "2026-02-16"
+---
+
+# How DocDrift Works
+
+Detection, gating, core flow, and why it stays low-noise.
+
+## Why This Is Low-Noise
+
+- **Single session, single PR** — One Devin session handles the whole docsite (API reference + guides).
+- **Gate on API spec diff** — We only run when spec drift is detected (strict mode); no session for docs-check-only failures.
+- **requireHumanReview** — When the PR touches guides/prose, we open an issue after the PR to direct attention.
+- **7-day SLA** — If a doc-drift PR is open 7+ days, we open a reminder issue (configurable `slaDays`; use `sla-check` CLI or cron workflow).
+- Confidence gating and allowlist/exclude enforcement.
+- Idempotency key prevents duplicate actions for same repo/SHAs/action.
+
+## Detection and Gate
+
+- **Gate:** We only run a Devin session when **spec drift** is detected (strict mode). No drift means no session. In auto mode, pathMapping matches also trigger a run.
+- **Tier 1:** Spec drift (generated vs published)
+- **Tier 2:** Heuristic path impacts from pathMappings (e.g. `apps/api/src/auth/**` maps to guides)
+
+### Output Artifacts
+
+All output is written under `.docdrift/`:
+
+- `drift_report.json`
+- `metrics.json` (after `run`)
+
+When you run docdrift as a package (e.g. `npx docdrift` or from another repo), all of this is written to **that repo's** `.docdrift/` — the current working directory where the CLI is invoked.
+
+## Core Flow (`docdrift run`)
+
+1. Validate config and command availability.
+2. Build drift report. **Gate:** If no drift (strict mode: spec only; auto mode: spec or pathMappings), exit (no session).
+3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`).
+4. Build one aggregated evidence bundle for the whole docsite.
+5. One Devin session with whole-docsite prompt; poll to terminal status.
+6. If PR opened and touches `requireHumanReview` paths, create issue to direct attention.
+7. Surface result via GitHub commit comment; open issue on blocked/low-confidence paths.
+8. Persist state (including `lastDocDriftPrUrl` for SLA); write `.docdrift/metrics.json`.
+
+## How Devin Updates Docs
+
+1. **Evidence bundle** — DocDrift builds a tarball with the drift report, spec diff, and impacted doc snippets, and uploads it to the Devin API as session attachments.
+2. **Devin session** — Devin is prompted to update only files under the allowlist, make minimal correct edits, run verification, and open **one PR** per doc area with a clear description.
+3. **PR** — Devin updates published specs to match the current API, runs doc generation, and opens a pull request. You review and merge.
+
+The "fix" is a **PR opened by Devin** that you merge; the repo's docs don't change until that PR is merged.

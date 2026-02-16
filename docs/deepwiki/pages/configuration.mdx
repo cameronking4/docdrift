@@ -1,0 +1,54 @@
+---
+title: "Configuration"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "4"
+generated: true
+last_synced: "2026-02-16"
+---
+
+# Configuration
+
+Modes, spec providers, and key config concepts.
+
+## Auto vs Strict Modes
+
+| Mode | When drift is detected | Use case |
+| ---- | ---------------------- | -------- |
+| **strict** (default) | Only when **spec drift** is detected (OpenAPI, GraphQL, etc.). No spec drift means no Devin session. | API-first teams; gate only on real API changes. |
+| **auto** | Also runs when **pathMappings** match (changed files hit `match` patterns) even if no spec drift. Devin infers docs from file changes. | Conceptual docs, guides, or path-only setups. |
+
+```yaml
+# docdrift.yaml
+mode: strict   # only on spec drift
+# or
+mode: auto     # also on pathMapping matches
+```
+
+## Spec Providers
+
+DocDrift supports several API spec formats. Configure via `specProviders`:
+
+| Format | Description |
+| ------ | ----------- |
+| **openapi3** | OpenAPI 3.x (default) |
+| **swagger2** | OpenAPI 2.0 / Swagger 2.0 |
+| **graphql** | GraphQL schema |
+| **fern** | Fern API definition |
+| **postman** | Postman Collection JSON |
+
+Each provider defines `current` (source of truth: `export`, `local`, or `url`) and `published` (docs path to update):
+
+```yaml
+specProviders:
+  - format: openapi3
+    current:
+      type: export
+      command: "npm run openapi:export"
+      outputPath: "openapi/generated.json"
+    published: "apps/docs-site/openapi/openapi.json"
+```
+
+## Full Configuration Reference
+
+For every field, schema, and validation rule, see the `docdrift.yaml` reference documentation.

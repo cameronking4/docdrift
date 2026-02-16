@@ -1,0 +1,68 @@
+---
+title: "Ecosystem Guides"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "5"
+generated: true
+last_synced: "2026-02-16"
+---
+
+# Ecosystem Guides
+
+DocDrift supports multiple ecosystems. Here are focused greenfield demos for different providers.
+
+## OpenAPI3 + Node/Express
+
+- **API:** Express + swagger-jsdoc or @nestjs/swagger produces `openapi/generated.json`
+- **Docs:** Docusaurus + docusaurus-plugin-openapi-docs, or simple Markdown
+- **Flow:** Change a route or schema, run `openapi:export`, drift vs published spec, Devin fixes docs
+
+## OpenAPI3 + FastAPI (Python)
+
+- **API:** FastAPI with OpenAPI export (`openapi.json` or `npm run openapi:export` script)
+- **Docs:** MkDocs + mkdocstrings or mkdocs-openapi
+- **Flow:** Add/change endpoints, regenerate spec, drift detected, Devin updates MkDocs docs
+
+## Fern
+
+- **Layout:** `definition/` (API), `pages/` (MDX), `generators.yml`
+- **Config:** `specProviders` with `format: fern` and path mappings from `definition/**` to `pages/**`
+- **Flow:** Change Fern API definitions, docs drift, Devin updates guides and API reference
+
+## GraphQL
+
+- **API:** Schema-first or code-first (e.g. Apollo, Pothos)
+- **Docs:** Docusaurus/GraphQL plugin or schema docs in Markdown
+- **Config:** `format: graphql` with schema export command
+- **Flow:** Update schema, regenerate, Devin syncs docs with new types/resolvers
+
+## Mintlify
+
+- **Layout:** `docs/` (MDX), `mint.json`, OpenAPI for API reference
+- **Config:** Path mappings from `api/**` and `src/**` to `docs/**`
+- **Flow:** Change backend/API, Mintlify docs drift, Devin patches guides and reference
+
+## Postman Collection
+
+- **API:** Postman collection JSON as source of truth
+- **Config:** `format: postman` with export or copy command
+- **Flow:** Collection changes, Devin keeps external docs or README in sync
+
+## Swagger2 / OpenAPI 2
+
+- **API:** Old Swagger 2.0 (`swagger: "2.0"`)
+- **Config:** `format: swagger2` with export path
+- **Flow:** Same as OpenAPI3, with legacy spec format
+
+## Monorepo (Multiple Packages)
+
+- **Layout:** `packages/api/`, `packages/sdk-ts/`, `docs/` or `apps/docs-site/`
+- **Config:** Path mappings per package (`packages/api/**` to `docs/api/**`, etc.)
+- **Flow:** Change API or SDK, Devin updates matching doc sections
+
+## Suggested Demo Order
+
+1. **OpenAPI3 + Docusaurus** — Matches the current docdrift repo, minimal setup.
+2. **FastAPI + MkDocs** — Good Python example.
+3. **Fern** — Structured API-defs + docs layout, common for API platforms.
+4. **GraphQL** — Different spec format and doc tooling.

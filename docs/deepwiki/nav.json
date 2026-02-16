@@ -1,0 +1,62 @@
+[
+  {
+    "id": "1",
+    "title": "Overview",
+    "path": "pages/overview",
+    "slug": "overview"
+  },
+  {
+    "id": "2",
+    "title": "How It Works",
+    "path": "pages/how-it-works",
+    "slug": "how-it-works"
+  },
+  {
+    "id": "3",
+    "title": "Setup Guide",
+    "path": "pages/setup",
+    "slug": "setup"
+  },
+  {
+    "id": "4",
+    "title": "Configuration",
+    "path": "pages/configuration",
+    "slug": "configuration"
+  },
+  {
+    "id": "5",
+    "title": "Ecosystem Guides",
+    "path": "pages/ecosystems",
+    "slug": "ecosystems"
+  },
+  {
+    "id": "6",
+    "title": "Local Development",
+    "path": "pages/local-development",
+    "slug": "local-development"
+  },
+  {
+    "id": "7",
+    "title": "CI and GitHub",
+    "path": "pages/ci-github",
+    "slug": "ci-github"
+  },
+  {
+    "id": "8",
+    "title": "Using in Another Repo",
+    "path": "pages/consuming-repo",
+    "slug": "consuming-repo"
+  },
+  {
+    "id": "9",
+    "title": "Export",
+    "path": "pages/export",
+    "slug": "export"
+  },
+  {
+    "id": "10",
+    "title": "Publishing",
+    "path": "pages/publishing",
+    "slug": "publishing"
+  }
+]

@@ -11,4 +11,6 @@ coverage
 .env
 .env.*
 .cursor
-docs/deepwiki
+docsite/node_modules
+docsite/.next
+docsite/out
