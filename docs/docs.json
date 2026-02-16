@@ -18,6 +18,7 @@
             "group": "Overview",
             "pages": [
               "index",
+              "deepwiki/pages/overview",
               "deepwiki/pages/installation-and-setup",
               "deepwiki/pages/monorepo-structure-and-packages"
             ]
@@ -27,7 +28,11 @@
             "pages": [
               "getting-started",
               "github-actions",
-              "real-world-scenarios"
+              "real-world-scenarios",
+              "deepwiki/pages/architecture",
+              "deepwiki/pages/protocol-foundation",
+              "deepwiki/pages/type-system-and-message-schemas",
+              "deepwiki/pages/communication-lifecycle"
             ]
           },
           {
@@ -51,52 +56,115 @@
               "deepwiki/pages/mcpserver-high-level-api",
               "deepwiki/pages/tool-registration-and-execution",
               "deepwiki/pages/resource-and-prompt-management",
-              "deepwiki/pages/server-protocol-class"
+              "deepwiki/pages/server-protocol-class",
+              "deepwiki/pages/status",
+              "deepwiki/pages/sla-check",
+              "deepwiki/pages/export"
             ]
           },
           {
-            "group": "Detection System",
+            "group": "Configuration System",
             "pages": [
               "deepwiki/pages/client-implementation",
               "deepwiki/pages/client-class-and-high-level-api",
               "deepwiki/pages/streamable-http-client-transport",
-              "deepwiki/pages/sse-client-transport"
+              "deepwiki/pages/sse-client-transport",
+              "deepwiki/pages/spec-providers",
+              "deepwiki/pages/path-mappings",
+              "deepwiki/pages/policy-configuration"
+            ]
+          },
+          {
+            "group": "Setup System",
+            "pages": [
+              "deepwiki/pages/oauth-authentication",
+              "deepwiki/pages/oauth-client-flow-and-providers",
+              "deepwiki/pages/oauth-server-integration",
+              "deepwiki/pages/state-management",
+              "deepwiki/pages/repository-fingerprinting",
+              "deepwiki/pages/ai-inference-and-heuristics"
+            ]
+          },
+          {
+            "group": "Drift Detection System",
+            "pages": [
+              "deepwiki/pages/transport-system",
+              "deepwiki/pages/transport-interface-and-contract",
+              "deepwiki/pages/transport-comparison-and-selection",
+              "deepwiki/pages/prompts-and-modes",
+              "deepwiki/pages/run-gate-logic"
             ]
           },
           {
             "group": "Policy Engine",
             "pages": [
-              "deepwiki/pages/oauth-authentication",
-              "deepwiki/pages/oauth-client-flow-and-providers",
-              "deepwiki/pages/oauth-server-integration",
-              "deepwiki/pages/state-management"
+              "deepwiki/pages/advanced-features",
+              "deepwiki/pages/session-management-and-resumability",
+              "deepwiki/pages/experimental-task-system",
+              "deepwiki/pages/elicitation-system"
             ]
           },
           {
-            "group": "Devin Integration",
-            "pages": [
-              "deepwiki/pages/transport-system",
-              "deepwiki/pages/transport-interface-and-contract",
-              "deepwiki/pages/transport-comparison-and-selection",
-              "deepwiki/pages/prompts-and-modes"
-            ]
-          },
-          {
-            "group": "Output Artifacts",
+            "group": "Devin AI Integration",
             "pages": [
               "deepwiki/pages/development-guide",
               "deepwiki/pages/building-and-testing",
               "deepwiki/pages/conformance-testing",
-              "deepwiki/pages/cicd-and-release-process"
+              "deepwiki/pages/cicd-and-release-process",
+              "deepwiki/pages/prompt-generation",
+              "deepwiki/pages/structured-output-parsing"
+            ]
+          },
+          {
+            "group": "GitHub Integration",
+            "pages": [
+              "deepwiki/pages/migration-guides",
+              "deepwiki/pages/migrating-from-v1-to-v2",
+              "deepwiki/pages/doc-areas-configuration",
+              "deepwiki/pages/detection-rules"
+            ]
+          },
+          {
+            "group": "Output and Artifacts",
+            "pages": [
+              "deepwiki/pages/troubleshooting-and-faq",
+              "deepwiki/pages/api-overview",
+              "deepwiki/pages/user-endpoints",
+              "deepwiki/pages/openapi-generation",
+              "deepwiki/pages/authentication",
+              "deepwiki/pages/run-outputjson"
+            ]
+          },
+          {
+            "group": "Example: DataStack API",
+            "pages": [
+              "deepwiki/pages/development",
+              "deepwiki/pages/project-structure",
+              "deepwiki/pages/building-and-testing--11.2",
+              "deepwiki/pages/configuration-loading",
+              "deepwiki/pages/example-api-endpoints"
             ]
           },
           {
             "group": "Development",
             "pages": [
-              "deepwiki/pages/development",
-              "deepwiki/pages/project-structure",
-              "deepwiki/pages/building-and-testing--11.2",
-              "deepwiki/pages/configuration-loading"
+              "deepwiki/pages/examples-and-use-cases",
+              "deepwiki/pages/autogen-api-reference",
+              "deepwiki/pages/conceptual-documentation",
+              "deepwiki/pages/cicd-integration",
+              "deepwiki/pages/extending-prompt-generation",
+              "deepwiki/pages/contributing-guidelines",
+              "deepwiki/pages/package-structure-and-distribution",
+              "deepwiki/pages/schema-validation",
+              "deepwiki/pages/notification-system-and-logging",
+              "deepwiki/pages/capabilities-system",
+              "deepwiki/pages/sampling-and-llm-requests",
+              "deepwiki/pages/client-examples-and-patterns",
+              "deepwiki/pages/stdio-and-in-memory-transports",
+              "deepwiki/pages/server-examples-and-patterns",
+              "deepwiki/pages/middleware-integration",
+              "deepwiki/pages/streamable-http-server-transport",
+              "deepwiki/pages/core-protocol-concepts"
             ]
           }
         ]
@@ -131,20 +199,11 @@
     }
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity", "mcp", "cursor", "vscode"]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/cameronyking4`",
+      "x": "https://x.com/cameronyking4",
       "github": "https://github.com/cameronking4/docdrift",
       "linkedin": "https://linkedin.com/in/cameronyking"
     }
