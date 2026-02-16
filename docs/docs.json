@@ -24,29 +24,11 @@
             ]
           },
           {
-            "group": "Getting Started",
+            "group": "Detection & Remediation",
             "pages": [
               "getting-started",
               "github-actions",
-              "real-world-scenarios",
-              "deepwiki/pages/architecture",
-              "deepwiki/pages/protocol-foundation",
-              "deepwiki/pages/type-system-and-message-schemas",
-              "deepwiki/pages/communication-lifecycle"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/setup",
-              "guides/configuration",
-              "guides/how-it-works",
-              "guides/consuming-repo",
-              "guides/ci-github",
-              "guides/export",
-              "guides/local-development",
-              "guides/ecosystems",
-              "guides/publishing"
+              "real-world-scenarios"
             ]
           },
           {
@@ -63,7 +45,7 @@
             ]
           },
           {
-            "group": "Configuration System",
+            "group": "Configuring DocDrift",
             "pages": [
               "deepwiki/pages/client-implementation",
               "deepwiki/pages/client-class-and-high-level-api",
@@ -75,18 +57,7 @@
             ]
           },
           {
-            "group": "Setup System",
-            "pages": [
-              "deepwiki/pages/oauth-authentication",
-              "deepwiki/pages/oauth-client-flow-and-providers",
-              "deepwiki/pages/oauth-server-integration",
-              "deepwiki/pages/state-management",
-              "deepwiki/pages/repository-fingerprinting",
-              "deepwiki/pages/ai-inference-and-heuristics"
-            ]
-          },
-          {
-            "group": "Drift Detection System",
+            "group": "Detection System",
             "pages": [
               "deepwiki/pages/transport-system",
               "deepwiki/pages/transport-interface-and-contract",
@@ -98,6 +69,12 @@
           {
             "group": "Policy Engine",
             "pages": [
+              "deepwiki/pages/oauth-authentication",
+              "deepwiki/pages/oauth-client-flow-and-providers",
+              "deepwiki/pages/oauth-server-integration",
+              "deepwiki/pages/state-management",
+              "deepwiki/pages/repository-fingerprinting",
+              "deepwiki/pages/ai-inference-and-heuristics",
               "deepwiki/pages/advanced-features",
               "deepwiki/pages/session-management-and-resumability",
               "deepwiki/pages/experimental-task-system",
@@ -105,7 +82,7 @@
             ]
           },
           {
-            "group": "Devin AI Integration",
+            "group": "Devin Integration",
             "pages": [
               "deepwiki/pages/development-guide",
               "deepwiki/pages/building-and-testing",
@@ -116,16 +93,7 @@
             ]
           },
           {
-            "group": "GitHub Integration",
-            "pages": [
-              "deepwiki/pages/migration-guides",
-              "deepwiki/pages/migrating-from-v1-to-v2",
-              "deepwiki/pages/doc-areas-configuration",
-              "deepwiki/pages/detection-rules"
-            ]
-          },
-          {
-            "group": "Output and Artifacts",
+            "group": "Output Artifacts",
             "pages": [
               "deepwiki/pages/troubleshooting-and-faq",
               "deepwiki/pages/api-overview",
@@ -136,35 +104,42 @@
             ]
           },
           {
-            "group": "Example: DataStack API",
-            "pages": [
-              "deepwiki/pages/development",
-              "deepwiki/pages/project-structure",
-              "deepwiki/pages/building-and-testing--11.2",
-              "deepwiki/pages/configuration-loading",
-              "deepwiki/pages/example-api-endpoints"
-            ]
-          },
-          {
             "group": "Development",
             "pages": [
               "deepwiki/pages/examples-and-use-cases",
               "deepwiki/pages/autogen-api-reference",
               "deepwiki/pages/conceptual-documentation",
               "deepwiki/pages/cicd-integration",
-              "deepwiki/pages/extending-prompt-generation",
-              "deepwiki/pages/contributing-guidelines",
-              "deepwiki/pages/package-structure-and-distribution",
-              "deepwiki/pages/schema-validation",
-              "deepwiki/pages/notification-system-and-logging",
-              "deepwiki/pages/capabilities-system",
-              "deepwiki/pages/sampling-and-llm-requests",
-              "deepwiki/pages/client-examples-and-patterns",
-              "deepwiki/pages/stdio-and-in-memory-transports",
-              "deepwiki/pages/server-examples-and-patterns",
-              "deepwiki/pages/middleware-integration",
-              "deepwiki/pages/streamable-http-server-transport",
-              "deepwiki/pages/core-protocol-concepts"
+              "deepwiki/pages/extending-prompt-generation"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              {
+                "group": "Setup & Configuration",
+                "pages": ["guides/setup", "guides/configuration"]
+              },
+              {
+                "group": "How It Works",
+                "pages": ["guides/how-it-works", "guides/consuming-repo"]
+              },
+              {
+                "group": "CI & GitHub",
+                "pages": ["guides/ci-github"]
+              },
+              {
+                "group": "Local Development",
+                "pages": ["guides/local-development"]
+              },
+              {
+                "group": "Export & Publishing",
+                "pages": ["guides/export", "guides/publishing"]
+              },
+              {
+                "group": "Ecosystems",
+                "pages": ["guides/ecosystems"]
+              }
             ]
           }
         ]
@@ -203,7 +178,7 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/cameronyking4",
+      "x": "https://x.com/cameronyking4`",
       "github": "https://github.com/cameronking4/docdrift",
       "linkedin": "https://linkedin.com/in/cameronyking"
     }

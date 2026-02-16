@@ -5,6 +5,86 @@ description: CLI commands, ecosystems, and end-to-end flows for every use case.
 
 This page ties together all CLI commands, detection modes, ecosystems, and end-to-end flows so you can map your use case to the right setup and commands.
 
+## Why this works for all providers and frameworks
+
+DocDrift is **provider-agnostic** and **framework-agnostic**. It does not tie you to one spec format, one runtime, or one docsite framework.
+
+### Provider-agnostic: any spec format
+
+Detection runs the same pipeline regardless of spec type. You configure `specProviders` with `format: openapi3` | `swagger2` | `graphql` | `fern` | `postman`. Each provider defines:
+
+- **current** — where truth lives (export command, local file, or URL)
+- **published** — the docs path that should match
+
+The drift engine compares current vs published. If they differ, drift is detected. The mechanism is identical across providers; only the comparison logic is format-specific. So whether you use FastAPI (OpenAPI), NestJS (OpenAPI), Fern (`definition/`), GraphQL (schema export), or Postman (collection JSON), DocDrift gates on the same principle: *generated/source spec vs published spec*.
+
+### Framework-agnostic: any docsite and tooling
+
+DocDrift does not know or care how your docs are built. It does not parse Docusaurus, MkDocs, Mintlify, or Next.js. It only:
+
+1. Detects drift (spec diff or path mappings)
+2. Applies policy (gates and caps)
+3. Bundles evidence (diffs, impacted paths, drift report)
+4. Hands a tarball + prompt to Devin
+
+Your docsite can be Docusaurus with `docusaurus-plugin-openapi-docs`, Mintlify MDX, MkDocs with mkdocstrings, or a custom static site. DocDrift never touches your build. It tells Devin *which* files may be impacted and *what* changed; Devin is responsible for editing them correctly for your chosen framework.
+
+### Strict vs non-strict (auto) scenarios
+
+| Mode | When a run proceeds | Best for |
+|------|--------------------|----------|
+| **strict** (default) | Only when **spec drift** is detected. No spec diff → no Devin session. | API-first teams; you want zero noise unless the API actually changed. |
+| **auto** | Spec drift **or** path-mapping matches. File changes in `pathMappings.match` patterns also trigger a run. | Conceptual docs, guides, path-only setups where there is no single spec. |
+
+**Strict:** Gate = spec diff only. One or more `specProviders` must show current ≠ published. Path changes alone do nothing.
+
+**Auto:** Gate = spec diff **or** heuristic path impacts. If `pathMappings` map `apps/api/src/auth/**` → `docs/guides/auth.md`, and files under `match` changed, DocDrift can run even without spec drift. Devin then infers what to update from the code changes.
+
+Both modes use the same policy engine, caps, and allowlist. The only difference is *when* the run proceeds past the gate.
+
+---
+
+## DocDrift as harness: gates and controls
+
+DocDrift is a **harness** around Devin—it decides *when* and *how much* work gets done, not *how* it gets done.
+
+### Gates (when to run)
+
+- **Spec drift gate** — In strict mode, no run unless generated/source spec differs from published.
+- **Path-mapping gate** — In auto mode, path-mapping matches also allow a run.
+- **Confidence gate** — Below `autopatchThreshold`, policy may route to `OPEN_ISSUE` instead of `OPEN_PR`.
+- **Idempotency** — Same repo, base/head, and action → no duplicate session.
+
+### Controls (what Devin may do)
+
+- **Allowlist** — Devin may only edit paths matching `policy.allowlist` (e.g. `docs/**`, `openapi/**`).
+- **Exclude** — Paths in `exclude` are never touched.
+- **Verification commands** — Devin must run `policy.verification.commands` (e.g. `npm run docs:check`) and record results.
+- **PR caps** — `maxPRsPerDay` and `maxFilesTouched` limit volume.
+- **requireHumanReview** — When a PR touches these paths, DocDrift opens an issue to direct human attention.
+
+These gates and controls keep runs low-noise and scope Devin’s edits to what you explicitly allow.
+
+---
+
+## Devin as implementer-agnostic
+
+Devin is the **implementer**; DocDrift is the **orchestrator**. DocDrift does not prescribe *how* Devin edits—only *what* to fix and *where* to stay within bounds.
+
+**DocDrift gives Devin:**
+
+1. **Evidence bundle** — Drift report, spec diff, impacted doc snippets, path mappings.
+2. **Constraints** — Allowlist, exclude, verification commands, “one PR per doc area,” “minimal edits.”
+3. **Goal** — Produce a PR that brings docs in line with the evidence.
+
+**DocDrift does not give Devin:**
+
+- Framework-specific instructions (e.g. “use Docusaurus plugin X”).
+- Step-by-step edit sequences.
+- Mandate to use a particular editor or workflow.
+
+Devin receives the evidence and constraints, then implements. It can use any supported workflow (browser, editor, terminal) and adapt to Docusaurus, MkDocs, Mintlify, or a custom setup. That **implementer-agnostic** design is why DocDrift works across providers and frameworks: the harness is the same; only the evidence and constraints vary with your config.
+
 ## Command quick reference
 
 | Command | Purpose |
@@ -24,6 +104,8 @@ Use `--base` and `--head` with `detect` and `run` when you need explicit SHAs; i
 
 ## Scenario matrix
 
+The matrix below applies regardless of provider (OpenAPI, GraphQL, Fern, Postman) or docsite framework. See [Why this works for all providers](#why-this-works-for-all-providers-and-frameworks) and [DocDrift as harness](#docdrift-as-harness-gates-and-controls) for how gates and controls work.
+
 | Scenario | Mode | Detection | Primary action | Where to look |
 |----------|------|-----------|----------------|---------------|
 | **API reference (OpenAPI/GraphQL)** | strict / autogen | Tier 1 (spec diff) | `OPEN_PR` via Devin | [Examples: Autogen API](/deepwiki/pages/examples-and-use-cases) |
@@ -36,7 +118,7 @@ Use `--base` and `--head` with `detect` and `run` when you need explicit SHAs; i
 
 ## Ecosystem examples
 
-Each ecosystem pairs a spec/source with a doc tool. Configure `docdrift.yaml` (modes, specProviders, path mappings) then run `validate` → `detect` → `run`.
+Each ecosystem pairs a spec/source with a doc tool. Because DocDrift is provider- and framework-agnostic, the same gates and controls apply: configure `docdrift.yaml` (modes, specProviders, path mappings) then run `validate` → `detect` → `run`.
 
 | Ecosystem | Spec/source | Docs | Flow |
 |-----------|-------------|------|------|
