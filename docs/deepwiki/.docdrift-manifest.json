@@ -1,0 +1,66 @@
+{
+  "repo": "cameronking4/docdrift",
+  "generatedAt": "2026-02-16T06:00:00.000Z",
+  "pages": {
+    "1": {
+      "pageId": "1",
+      "outPath": "pages/overview.mdx",
+      "title": "Overview",
+      "slug": "overview"
+    },
+    "2": {
+      "pageId": "2",
+      "outPath": "pages/how-it-works.mdx",
+      "title": "How It Works",
+      "slug": "how-it-works"
+    },
+    "3": {
+      "pageId": "3",
+      "outPath": "pages/setup.mdx",
+      "title": "Setup Guide",
+      "slug": "setup"
+    },
+    "4": {
+      "pageId": "4",
+      "outPath": "pages/configuration.mdx",
+      "title": "Configuration",
+      "slug": "configuration"
+    },
+    "5": {
+      "pageId": "5",
+      "outPath": "pages/ecosystems.mdx",
+      "title": "Ecosystem Guides",
+      "slug": "ecosystems"
+    },
+    "6": {
+      "pageId": "6",
+      "outPath": "pages/local-development.mdx",
+      "title": "Local Development",
+      "slug": "local-development"
+    },
+    "7": {
+      "pageId": "7",
+      "outPath": "pages/ci-github.mdx",
+      "title": "CI and GitHub",
+      "slug": "ci-github"
+    },
+    "8": {
+      "pageId": "8",
+      "outPath": "pages/consuming-repo.mdx",
+      "title": "Using in Another Repo",
+      "slug": "consuming-repo"
+    },
+    "9": {
+      "pageId": "9",
+      "outPath": "pages/export.mdx",
+      "title": "Export",
+      "slug": "export"
+    },
+    "10": {
+      "pageId": "10",
+      "outPath": "pages/publishing.mdx",
+      "title": "Publishing",
+      "slug": "publishing"
+    }
+  }
+}

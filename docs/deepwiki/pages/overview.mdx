@@ -1,0 +1,55 @@
+---
+title: "Overview"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "1"
+generated: true
+last_synced: "2026-02-16"
+---
+
+# DocDrift
+
+Docs that never lie: detect drift between merged code and docs, then open low-noise, evidence-grounded remediation via Devin sessions.
+
+## What is DocDrift?
+
+DocDrift is an automated documentation maintenance system that detects and remediates "documentation drift" — discrepancies between code behavior and its documentation. The system ensures documentation remains synchronized with code changes by automatically identifying inconsistencies and initiating corrective actions, primarily through AI-driven pull requests or human-escalated issues.
+
+## Key Features
+
+- **Automatic Documentation Updates**: When API response fields change (e.g., `name` to `fullName`), DocDrift detects the change, generates updated documentation, and opens a PR automatically.
+- **Conceptual Drift Detection**: When authentication logic changes under `apps/api/src/auth/**`, DocDrift identifies that `docs/guides/auth.md` may be impacted and creates an issue with targeted questions.
+- **Low-Noise Operation**: Through bundling rules (one PR per doc area per day), global PR caps, confidence gating, and idempotency keys, DocDrift prevents notification spam while maintaining documentation accuracy.
+- **CI/CD Integration**: Runs as a GitHub Action on every merge to `main`, making documentation maintenance a byproduct of code development.
+
+## Deliverables
+
+- **npm package**: [@devinnn/docdrift](https://www.npmjs.com/package/@devinnn/docdrift) — TypeScript CLI (`docdrift`)
+  - `validate` — Validate docdrift.yaml
+  - `detect --base <sha> --head <sha>` — Check for drift
+  - `run --base <sha> --head <sha>` — Full run with Devin
+  - `status --since 24h` — Show run status
+  - `sla-check` — Check for doc-drift PRs open 7+ days and open a reminder issue
+  - `setup` — Interactive setup (Devin analyzes repo, generates v2 docdrift.yaml)
+  - `generate-yaml` — Generate config from repo fingerprint
+  - `export` — Export DeepWiki to static MDX
+- **GitHub Action**: `.github/workflows/devin-doc-drift.yml`
+- **Repo-local config**: `docdrift.yaml`
+
+## Quick Start
+
+```bash
+# Interactive setup (requires DEVIN_API_KEY; add repo in Devin Machine first)
+npx @devinnn/docdrift setup
+
+# Or generate config only (scriptable)
+npx @devinnn/docdrift generate-yaml --output docdrift.yaml --force
+```
+
+## Why Low-Noise
+
+- **Single session, single PR** — One Devin session for the whole docsite
+- **Gate on spec diff** — No session when no drift (strict mode)
+- **requireHumanReview** — Issue when PR touches guides/prose
+- **7-day SLA** — Reminder issue for stale doc-drift PRs
+- **Confidence gating** — Allowlist, exclude, idempotency

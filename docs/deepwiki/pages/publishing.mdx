@@ -1,0 +1,21 @@
+---
+title: "Publishing"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "10"
+generated: true
+last_synced: "2026-02-16"
+---
+
+# Publishing the Package
+
+Publish `@devinnn/docdrift` to npm for use in other repos.
+
+## Steps
+
+1. Set `"private": false` in `package.json` (or omit it).
+2. Set `"repository": { "type": "git", "url": "https://github.com/your-org/docdrift.git" }`.
+3. Run `pnpm build` (or `npm run build`), then `npm publish`.
+4. For scoped packages: `npm publish --access public`.
+
+Only the `dist/` directory is included (`files` in `package.json`). Consumers get the built CLI; they provide their own `docdrift.yaml` in their repo.

@@ -1,0 +1,59 @@
+---
+title: "CI and GitHub"
+source: deepwiki
+repo: cameronking4/docdrift
+topic_id: "7"
+generated: true
+last_synced: "2026-02-16"
+---
+
+# CI and GitHub Setup
+
+Run docdrift in GitHub Actions and see it work on GitHub.
+
+## CI Configuration
+
+- Add secret: `DEVIN_API_KEY`
+- Push to `main` or run `workflow_dispatch`
+- Action uploads:
+  - `.docdrift/drift_report.json`
+  - `.docdrift/evidence/**`
+  - `.docdrift/metrics.json`
+
+## Run on GitHub
+
+### 1. Create a Repo
+
+Create a repo on GitHub (e.g. `your-org/docdrift`), then add the remote and push:
+
+```bash
+git remote add origin https://github.com/your-org/docdrift.git
+git push -u origin main
+```
+
+### 2. Add Secret
+
+Repo Settings > Secrets and variables > Actions > New repository secret
+
+- Name: `DEVIN_API_KEY`
+- Value: your Devin API key (same as in `.env` locally)
+
+`GITHUB_TOKEN` is provided automatically; the workflow uses it for commit comments and issues.
+
+### 3. Trigger the Workflow
+
+- **Push to `main`** — runs on every push (compares previous commit vs current).
+- **Manual run** — Actions tab > devin-doc-drift > Run workflow (uses `HEAD` and `HEAD^` as head/base).
+
+## See It Work (Demo on GitHub)
+
+This repo has **intentional drift**: the API has been expanded (new fields `fullName`, `avatarUrl`, `createdAt`, `role` and new endpoint `GET /v1/users` with pagination), but **docs are unchanged**. Running docdrift will detect that and hand a large diff to Devin to fix via a PR.
+
+1. **Create a new GitHub repo** (e.g. `docdrift-demo`) so you have a clean place to run the workflow.
+2. **Push this project with full history** so both commits are on `main`.
+3. **Add secret** in that repo: Settings > Secrets > `DEVIN_API_KEY`.
+4. **Trigger the workflow** — push a commit or use manual dispatch.
+5. **Where to look**:
+   - Actions > open the run > Run Doc Drift step: logs print JSON with `sessionUrl`, `prUrl`, and `outcome`.
+   - Artifacts: download docdrift-artifacts for reports and evidence.
+   - Devin dashboard: sessions are tagged `docdrift`.
