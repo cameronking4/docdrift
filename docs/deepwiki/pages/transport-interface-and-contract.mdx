@@ -65,7 +65,7 @@ graph TB
     end
     
     subgraph "Phase 5: Run Gate Decision"
-        GateLogic["Apply gate logic:<br/>spec_drift / conceptual_only /<br/>infer / none"]
+        GateLogic["Apply gate logic:<br/>spec_export_invalid / spec_drift /<br/>conceptual_only / infer / none"]
         CheckMode["Check config.mode<br/>(strict vs auto)"]
     end
     
@@ -150,7 +150,7 @@ export async function buildDriftReport(input: {
 | `evidenceRoot` | `string` | Path to evidence directory for this run |
 | `runInfo` | `RunInfo` | Metadata about the run (runId, timestamp, etc.) |
 | `hasOpenApiDrift` | `boolean` | True if any spec provider detected drift |
-| `runGate` | `RunGate` | Gate decision: "spec_drift", "conceptual_only", "infer", or "none" |
+| `runGate` | `RunGate` | Gate decision: "spec_export_invalid", "spec_drift", "conceptual_only", "infer", or "none" |
 
 **Sources:** [src/detect/index.ts:13-28](), [src/model/types.ts]()
 
@@ -366,16 +366,20 @@ The run gate determines whether to proceed with remediation and what mode to use
 graph TD
     Start["Check Detection Results"]
     
+    SpecExportInvalid{"anySpecExportInvalid?<br/>signal.kind === spec_export_incomplete"}
     SpecDrift{"anySpecDrift?<br/>(tier ≤ 1)"}
-    HeuristicMatch{"isAuto && hasHeuristicMatch?"}
-    PathMapMatch{"isAuto && hasPathMappingMatch &&<br/>(no spec providers OR<br/>allSpecFailedOrNoDrift)?"}
+    HeuristicMatch["isAuto && hasHeuristicMatch?"]
+    PathMapMatch["isAuto && hasPathMappingMatch &&<br/>(no spec providers OR<br/>allSpecFailedOrNoDrift)?"]
     
+    GateSpecExportInvalid["runGate = 'spec_export_invalid'"]
     GateSpecDrift["runGate = 'spec_drift'"]
     GateConceptual["runGate = 'conceptual_only'"]
     GateInfer["runGate = 'infer'<br/>Add infer_mode signal"]
     GateNone["runGate = 'none'<br/>Exit: no drift"]
     
-    Start --> SpecDrift
+    Start --> SpecExportInvalid
+    SpecExportInvalid -->|Yes| GateSpecExportInvalid
+    SpecExportInvalid -->|No| SpecDrift
     SpecDrift -->|Yes| GateSpecDrift
     SpecDrift -->|No| HeuristicMatch
     HeuristicMatch -->|Yes| GateConceptual
@@ -390,7 +394,9 @@ graph TD
 const isAuto = config.mode === "auto";
 let runGate: RunGate = "none";
 
-if (anySpecDrift) {
+if (anySpecExportInvalid) {
+  runGate = "spec_export_invalid";
+} else if (anySpecDrift) {
   runGate = "spec_drift";
 } else if (isAuto && hasHeuristicMatch) {
   runGate = "conceptual_only";
@@ -408,6 +414,7 @@ if (anySpecDrift) {
 
 | Gate | Meaning | Triggers When |
 |------|---------|---------------|
+| `spec_export_invalid` | Exported spec failed completeness validation | Any spec provider returns signal.kind === "spec_export_incomplete" |
 | `spec_drift` | High-confidence API spec drift detected | Any spec provider reports tier ≤ 1 drift |
 | `conceptual_only` | Path heuristics matched (no spec drift) | `mode: auto` and heuristic signals present |
 | `infer` | Infer docs from file changes | `mode: auto`, pathMappings match, no spec providers or all failed |

@@ -32,11 +32,18 @@ const specSourceSchema = z.discriminatedUnion("type", [
 
 const specFormatSchema = z.enum(["openapi3", "swagger2", "graphql", "fern", "postman"]);
 
+const validationSchema = z.object({
+  enabled: z.boolean().optional().default(true),
+  /** Path patterns to skip validation (e.g. /health, /ready) */
+  allowlist: z.array(z.string().min(1)).optional().default([]),
+});
+
 /** Single spec provider (v2 config) */
 export const specProviderConfigSchema = z.object({
   format: specFormatSchema,
   current: specSourceSchema,
   published: z.string().min(1),
+  validation: validationSchema.optional(),
 });
 
 const docAreaDetectBaseSchema = z.object({

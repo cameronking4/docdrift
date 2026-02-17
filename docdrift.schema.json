@@ -93,6 +93,24 @@
           "published": {
             "type": "string",
             "minLength": 1
+          },
+          "validation": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": true
+              },
+              "allowlist": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "default": []
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [

@@ -171,6 +171,8 @@ async function executeSessionSingle(input: {
 /** Human-friendly label for run gate (used in detect output) */
 function runGateLabel(gate: RunGate): string {
   switch (gate) {
+    case "spec_export_invalid":
+      return "spec export incomplete";
     case "spec_drift":
       return "API spec drift";
     case "conceptual_only":
@@ -187,6 +189,7 @@ function runGateLabel(gate: RunGate): string {
 /** Format signal kinds for display (e.g. openapi_diff → OpenAPI) */
 function signalKindLabel(kind: string): string {
   const labels: Record<string, string> = {
+    spec_export_incomplete: "Spec export incomplete",
     openapi_diff: "OpenAPI",
     swagger2_diff: "Swagger 2",
     graphql_diff: "GraphQL",

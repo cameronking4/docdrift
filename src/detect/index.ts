@@ -8,7 +8,7 @@ import { detectHeuristicImpacts } from "./heuristics";
 import { getSpecDetector } from "../spec-providers/registry";
 import type { SpecProviderResult } from "../spec-providers/types";
 
-export type RunGate = "spec_drift" | "conceptual_only" | "infer" | "none";
+export type RunGate = "spec_export_invalid" | "spec_drift" | "conceptual_only" | "infer" | "none";
 
 export async function buildDriftReport(input: {
   config: NormalizedDocDriftConfig;
@@ -67,6 +67,9 @@ export async function buildDriftReport(input: {
     providerResults.push(...results);
   }
 
+  const anySpecExportInvalid = providerResults.some(
+    (r) => r.signal?.kind === "spec_export_incomplete"
+  );
   const anySpecDrift = providerResults.some((r) => r.hasDrift && r.signal && r.signal.tier <= 1);
   const allSpecFailedOrNoDrift =
     providerResults.length === 0 ||
@@ -101,10 +104,12 @@ export async function buildDriftReport(input: {
     pathMappings.length > 0 &&
     changedPaths.some((p) => pathMappings.some((m) => matchesGlob(m.match, p)));
 
-  // 3. Gate logic
+  // 3. Gate logic (precedence: spec_export_invalid > spec_drift > conceptual_only > infer > none)
   const isAuto = config.mode === "auto";
   let runGate: RunGate = "none";
-  if (anySpecDrift) {
+  if (anySpecExportInvalid) {
+    runGate = "spec_export_invalid";
+  } else if (anySpecDrift) {
     runGate = "spec_drift";
   } else if (isAuto && hasHeuristicMatch) {
     runGate = "conceptual_only";

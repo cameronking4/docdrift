@@ -77,7 +77,7 @@ export function buildWholeDocsitePrompt(input: {
   aggregated: AggregatedDriftResult;
   config: NormalizedDocDriftConfig;
   attachmentUrls: string[];
-  runGate?: "spec_drift" | "conceptual_only" | "infer" | "none";
+  runGate?: "spec_export_invalid" | "spec_drift" | "conceptual_only" | "infer" | "none";
   trigger?: "push" | "manual" | "schedule" | "pull_request";
   prNumber?: number;
   /** When set, Devin must UPDATE this existing PR instead of opening a new one */
@@ -112,6 +112,23 @@ export function buildWholeDocsitePrompt(input: {
       specLine,
       "",
     ].join("\n");
+
+  const specExportInvalidBlock =
+    input.runGate === "spec_export_invalid"
+      ? [
+          "SPEC EXPORT INVALID (fix before updating docs):",
+          "---",
+          "The spec export is incomplete. The exported spec does not accurately reflect the implementation (e.g. missing requestBody on POST endpoints, feature-flagged params, preview flags).",
+          "---",
+          driftSummary ? `Issues: ${driftSummary}` : "See attachments for validation details.",
+          "---",
+          "You MUST complete these steps IN ORDER:",
+          "1) Fix the spec source: Edit route annotations (@swagger), export script, or schema definitions under the path mappings (see PATH MAPPINGS below—the match paths are where the API/spec source lives). Add missing requestBody, parameters, or schemas so the export produces a complete spec.",
+          "2) Run the export command (see verification commands below).",
+          "3) Update the published spec and docs to match the newly generated spec.",
+          "",
+        ].join("\n")
+      : "";
 
   const inferBlock =
     input.runGate === "infer"
@@ -158,9 +175,16 @@ export function buildWholeDocsitePrompt(input: {
         ].join("\n")
       : "";
 
+  // When spec_export_invalid, merge pathMappings match paths into allowlist so Devin can edit spec source
+  const effectiveAllowlist =
+    input.runGate === "spec_export_invalid" && pathMappings.length > 0
+      ? [...new Set([...input.config.policy.allowlist, ...pathMappings.map((p) => p.match)])]
+      : input.config.policy.allowlist;
+
   const base = [
     "You are Devin. Task: update the entire docsite to match the API and code changes.",
     "",
+    specExportInvalidBlock,
     driftBlock ?? "",
     inferBlock,
     pathMappingsBlock,
@@ -168,7 +192,7 @@ export function buildWholeDocsitePrompt(input: {
     input.attachmentUrls.map((url, i) => `- ATTACHMENT ${i + 1}: ${url}`).join("\n"),
     "",
     "Rules (hard):",
-    `1) Only modify files under: ${input.config.policy.allowlist.join(", ")}`,
+    `1) Only modify files under: ${effectiveAllowlist.join(", ")}`,
     "2) Make the smallest change that makes docs correct.",
     "3) Update API reference (OpenAPI) and any impacted guides in one PR.",
     "4) Run verification commands and record results:",

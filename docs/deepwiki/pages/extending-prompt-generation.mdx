@@ -179,7 +179,7 @@ export function buildWholeDocsitePrompt(input: {
   aggregated: AggregatedDriftResult;           // All drift detection results
   config: NormalizedDocDriftConfig;            // Full normalized configuration
   attachmentUrls: string[];                    // Uploaded evidence
-  runGate?: "spec_drift" | "conceptual_only" | "infer" | "none";
+  runGate?: "spec_export_invalid" | "spec_drift" | "conceptual_only" | "infer" | "none";
   trigger?: "push" | "manual" | "schedule" | "pull_request";
   prNumber?: number;                           // Source PR number if applicable
   existingDocdriftPr?: {                       // Existing PR to update
@@ -473,8 +473,10 @@ const inferBlock =
     : "";
 ```
 
+The prompt also includes a dedicated block when `runGate === "spec_export_invalid"` that instructs Devin to fix the spec source first (e.g. add requestBody to JSDoc), re-run the export, then update the published spec and docs ([see Run Gate Logic](#6.4)).
+
 This conditional block:
-- Activates only when `runGate === "infer"` ([see Run Gate Logic](#6.4))
+- Activates only when `runGate === "infer"`
 - Sets different expectations for evidence completeness
 - Emphasizes conservative inference over invention
 

@@ -16,9 +16,16 @@ Detection, gating, core flow, and why it stays low-noise.
 
 ## Detection and gate
 
-- **Gate:** We only run a Devin session when **spec drift** is detected (strict mode). No drift → no session. In auto mode, pathMapping matches also trigger a run.
-- **Tier 1:** Spec drift (generated vs published)
+- **Gate:** We run a Devin session when **spec export is incomplete** (validation fails — highest priority), when **spec drift** is detected (strict mode), or in auto mode when pathMapping matches trigger a run. No drift → no session.
+- **Spec export invalid:** Exported OpenAPI spec failed completeness validation (e.g. POST/PUT/PATCH missing `requestBody`). Devin is prompted to fix the spec source first, then re-export and update docs.
+- **Tier 1:** Spec drift (generated vs published) or spec export incomplete
 - **Tier 2:** Heuristic path impacts from pathMappings (e.g. `apps/api/src/auth/**` → guides)
+
+### Three flows
+
+- **Spec invalid** — The exported spec fails validation (e.g. missing request bodies). Fix the spec source (JSDoc, schema) first, re-run the export, then update the published spec and docs.
+- **Spec valid + drift** — The spec passes validation but generated and published specs differ. Update docs (and published spec) only.
+- **Auto / heuristic** — No spec drift; path mappings or infer mode trigger a run (auto mode only). Update docs from file-change context.
 
 ### Output artifacts (under `.docdrift/`)
 

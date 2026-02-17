@@ -6,6 +6,7 @@ import { execCommand } from "../utils/exec";
 import { ensureDir } from "../utils/fs";
 import { stableStringify } from "../utils/json";
 import { fetchSpec } from "../utils/fetch";
+import { validateExportCompleteness } from "./openapi-validator";
 
 function responseFields(spec: any): Set<string> {
   const fields = new Set<string>();
@@ -160,6 +161,37 @@ export async function detectOpenApiSpecDrift(
         evidence: evidenceFiles,
       },
     };
+  }
+
+  // Validate export completeness before comparing
+  const validationOpts = { allowlist: (config as any).validation?.allowlist ?? [] };
+  const validationEnabled = (config as any).validation?.enabled !== false;
+  if (validationEnabled) {
+    const validation = validateExportCompleteness(currentJson, validationOpts);
+    if (!validation.pass) {
+      const validationPath = path.join(evidenceDir, "openapi3-validation.txt");
+      const validationBody = [
+        "# OpenAPI Spec Export Incomplete",
+        "",
+        "The exported spec does not accurately reflect the implementation.",
+        "",
+        ...validation.issues.map((i) => `## ${i.path}\n- Code: ${i.code}\n- ${i.message}\n`),
+      ].join("\n");
+      fs.writeFileSync(validationPath, validationBody, "utf8");
+      const summaryLines = validation.issues.map((i) => `${i.path}: ${i.message}`);
+      return {
+        hasDrift: true,
+        summary: `Spec export incomplete: ${summaryLines.join("; ")}`,
+        evidenceFiles: [...evidenceFiles, validationPath],
+        impactedDocs: [config.published],
+        signal: {
+          kind: "spec_export_incomplete",
+          tier: 1,
+          confidence: 0.9,
+          evidence: [validationPath],
+        },
+      };
+    }
   }
 
   const normalizedCurrent = stableStringify(currentJson);

@@ -39,10 +39,11 @@ For information about how drift is detected before reaching the run gate, see [D
 
 ## Run Gate Types
 
-The run gate system defines four possible outcomes, each representing a different level of confidence and triggering different remediation behaviors.
+The run gate system defines five possible outcomes, each representing a different level of confidence and triggering different remediation behaviors.
 
 | Gate Type | Trigger Condition | Remediation Behavior | Mode Requirement |
 |-----------|------------------|----------------------|------------------|
+| `spec_export_invalid` | Exported spec failed completeness validation (e.g. missing requestBody) | Fix spec source first, then re-export and update docs | Any mode |
 | `spec_drift` | Spec provider detected drift (tier ≤ 1) | Full remediation with high confidence | Any mode |
 | `conceptual_only` | Heuristic path matches, no spec drift | Conceptual docs update only | `auto` mode only |
 | `infer` | pathMappings match, spec failed or none | Infer docs from file changes | `auto` mode only |
@@ -64,27 +65,33 @@ graph TD
     
     SpecProviders["Execute spec providers<br/>(OpenAPI, GraphQL, etc.)"]
     
+    CheckSpecExportInvalid{"anySpecExportInvalid?<br/>signal.kind ===<br/>spec_export_incomplete"}
+    
     CheckSpecDrift{"anySpecDrift?<br/>(tier ≤ 1)"}
     
     Heuristics["Execute path heuristics<br/>detectHeuristicImpacts"]
     
-    CheckMode{"config.mode<br/>== 'auto'?"}
+    CheckMode["config.mode<br/>== 'auto'?"]
     
-    CheckHeuristic{"hasHeuristicMatch?<br/>(signal kind =<br/>heuristic_path_impact)"}
+    CheckHeuristic["hasHeuristicMatch?<br/>(signal kind =<br/>heuristic_path_impact)"]
     
-    CheckPathMapping{"hasPathMappingMatch?<br/>(changedPaths match<br/>pathMappings.match)"}
+    CheckPathMapping["hasPathMappingMatch?<br/>(changedPaths match<br/>pathMappings.match)"]
     
     CheckSpecProviders{"specProviders.length<br/>> 0?"}
     
     CheckAllFailed{"allSpecFailedOrNoDrift?<br/>(all providers<br/>tier > 1 or !hasDrift)"}
     
+    GateSpecExportInvalid["runGate = 'spec_export_invalid'"]
     GateSpecDrift["runGate = 'spec_drift'"]
     GateConceptual["runGate = 'conceptual_only'"]
     GateInfer["runGate = 'infer'<br/>+ add infer_mode signal"]
     GateNone["runGate = 'none'"]
     
     Start --> SpecProviders
-    SpecProviders --> CheckSpecDrift
+    SpecProviders --> CheckSpecExportInvalid
+    
+    CheckSpecExportInvalid -->|Yes| GateSpecExportInvalid
+    CheckSpecExportInvalid -->|No| CheckSpecDrift
     
     CheckSpecDrift -->|Yes| GateSpecDrift
     CheckSpecDrift -->|No| Heuristics
@@ -106,6 +113,7 @@ graph TD
     CheckAllFailed -->|No| GateNone
     CheckAllFailed -->|Yes| GateInfer
     
+    style GateSpecExportInvalid fill:#e8f5e9
     style GateSpecDrift fill:#e1f5e1
     style GateConceptual fill:#fff4e1
     style GateInfer fill:#e1f0ff
@@ -122,13 +130,21 @@ graph TD
 
 The gate logic is implemented in `buildDriftReport` at [src/detect/index.ts:104-136](). The function evaluates detection results and assigns the appropriate gate.
 
+**Priority 0: Spec Export Incomplete (Validation Failed)**
+
+```
+anySpecExportInvalid = providerResults.some((r) => r.signal?.kind === "spec_export_incomplete")
+```
+
+When any spec provider returns a signal with `kind === "spec_export_incomplete"`, the gate is immediately set to `spec_export_invalid`. This occurs when the exported OpenAPI spec fails completeness validation (e.g. POST/PUT/PATCH operations missing `requestBody`). Remediation instructs Devin to fix the spec source first, then re-export and update published spec and docs.
+
 **Priority 1: Spec Drift Detection**
 
 ```
 anySpecDrift = providerResults.some((r) => r.hasDrift && r.signal && r.signal.tier <= 1)
 ```
 
-When any spec provider (OpenAPI, GraphQL, etc.) detects drift with confidence tier ≤ 1, the gate is immediately set to `spec_drift`. This is the highest confidence signal and bypasses all other checks.
+When no export validation failure exists and any spec provider (OpenAPI, GraphQL, etc.) detects drift with confidence tier ≤ 1, the gate is set to `spec_drift`. This bypasses heuristic and infer checks.
 
 **Priority 2: Heuristic Match (Auto Mode)**
 
@@ -156,7 +172,7 @@ In `auto` mode, if `pathMappings` match changed files and either:
 
 Then the gate is set to `infer`. The system synthesizes an `infer_mode` signal with tier 2 and confidence 0.6.
 
-**Priority 4: No Gate**
+**Priority 5: No Gate**
 
 If none of the above conditions are met, the gate remains `none` and remediation is skipped.
 
@@ -177,7 +193,7 @@ mode: strict  # or omit, defaults to strict
 **Behavior:**
 - Only proceeds when spec drift is detected (`spec_drift` gate)
 - Ignores heuristic matches and path mapping matches
-- **Gate outcomes:** `spec_drift` or `none`
+- **Gate outcomes:** `spec_export_invalid`, `spec_drift`, or `none`
 - **Philosophy:** Conservative. Only remediate when there is concrete, verifiable API specification drift.
 
 **Use case:** Teams that want low noise and high confidence. Documentation updates only occur when there is an unambiguous source of truth (API spec diff).
@@ -192,7 +208,7 @@ mode: auto
 - Proceeds on spec drift (`spec_drift` gate)
 - **Additionally** proceeds on heuristic path matches (`conceptual_only` gate)
 - **Additionally** proceeds when pathMappings match and specs are unavailable/clean (`infer` gate)
-- **Gate outcomes:** `spec_drift`, `conceptual_only`, `infer`, or `none`
+- **Gate outcomes:** `spec_export_invalid`, `spec_drift`, `conceptual_only`, `infer`, or `none`
 - **Philosophy:** Proactive. Catch conceptual doc drift even when API specs don't change.
 
 **Use case:** Teams with mature path mapping configurations who want to keep guides and tutorials synchronized with code changes beyond just API reference updates.
@@ -224,6 +240,7 @@ graph LR
     Gate --> CheckGate
     
     CheckGate -->|"'none'"| ExitEarly
+    CheckGate -->|"'spec_export_invalid'"| BuildEvidence
     CheckGate -->|"'spec_drift'"| BuildEvidence
     CheckGate -->|"'conceptual_only'"| BuildEvidence
     CheckGate -->|"'infer'"| BuildEvidence
@@ -306,6 +323,7 @@ The system provides human-friendly labels for run gates when displaying detectio
 
 | RunGate | Label | Usage |
 |---------|-------|-------|
+| `spec_export_invalid` | "spec export incomplete" | Detect command output |
 | `spec_drift` | "API spec drift" | Detect command output |
 | `conceptual_only` | "path heuristics (no spec changes)" | Detect command output |
 | `infer` | "inferred from file changes" | Detect command output |
@@ -316,6 +334,8 @@ The system provides human-friendly labels for run gates when displaying detectio
 ```typescript
 function runGateLabel(gate: RunGate): string {
   switch (gate) {
+    case "spec_export_invalid":
+      return "spec export incomplete";
     case "spec_drift":
       return "API spec drift";
     case "conceptual_only":
@@ -344,6 +364,7 @@ The gate logic relies on a tier system for signal confidence. Signals with tier 
 
 | Signal Kind | Typical Tier | Description |
 |-------------|-------------|-------------|
+| `spec_export_incomplete` | 1 | Exported spec failed completeness validation (e.g. missing requestBody) |
 | `openapi_diff` | 1 | OpenAPI specification diff detected |
 | `swagger2_diff` | 1 | Swagger 2.0 specification diff detected |
 | `graphql_diff` | 1 | GraphQL schema diff detected |
@@ -449,16 +470,47 @@ pathMappings:
 
 **Sources:** [src/detect/index.ts:105-110]()
 
+### Scenario: Spec Export Incomplete (OpenAPI Validation Fails)
+
+**Configuration:**
+```yaml
+mode: strict
+specProviders:
+  - format: openapi3
+    current:
+      type: export
+      command: npm run openapi:export
+      outputPath: openapi/generated.json
+    published: apps/docs-site/openapi/openapi.json
+    validation:
+      enabled: true
+      allowlist: ["/health"]
+```
+
+**Situation:** The export command runs and produces an OpenAPI spec, but one or more POST/PUT/PATCH operations lack a `requestBody` (e.g. incomplete `@swagger` JSDoc). Export completeness validation fails.
+
+**Detection Results:**
+1. OpenAPI detector: runs validation after parsing; validation fails
+2. Detector writes `openapi3-validation.txt` and returns `hasDrift: true` with `signal.kind === "spec_export_incomplete"` (tier 1)
+
+**Gate Decision:**
+- `anySpecExportInvalid = true`
+- **Result:** `runGate = "spec_export_invalid"`
+- Reason: Spec export incomplete takes priority over all other checks. Devin is prompted to fix the spec source (e.g. add requestBody to JSDoc), re-run the export, then update the published spec and docs.
+
+**Sources:** [src/spec-providers/openapi.ts](), [src/spec-providers/openapi-validator.ts](), [src/detect/index.ts:70-76]()
+
 ---
 
 ## Summary Table: Gate Determination Logic
 
 | Condition | Priority | Mode | Gate Set | Next Action |
 |-----------|---------|------|---------|-------------|
-| Spec provider tier ≤ 1 drift detected | 1 (highest) | Any | `spec_drift` | Proceed to policy/remediation |
-| Heuristic path impact signal exists | 2 | `auto` only | `conceptual_only` | Proceed to policy/remediation |
-| pathMappings match, spec clean/failed | 3 | `auto` only | `infer` | Proceed to policy/remediation |
-| None of the above | 4 (lowest) | Any | `none` | Exit early, skip remediation |
+| Spec export completeness validation failed | 1 (highest) | Any | `spec_export_invalid` | Proceed to policy/remediation; fix spec source first |
+| Spec provider tier ≤ 1 drift detected | 2 | Any | `spec_drift` | Proceed to policy/remediation |
+| Heuristic path impact signal exists | 3 | `auto` only | `conceptual_only` | Proceed to policy/remediation |
+| pathMappings match, spec clean/failed | 4 | `auto` only | `infer` | Proceed to policy/remediation |
+| None of the above | 5 (lowest) | Any | `none` | Exit early, skip remediation |
 
 **Sources:** [src/detect/index.ts:104-136]()
 

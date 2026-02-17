@@ -19,6 +19,7 @@ export interface ChangeSet {
 
 export type SignalKind =
   | "docs_check_failed"
+  | "spec_export_incomplete"
   | "openapi_diff"
   | "swagger2_diff"
   | "graphql_diff"

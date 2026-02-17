@@ -2,6 +2,8 @@
 
 Guides and reference for the docdrift project.
 
+Responsibility: the consumer keeps the spec export complete; docdrift enforces and reports when it isn’t and updates documentation accordingly.
+
 ## Guides
 
 - [Setup](guides/setup.md) — Get `docdrift.yaml` and workflows in place

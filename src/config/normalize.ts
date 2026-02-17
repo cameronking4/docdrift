@@ -44,6 +44,7 @@ export function normalizeConfig(config: DocDriftConfig): NormalizedDocDriftConfi
         format: "openapi3",
         current: { type: "export", command: config.openapi.export, outputPath: config.openapi.generated },
         published: config.openapi.published,
+        validation: { enabled: true, allowlist: [] },
       },
     ];
     openapi = config.openapi;
@@ -74,6 +75,7 @@ export function normalizeConfig(config: DocDriftConfig): NormalizedDocDriftConfi
         format: "openapi3",
         current: { type: "export", command: o.exportCmd, outputPath: o.generatedPath },
         published: o.publishedPath,
+        validation: { enabled: true, allowlist: [] },
       },
     ];
     openapi = {

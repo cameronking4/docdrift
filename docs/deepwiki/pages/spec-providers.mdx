@@ -45,17 +45,28 @@ specProviders:
       command: npm run export     # For type: export
       outputPath: generated.json  # For type: export
     published: docs/api/spec.json # Required: Published spec location
+    validation:                   # Optional: OpenAPI export completeness validation
+      enabled: true
+      allowlist: ["/health"]
 ```
 
 ### Schema Definition
 
-The `specProviderConfigSchema` defines three required fields:
+The `specProviderConfigSchema` defines three required fields and an optional `validation` block:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `format` | enum | Specification format: `openapi3`, `swagger2`, `graphql`, `fern`, `postman` |
 | `current` | object | Source configuration for obtaining the current specification state |
 | `published` | string | File path to the published specification in the documentation |
+| `validation` | object | Optional. OpenAPI export completeness validation (see below). |
+
+**Validation object (optional):**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `true` | Enable export completeness validation for OpenAPI specs. |
+| `allowlist` | string[] | `[]` | Path patterns to skip during validation (e.g. `/health`). |
 
 **Sources:** [src/config/schema.ts:33-40]()
 
@@ -118,6 +129,29 @@ The export type is the most common pattern, as it ensures the specification is g
 
 ---
 
+## OpenAPI Export Validation
+
+For OpenAPI spec providers using `current.type: export`, the exported specification is validated for completeness before it is compared to the published spec. This ensures the export is the source of truth and avoids undetected drift when both generated and published specs are missing the same fields (e.g. incomplete `@swagger` JSDoc omitting `requestBody`).
+
+**Validation rules:**
+
+- Every path operation with HTTP method POST, PUT, or PATCH must have a `requestBody`.
+- If `requestBody` is present, its schema must have `properties` (non-empty request body schema).
+
+Paths listed in `validation.allowlist` are skipped (e.g. `/health` for a health-check endpoint with no body).
+
+When validation fails, the OpenAPI detector:
+
+1. Writes validation issues to `.docdrift/openapi3-validation.txt`
+2. Returns `hasDrift: true` with a signal of kind `spec_export_incomplete` (tier 1)
+3. Causes the run gate to be set to `spec_export_invalid`
+
+Devin is then prompted to fix the spec source first (e.g. add `requestBody` to JSDoc or schema), re-run the export command, then update the published spec and documentation. Validation is controlled per provider via `validation.enabled` (default `true`) and `validation.allowlist`.
+
+**Sources:** [src/spec-providers/openapi-validator.ts](), [src/spec-providers/openapi.ts](), [src/detect/index.ts:70-76]()
+
+---
+
 ## Spec Provider Flow in Detection Pipeline
 
 ```mermaid
@@ -138,6 +172,7 @@ graph TB
     
     RunGate{"Run Gate<br/>Decision"}
     
+    SpecExportInvalid["spec_export_invalid<br/>Export validation failed"]
     SpecDrift["spec_drift<br/>Tier ≤ 1 signal"]
     Infer["infer<br/>No spec drift"]
     None["none<br/>No action"]
@@ -155,6 +190,7 @@ graph TB
     
     Aggregate --> RunGate
     
+    RunGate -->|"anySpecExportInvalid"| SpecExportInvalid
     RunGate -->|"anySpecDrift = true"| SpecDrift
     RunGate -->|"allSpecFailedOrNoDrift<br/>+ pathMappings match"| Infer
     RunGate -->|"No drift detected"| None
@@ -429,6 +465,9 @@ specProviders:
       command: npm run openapi:export
       outputPath: openapi/generated.json
     published: apps/docs-site/openapi/openapi.json
+    validation:
+      enabled: true
+      allowlist: ["/health"]
 docsite: apps/docs-site
 policy:
   allowlist: ["apps/docs-site/**", "openapi/**"]
@@ -483,6 +522,7 @@ The complete JSON Schema for spec providers is defined in `docdrift.schema.json`
   - `format`: enum of `["openapi3", "swagger2", "graphql", "fern", "postman"]`
   - `current`: discriminated union of url/local/export source types
   - `published`: string (minimum length 1)
+  - `validation`: optional object with `enabled` (boolean, default true) and `allowlist` (string[])
 
 **Sources:** [docdrift.schema.json:15-105]()
 

@@ -176,7 +176,8 @@ graph TB
     
     subgraph RunGate["Run Gate Decision"]
         GateLogic{"Determine<br/>RunGate"}
-        SpecDrift["spec_drift<br/>(highest confidence)"]
+        SpecExportInvalid["spec_export_invalid<br/>export validation failed"]
+        SpecDrift["spec_drift<br/>(high confidence)"]
         ConceptualOnly["conceptual_only<br/>(path heuristics)"]
         Infer["infer<br/>(fallback pattern)"]
         None["none<br/>(no action)"]
@@ -202,11 +203,13 @@ graph TB
     PathMappings --> GateLogic
     InferMode --> GateLogic
     
+    GateLogic --> SpecExportInvalid
     GateLogic --> SpecDrift
     GateLogic --> ConceptualOnly
     GateLogic --> Infer
     GateLogic --> None
     
+    SpecExportInvalid --> DriftReport
     SpecDrift --> DriftReport
     ConceptualOnly --> DriftReport
     Infer --> DriftReport
@@ -225,9 +228,10 @@ graph TB
 
 **Run Gates:**
 
-The detection system produces one of four run gates that determine whether remediation proceeds:
+The detection system produces one of five run gates that determine whether remediation proceeds:
 
-- `spec_drift`: API specification changes detected (highest priority)
+- `spec_export_invalid`: Exported spec failed completeness validation (e.g. missing requestBody); highest priority — fix spec source first, then re-export and update docs
+- `spec_drift`: API specification changes detected
 - `conceptual_only`: Only path heuristics matched, no spec changes
 - `infer`: Inferred from file patterns (mode-dependent behavior)
 - `none`: No drift detected, exit early
