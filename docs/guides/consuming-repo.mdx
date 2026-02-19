@@ -22,17 +22,29 @@ DEVIN_API_KEY=... GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha>
 
 ## GitHub Actions
 
-Add a step that runs the CLI (e.g. after checkout and setting base/head):
+Add a step that runs the CLI (e.g. after checkout and setting base/head). For **pull request** runs, pass trigger and PR context so Devin can commit to the source branch (commit-to-branch):
 
 ```yaml
-- run: npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+- name: Run Doc Drift
   env:
     DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     GITHUB_REPOSITORY: ${{ github.repository }}
     GITHUB_SHA: ${{ github.sha }}
+    GITHUB_EVENT_NAME: ${{ github.event_name }}
+    GITHUB_PR_NUMBER: ${{ steps.shas.outputs.pr_number }}
+    GITHUB_PR_HEAD_REF: ${{ github.event.pull_request.head.ref || '' }}
+  run: |
+    PR_ARGS=""
+    if [ -n "$GITHUB_PR_NUMBER" ]; then
+      PR_ARGS="--trigger pull_request --pr-number $GITHUB_PR_NUMBER"
+      if [ -n "$GITHUB_PR_HEAD_REF" ]; then
+        PR_ARGS="$PR_ARGS --pr-head-ref $GITHUB_PR_HEAD_REF"
+      fi
+    fi
+    npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} $PR_ARGS
 ```
 
-Add repo secret `DEVIN_API_KEY`; `GITHUB_TOKEN` is provided by the runner.
+Ensure the "Determine SHAs" step outputs `pr_number` and, on `pull_request`, uses the PR's head/base SHAs. Add repo secret `DEVIN_API_KEY`; `GITHUB_TOKEN` is provided by the runner.
 
-For a complete workflow and all three Docdrift workflows, see [GitHub Actions](/github-actions).
+For a complete workflow (push + pull_request + job condition), see [GitHub Actions](/github-actions).

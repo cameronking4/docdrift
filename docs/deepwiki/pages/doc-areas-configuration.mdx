@@ -24,47 +24,48 @@ The following files were used as context for generating this wiki page:
 
 
 
-This document explains how docdrift manages the lifecycle of documentation PRs created by Devin AI. The system implements three distinct PR creation patterns based on trigger type (push vs pull_request), with special handling for updating existing PRs to avoid proliferation. This page covers branch naming conventions, comment posting, issue creation, and state tracking.
+This document explains how docdrift manages the lifecycle of documentation updates created by Devin AI. When the trigger is **pull request**, the default behavior is **commit-to-branch**: Devin commits directly to the source PR branch (no separate docdrift PR). Alternatively, with `devin.prStrategy: "separate-pr"`, docdrift creates or updates a `docdrift/pr-N` draft PR. For **push** to main or **manual** runs, the system creates or updates a single docdrift branch PR. This page covers branch naming, comment posting, issue creation, and state tracking.
 
 For information about the GitHub Actions workflow that triggers these patterns, see [GitHub Actions Workflow](#9.1). For details on issue types and notification content, see [Issues and Notifications](#9.3).
 
 ---
 
-## PR Creation Patterns
+## PR and commit patterns
 
-The system implements three distinct patterns for PR creation depending on the trigger type and whether a documentation PR already exists for the source code changes.
+- **Pull request + commit-to-branch** (default, `devin.prStrategy: "commit-to-branch"`): Devin commits to the source PR branch. No separate docdrift PR; no `postPrComment`. The workflow must pass `GITHUB_PR_HEAD_REF` and `--pr-head-ref`.
+- **Pull request + separate-pr** (`devin.prStrategy: "separate-pr"`): Same as the legacy per-PR flow — create or update a `docdrift/pr-N` draft PR; optionally post a comment on the source PR when a new docdrift PR is opened.
+- **Push to main / manual**: Create or update a single docdrift branch PR (or per-docdrift PR when `branchStrategy: "per-pr"` with separate-pr).
 
 ```mermaid
 flowchart TD
     Trigger{Trigger Type}
     
     Trigger -->|push| PushPath["Push to Main Pattern"]
-    Trigger -->|pull_request| CheckExisting["Check for existing<br/>docdrift PR"]
+    Trigger -->|pull_request| PRStrategy{prStrategy?}
     
-    CheckExisting -->|findExistingDocdriftPrForSource| Found{PR Found?}
+    PRStrategy -->|commit-to-branch| CommitPath["Commit-to-Branch Pattern"]
+    PRStrategy -->|separate-pr| CheckExisting["Check for existing<br/>docdrift PR"]
     
-    Found -->|Yes| UpdatePath["Update-in-Place Pattern"]
-    Found -->|No| DraftPath["Draft PR Pattern"]
+    CheckExisting --> Found{PR Found?}
+    Found -->|Yes| UpdatePath["Update existing docdrift/pr-N"]
+    Found -->|No| DraftPath["Create DRAFT PR<br/>docdrift/pr-N"]
     
-    PushPath --> StandardPR["Create standard PR<br/>Branch: feature or default<br/>Status: open<br/>Link to commit"]
+    PushPath --> StandardPR["Create/update PR<br/>Branch: docdrift or default"]
     
-    DraftPath --> DraftPR["Create DRAFT PR<br/>Branch: docdrift/pr-N<br/>Status: draft<br/>Link to source PR #N"]
+    CommitPath --> CommitBranch["Devin commits to source PR branch<br/>No new PR"]
     
-    UpdatePath --> UpdatePR["Update existing PR<br/>Push to branch: docdrift/pr-N<br/>Keep PR #, URL<br/>No new PR created"]
-    
+    DraftPath --> PostPRComment["postPrComment on source PR"]
+    UpdatePath --> PostCommit2["postCommitComment"]
     StandardPR --> PostCommit["postCommitComment"]
-    DraftPR --> PostPRComment["postPrComment<br/>on source PR #N"]
-    UpdatePR --> PostCommit2["postCommitComment"]
+    CommitBranch --> PostCommitC["postCommitComment only"]
     
-    PostPRComment --> PostCommit3["postCommitComment"]
-    
-    style Found fill:#f9f9f9
+    style PRStrategy fill:#f9f9f9
     style Trigger fill:#f9f9f9
 ```
 
-**Diagram 1: PR Creation Pattern Decision Tree**
+**Diagram 1: PR / commit pattern decision tree**
 
-Sources: [src/index.ts:339-348](), [src/devin/prompts.ts:126-147](), [src/github/client.ts:232-253]()
+Sources: [src/index.ts](), [src/devin/prompts.ts](), [src/github/client.ts]()
 
 ---
 
@@ -85,9 +86,13 @@ This pattern is used for scheduled runs, manual runs, or pushes to main where th
 
 ---
 
-### Draft PR Pattern (Pull Request Trigger, No Existing PR)
+### Commit-to-branch pattern (pull request, default)
 
-When triggered by a `pull_request` event and no docdrift PR exists yet, the system creates a **draft PR** with special branch naming:
+When triggered by a `pull_request` event and `devin.prStrategy` is `commit-to-branch` (default), the system does **not** create a separate docdrift PR. Devin is instructed to checkout the source PR branch (via `prHeadRef` / `GITHUB_PR_HEAD_REF`), apply doc changes, commit, and push. Doc updates appear as commits on the same PR. No `postPrComment` is posted. This is the lowest-noise option for PR-driven runs.
+
+### Draft PR pattern (pull request, separate-pr)
+
+When `devin.prStrategy` is `separate-pr` and triggered by a `pull_request` event with no existing docdrift PR, the system creates a **draft PR** with special branch naming:
 
 ```mermaid
 sequenceDiagram

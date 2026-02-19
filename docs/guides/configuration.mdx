@@ -19,14 +19,31 @@ mode: strict   # only on spec drift
 mode: auto     # also on pathMapping matches
 ```
 
-## Branch strategy (single branch / low noise)
+## Pull request strategy (commit-to-branch vs separate PR)
 
-By default, docdrift uses a **single branch** for all runs to minimize PR noise:
+When docdrift runs on a **pull request** event, you choose how Devin remediates:
+
+| `devin.prStrategy` | Default | Behavior |
+| ------------------ | ------- | -------- |
+| **`commit-to-branch`** | Yes | Devin commits directly to the source PR branch. No separate docdrift PR; doc updates appear on the same PR. Lowest noise. |
+| **`separate-pr`** | No | Devin creates or updates a `docdrift/pr-N` branch and draft PR; a comment links it to the source PR. |
+
+```yaml
+# docdrift.yaml — under devin:
+devin:
+  prStrategy: commit-to-branch   # default; use separate-pr for docdrift/pr-N PRs
+```
+
+The workflow must pass the PR head ref (e.g. `GITHUB_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}`) and `--pr-head-ref` so Devin knows which branch to commit to. Docdrift does not run when the PR head branch starts with `docdrift/`.
+
+## Branch strategy (push / manual)
+
+For **push to main** or **manual** runs, docdrift uses a **single branch** by default:
 
 | Strategy | Default | Behavior |
 | -------- | ------- | -------- |
 | **`single`** | Yes | One branch (e.g. `docdrift`) for all runs. If an open PR from that branch exists, Devin updates it instead of opening a new one. |
-| **`per-pr`** | No | One branch per source PR (e.g. `docdrift-abc1234`). Each upstream PR gets its own docdrift PR. |
+| **`per-pr`** | No | One branch per source PR (e.g. `docdrift/pr-N`). Used with `prStrategy: "separate-pr"` for pull_request. |
 
 ```yaml
 # docdrift.yaml — explicit low-noise (default)

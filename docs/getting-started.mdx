@@ -71,7 +71,9 @@ Fix any reported errors before running detection or remediation.
     npx @devinnn/docdrift run --base <base-sha> --head <head-sha>
   ```
 
-In GitHub Actions, use the [GitHub Actions workflow](/github-actions) so base/head and env vars are set for you.
+  For **pull request** runs (e.g. in CI), also set `GITHUB_EVENT_NAME`, `GITHUB_PR_NUMBER`, and `GITHUB_PR_HEAD_REF`, or pass `--trigger pull_request --pr-number <n> --pr-head-ref <branch>` so Devin can commit to the source PR branch (commit-to-branch).
+
+In GitHub Actions, use the [GitHub Actions workflow](/github-actions) so base/head, PR context, and env vars are set for you.
 
 ## Quick reference
 

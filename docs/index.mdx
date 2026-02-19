@@ -50,7 +50,7 @@ npx @devinnn/docdrift detect         # detection only (optional: --base / --head
 npx @devinnn/docdrift run            # full run (set DEVIN_API_KEY, GITHUB_* for CI)
 ```
 
-Add repo secret `DEVIN_API_KEY` for GitHub Actions. **CLI** for local and scripted use: `validate`, `detect`, `run`, `setup`, `generate-yaml`, `export`, `sla-check`, `status`. **GitHub Actions** for drift on push and optional export/SLA workflows. See **[Getting Started](/getting-started)** and **[GitHub Actions](/github-actions)**.
+Add repo secret `DEVIN_API_KEY` for GitHub Actions. **CLI** for local and scripted use: `validate`, `detect`, `run`, `setup`, `generate-yaml`, `export`, `sla-check`, `status`. **GitHub Actions** for drift on push and **pull request** (on PR, Devin commits to the source branch by default; see [Configuration](/guides/configuration)). See **[Getting Started](/getting-started)** and **[GitHub Actions](/github-actions)**.
 
 **More:** [Setup](/guides/setup), [Configuration](/guides/configuration), [Real World Scenarios](/real-world-scenarios); [Architecture](/deepwiki/pages/architecture), [Key Concepts](/deepwiki/pages/monorepo-structure-and-packages), [Detection Rules](/deepwiki/pages/detection-rules).
 

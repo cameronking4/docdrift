@@ -16,17 +16,30 @@ mode: strict   # only on spec drift
 mode: auto     # also on pathMapping matches
 ```
 
-## Branch strategy (single branch / low noise)
+## Pull request strategy (commit-to-branch vs separate PR)
 
-By default, docdrift uses a **single branch** for all runs to minimize PR noise:
+When docdrift runs on a **pull request** event:
+
+| `devin.prStrategy` | Default | Behavior |
+| ------------------ | ------- | -------- |
+| **`commit-to-branch`** | Yes | Devin commits to the source PR branch; no separate docdrift PR. |
+| **`separate-pr`** | No | Devin creates/updates a `docdrift/pr-N` draft PR. |
+
+```yaml
+devin:
+  prStrategy: commit-to-branch   # default
+```
+
+## Branch strategy (push / manual)
+
+For push to main or manual runs:
 
 | Strategy | Default | Behavior |
 | -------- | ------- | -------- |
-| **`single`** | Yes | One branch (e.g. `docdrift`) for all runs. If an open PR from that branch exists, Devin updates it instead of opening a new one. |
-| **`per-pr`** | No | One branch per source PR (e.g. `docdrift-abc1234`). Each upstream PR gets its own docdrift PR. |
+| **`single`** | Yes | One branch (e.g. `docdrift`) for all runs; Devin updates existing PR when present. |
+| **`per-pr`** | No | One branch per source PR (with `prStrategy: "separate-pr"`). |
 
 ```yaml
-# docdrift.yaml — explicit low-noise (default)
 branchStrategy: single
 branchPrefix: docdrift
 ```
@@ -59,7 +72,7 @@ specProviders:
 
 ## Baseline drift detection (`lastKnownBaseline`)
 
-When `lastKnownBaseline` is set to a commit SHA, docdrift compares the current exported spec to the **published OpenAPI spec at that commit**. If they differ, drift is detected (API changed since last sync). When blank, we assume drift (first install). The `docdrift-baseline-update` workflow updates it automatically when a docdrift PR is merged.
+When `lastKnownBaseline` is set to a commit SHA, docdrift compares the current exported spec to the **published OpenAPI spec at that commit**. If they differ, drift is detected (API changed since last sync). When blank, we assume drift (first install). The `docdrift-baseline-update` workflow updates it automatically when any PR is merged to main.
 
 ```yaml
 # docdrift.yaml

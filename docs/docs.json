@@ -19,7 +19,7 @@
             "pages": [
               "index",
               "deepwiki/pages/overview",
-              "deepwiki/pages/installation-and-setup",
+              "guides/how-it-works",
               "deepwiki/pages/monorepo-structure-and-packages"
             ]
           },
@@ -122,7 +122,7 @@
             "pages": [
               {
                 "group": "How It Works",
-                "pages": ["guides/how-it-works", "guides/consuming-repo"]
+                "pages": ["deepwiki/pages/installation-and-setup", "guides/consuming-repo"]
               },
               {
                 "group": "CI & GitHub",
