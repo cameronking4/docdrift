@@ -261,6 +261,14 @@
         },
         "customInstructionContent": {
           "type": "string"
+        },
+        "prStrategy": {
+          "type": "string",
+          "enum": [
+            "commit-to-branch",
+            "separate-pr"
+          ],
+          "default": "commit-to-branch"
         }
       },
       "required": [

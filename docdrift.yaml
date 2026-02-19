@@ -11,7 +11,7 @@ specProviders:
 
 docsite: "apps/docs-site"
 
-mode: auto
+mode: strict
 
 pathMappings:
   - match: "apps/api/**"

@@ -35,6 +35,8 @@ interface DetectOptions {
   headSha: string;
   trigger?: "push" | "manual" | "schedule" | "pull_request";
   prNumber?: number;
+  /** Source PR head branch name when trigger is pull_request. Used for commit-to-branch. */
+  prHeadRef?: string;
 }
 
 interface SessionOutcome {
@@ -91,9 +93,11 @@ async function executeSessionSingle(input: {
   runGate: import("./detect").RunGate;
   trigger: import("./model/types").TriggerKind;
   prNumber?: number;
+  prHeadRef?: string;
   existingDocdriftPr?: { number: number; url: string; headRef: string };
   branchPrefix: string;
   branchStrategy: "single" | "per-pr";
+  prStrategy?: "commit-to-branch" | "separate-pr";
 }): Promise<SessionOutcome> {
   const attachmentUrls: string[] = [];
   for (const attachmentPath of input.attachmentPaths) {
@@ -102,15 +106,18 @@ async function executeSessionSingle(input: {
   }
 
   const prompt = buildWholeDocsitePrompt({
+    repository: input.repository,
     aggregated: input.aggregated,
     config: input.config,
     attachmentUrls,
     runGate: input.runGate,
     trigger: input.trigger,
     prNumber: input.prNumber,
+    prHeadRef: input.prHeadRef,
     existingDocdriftPr: input.existingDocdriftPr,
     branchPrefix: input.branchPrefix,
     branchStrategy: input.branchStrategy,
+    prStrategy: input.prStrategy ?? input.config.devin?.prStrategy,
   });
 
   const session = await devinCreateSession(input.apiKey, {
@@ -275,6 +282,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       headSha: options.headSha,
       trigger: options.trigger ?? "manual",
       prNumber: options.prNumber,
+      prHeadRef: options.prHeadRef,
     });
 
   // Gate: no run (spec drift, conceptual-only, or infer) — exit early, no session
@@ -350,8 +358,12 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
   const bundle = await buildEvidenceBundle({ runInfo, item, evidenceRoot });
   const attachmentPaths = bundle.attachmentPaths;
 
+  const prStrategy = normalized.devin?.prStrategy ?? "commit-to-branch";
+  const useCommitToBranch =
+    runInfo.trigger === "pull_request" && runInfo.prHeadRef && prStrategy === "commit-to-branch";
+
   let existingDocdriftPr: { number: number; url: string; headRef: string } | undefined;
-  if (githubToken) {
+  if (githubToken && !useCommitToBranch) {
     if (normalized.branchStrategy === "single") {
       // Single-branch strategy: look for PR from branchPrefix on every run
       existingDocdriftPr = (await findExistingDocdriftPrByBranch(githubToken, repo, normalized.branchPrefix)) ?? undefined;
@@ -362,7 +374,7 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
         });
       }
     } else if (normalized.branchStrategy === "per-pr" && runInfo.trigger === "pull_request" && runInfo.prNumber) {
-      // Per-pr strategy: only look when triggered by pull_request
+      // Per-pr strategy (separate-pr): only look when triggered by pull_request
       existingDocdriftPr = (await findExistingDocdriftPrForSource(githubToken, repo, runInfo.prNumber, normalized.branchPrefix)) ?? undefined;
       if (existingDocdriftPr) {
         logInfo("Found existing docdrift PR for source PR; will instruct Devin to update it", {
@@ -394,9 +406,11 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       runGate,
       trigger: runInfo.trigger,
       prNumber: runInfo.prNumber,
+      prHeadRef: runInfo.prHeadRef,
       existingDocdriftPr,
       branchPrefix: normalized.branchPrefix,
       branchStrategy: normalized.branchStrategy,
+      prStrategy,
     });
     metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
   } else {
@@ -419,7 +433,14 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
     state.lastDocDriftPrUrl = sessionOutcome.prUrl;
     state.lastDocDriftPrOpenedAt = new Date().toISOString();
 
-    if (githubToken && runInfo.trigger === "pull_request" && runInfo.prNumber && !existingDocdriftPr) {
+    // Only post doc PR link when using separate-pr (no link in commit-to-branch; commits land on source PR).
+    if (
+      githubToken &&
+      runInfo.trigger === "pull_request" &&
+      runInfo.prNumber &&
+      !existingDocdriftPr &&
+      prStrategy === "separate-pr"
+    ) {
       await postPrComment({
         token: githubToken,
         repository: repo,

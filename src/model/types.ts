@@ -9,6 +9,8 @@ export interface RunInfo {
   timestamp: string;
   /** Set when trigger is pull_request */
   prNumber?: number;
+  /** Source PR head branch name when trigger is pull_request (e.g. feature/add-endpoint). Used for commit-to-branch. */
+  prHeadRef?: string;
 }
 
 export interface ChangeSet {

@@ -7,9 +7,9 @@ Run docdrift in GitHub Actions and see it work on GitHub.
 - Add secret: `DEVIN_API_KEY`
 - Push to `main` or run `workflow_dispatch`
 - Setup adds three workflows:
-  - **docdrift.yml** — Main run: validate, detect, run Devin, save state
+  - **docdrift.yml** — Main run: validate, detect, run Devin, save state. Supports push and **pull_request** (PR branch is used for detection/remediation).
   - **docdrift-sla-check.yml** — Daily cron: reminder issue for PRs open 7+ days
-  - **docdrift-baseline-update.yml** — On docdrift PR merge: updates `lastKnownBaseline` in docdrift.yaml to the merge commit
+  - **docdrift-baseline-update.yml** — On any PR merge to main: updates `lastKnownBaseline` in docdrift.yaml to the merge commit
 - Action uploads:
   - `.docdrift/drift_report.json`
   - `.docdrift/evidence/**`
@@ -38,6 +38,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 ### 3. Trigger the workflow
 
 - **Push to `main`** — runs on every push (compares previous commit vs current).
+- **Pull request** — runs when a PR targets `main`; docdrift uses the PR branch. Default: Devin commits to that branch (commit-to-branch); no separate docdrift PR.
 - **Manual run** — **Actions** tab → **devin-doc-drift** → **Run workflow** (uses `HEAD` and `HEAD^` as head/base).
 
 ## See it work (demo on GitHub)

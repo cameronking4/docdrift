@@ -82,10 +82,10 @@ graph TB
 
 **Diagram: GitHub Integration Architecture**
 
-The system implements three distinct PR creation patterns based on trigger type:
-- **Push to main**: Creates standard PRs with normal branch naming
-- **Pull request (new)**: Creates draft PRs with `docdrift/pr-{N}` branch naming and posts a comment linking them to the source PR
-- **Pull request (existing)**: Finds and updates the existing doc-drift PR via `findExistingDocdriftPrForSource`, avoiding PR proliferation
+The system implements PR/commit patterns based on trigger type and `devin.prStrategy`:
+- **Push to main**: Creates or updates standard PRs (single docdrift branch or per-run branch).
+- **Pull request + commit-to-branch** (default): Devin commits to the source PR branch; no separate docdrift PR. Requires `GITHUB_PR_HEAD_REF` and `--pr-head-ref`.
+- **Pull request + separate-pr**: Creates or updates draft PRs with `docdrift/pr-{N}` branch; optionally posts a comment on the source PR when a new docdrift PR is opened. Uses `findExistingDocdriftPrForSource` to update existing docdrift PRs.
 
 **Sources**: [src/github/client.ts:1-254](), [src/index.ts:244-530](), [.github/workflows/devin-doc-drift.yml:1-96]()
 
@@ -103,7 +103,8 @@ The GitHub integration relies on environment variables provided by GitHub Action
 | `GITHUB_REPOSITORY` | Actions context | Repository slug (`owner/repo`) | Yes (in CI) |
 | `GITHUB_SHA` | Actions context | Commit SHA for comment linking | Yes (in CI) |
 | `GITHUB_EVENT_NAME` | Actions context | Trigger type (`push`, `pull_request`, etc.) | No |
-| `GITHUB_PR_NUMBER` | Workflow extraction | Source PR number for draft PR creation | No |
+| `GITHUB_PR_NUMBER` | Workflow extraction | Source PR number when trigger is `pull_request` | No |
+| `GITHUB_PR_HEAD_REF` | `github.event.pull_request.head.ref` | Source PR branch name for commit-to-branch; passed as `--pr-head-ref` | No (required for commit-to-branch) |
 
 All variables are read at [src/index.ts:251-254]() and used conditionally throughout the run. Missing `GITHUB_TOKEN` triggers local mode (no GitHub API calls).
 

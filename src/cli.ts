@@ -73,7 +73,14 @@ async function main(): Promise<void> {
       const trigger = (getArg(args, "--trigger") as "push" | "manual" | "schedule" | "pull_request" | undefined) ?? resolveTrigger(process.env.GITHUB_EVENT_NAME);
       const prNum = getArg(args, "--pr-number");
       const prNumber = prNum ? parseInt(prNum, 10) : (process.env.GITHUB_PR_NUMBER ? parseInt(process.env.GITHUB_PR_NUMBER, 10) : undefined);
-      const results = await runDocDrift({ baseSha, headSha, trigger, prNumber: Number.isFinite(prNumber) ? prNumber : undefined });
+      const prHeadRef = getArg(args, "--pr-head-ref") ?? process.env.GITHUB_PR_HEAD_REF;
+      const results = await runDocDrift({
+        baseSha,
+        headSha,
+        trigger,
+        prNumber: Number.isFinite(prNumber) ? prNumber : undefined,
+        prHeadRef: prHeadRef || undefined,
+      });
       const outPath = path.resolve(".docdrift", "run-output.json");
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
       fs.writeFileSync(outPath, JSON.stringify(results, null, 2), "utf-8");

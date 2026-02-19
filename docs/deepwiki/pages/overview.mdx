@@ -402,7 +402,7 @@ graph TD
 2. **Rate Limiting**: `maxPrsPerDay` prevents PR spam (existing PRs are updated in-place)
 3. **Spec-Driven Gate**: In `strict` mode, no spec drift = no session (eliminates false positives)
 4. **Confidence Threshold**: Low-confidence drift escalates to issues instead of PRs
-5. **Update-in-Place**: For pull request triggers, finds existing `docdrift/pr-{N}` PR and updates it
+5. **Commit-to-branch** (default on pull request): Devin commits to the source PR branch; no separate docdrift PR. Optional **separate-pr**: create/update `docdrift/pr-{N}` PR
 6. **Allowlist Enforcement**: Devin cannot modify files outside configured allowlist
 7. **Human Review Flags**: Automatically creates review issues when conceptual docs are touched
 

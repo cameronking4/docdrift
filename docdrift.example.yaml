@@ -4,6 +4,10 @@ version: 2
 
 # lastKnownBaseline: optional commit SHA where docs were in sync. Omit for first install.
 
+# Pull request (on: pull_request): docdrift runs on the PR branch (head/base SHAs from the PR).
+# - prStrategy: commit-to-branch (default) — Devin commits to the source PR branch; no extra docdrift PR.
+# - prStrategy: separate-pr — Devin creates/updates a docdrift/pr-N branch and draft PR.
+
 specProviders:
   - format: openapi3
     current:
@@ -27,7 +31,6 @@ devin:
   unlisted: true
   maxAcuLimit: 2
   tags: [docdrift]
-
 policy:
   prCaps:
     maxPrsPerDay: 2

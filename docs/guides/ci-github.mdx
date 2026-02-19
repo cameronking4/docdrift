@@ -8,11 +8,8 @@ Run docdrift in GitHub Actions and see it work on GitHub.
 ## CI configuration
 
 - Add secret: `DEVIN_API_KEY`
-- Push to `main` or run `workflow_dispatch`
-- Action uploads:
-  - `.docdrift/drift_report.json`
-  - `.docdrift/evidence/**`
-  - `.docdrift/metrics.json`
+- **Triggers:** Push to `main`, **pull request** (to `main`), or `workflow_dispatch`. On pull request, docdrift runs on the **PR branch** (base/head SHAs from the PR). The job is skipped when the PR head branch starts with `docdrift/` to avoid running on docdrift’s own branches.
+- Action uploads: `.docdrift/drift_report.json`, `.docdrift/evidence/**`, `.docdrift/metrics.json`
 
 ## Run on GitHub
 
@@ -37,6 +34,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 ### 3. Trigger the workflow
 
 - **Push to `main`** — runs on every push (compares previous commit vs current).
+- **Pull request** — runs when a PR targets `main`. Docdrift evaluates the **PR branch** (not main). With default `devin.prStrategy: "commit-to-branch"`, Devin commits doc fixes to the same PR branch; no separate docdrift PR.
 - **Manual run** — **Actions** tab → **devin-doc-drift** → **Run workflow** (uses `HEAD` and `HEAD^` as head/base).
 
 ## See it work (demo on GitHub)

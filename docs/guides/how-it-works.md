@@ -4,10 +4,11 @@ Detection, gating, core flow, and why it stays low-noise.
 
 ## Why this is low-noise
 
-- **Single branch strategy** (default) — One branch for all runs (e.g. `docdrift`). Devin updates the existing PR when present instead of opening a new one per run. Configurable via `branchStrategy: single` in `docdrift.yaml`.
+- **Pull request: commit-to-branch** (default) — When triggered by a pull request, Devin commits directly to the source PR branch. No separate docdrift PR; doc updates appear on the same PR. Set `devin.prStrategy: "separate-pr"` for a separate `docdrift/pr-N` PR.
+- **Single branch strategy** (push/manual) — For push to main or manual runs, one branch (e.g. `docdrift`) for all runs; Devin updates the existing PR when present. Configurable via `branchStrategy: single` in `docdrift.yaml`.
 - **Single session, single PR** — One Devin session handles the whole docsite (API reference + guides).
 - **Gate on API spec diff** — We only run when spec drift is detected (strict mode); no session for docs-check-only failures.
-- **Baseline drift detection** (`lastKnownBaseline`) — When set, we compare current export to the published spec at that commit. No drift since last sync → no session. Avoids surfacing months of accumulated changes; we only remediate what changed since the last attested sync.
+- **Baseline drift detection** (`lastKnownBaseline`) — When set, we compare current export to the published spec at that commit. No drift since last sync → no session. The `docdrift-baseline-update` workflow updates it when any PR is merged to main.
 - **requireHumanReview** — When the PR touches guides/prose, we open an issue after the PR to direct attention.
 - **7-day SLA** — If a doc-drift PR is open 7+ days, we open a reminder issue (configurable `slaDays`; use `sla-check` CLI or cron workflow).
 - Confidence gating and allowlist/exclude enforcement.
@@ -21,7 +22,7 @@ Detection, gating, core flow, and why it stays low-noise.
 - **Tier 1:** Baseline missing (no `lastKnownBaseline` set → assume drift for first install)
 - **Tier 2:** Heuristic path impacts from pathMappings (e.g. `apps/api/src/auth/**` → guides)
 
-**lastKnownBaseline:** When set, drift = current export differs from the published OpenAPI spec at that commit. When blank, we assume drift (cold start). Updated automatically by the `docdrift-baseline-update` workflow when a docdrift PR is merged. See [docdrift.yaml](docdrift-yml.md#lastknownbaseline-baseline-drift-detection).
+**lastKnownBaseline:** When set, drift = current export differs from the published OpenAPI spec at that commit. When blank, we assume drift (cold start). Updated automatically by the `docdrift-baseline-update` workflow when any PR is merged to main. See [docdrift.yaml](docdrift-yml.md#lastknownbaseline-baseline-drift-detection).
 
 ### Output artifacts (under `.docdrift/`)
 
@@ -34,12 +35,13 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 
 1. Validate config and command availability.
 2. Build drift report. **Gate:** If no drift (strict mode: spec only; auto mode: spec or pathMappings), exit (no session).
-3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`). With `branchStrategy: single`, we look for an existing open PR from the docdrift branch; if found, we instruct Devin to update it (`UPDATE_EXISTING_PR`) instead of opening a new one.
-4. Build one aggregated evidence bundle for the whole docsite.
-5. One Devin session with whole-docsite prompt; poll to terminal status.
-6. If PR opened and touches `requireHumanReview` paths → create issue to direct attention.
-7. Surface result via GitHub commit comment; open issue on blocked/low-confidence paths.
-8. Persist state (including `lastDocDriftPrUrl` for SLA); write `.docdrift/metrics.json`.
+3. **Pull request:** When trigger is `pull_request`, base/head SHAs come from the PR. With `devin.prStrategy: "commit-to-branch"` (default), Devin commits to the source PR branch; no separate docdrift PR. With `prStrategy: "separate-pr"`, create or update a `docdrift/pr-N` PR.
+4. **Push/manual:** Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`). With `branchStrategy: single`, we look for an existing open PR from the docdrift branch; if found, we instruct Devin to update it instead of opening a new one.
+5. Build one aggregated evidence bundle for the whole docsite.
+6. One Devin session with whole-docsite prompt; poll to terminal status.
+7. If a PR was opened and touches `requireHumanReview` paths → create issue to direct attention.
+8. Surface result via GitHub commit comment; open issue on blocked/low-confidence paths. (When `prStrategy: "commit-to-branch"`, we do not post a comment linking to a separate doc PR.)
+9. Persist state (including `lastDocDriftPrUrl` for SLA when applicable); write `.docdrift/metrics.json`.
 
 ## Where the docs are (this repo)
 
@@ -53,8 +55,8 @@ The docsite is a Docusaurus app with `docusaurus-plugin-openapi-docs`. The **gen
 
 ## How Devin updates them
 
-1. **Evidence bundle** — Docdrift builds a tarball with the drift report, spec diff, and impacted doc snippets, and uploads it to the Devin API as session attachments.
-2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`openapi/**`, `apps/docs-site/**`), make minimal correct edits, run verification (`npm run docs:gen`, `npm run docs:build`), and open **one PR** per doc area with a clear description. With `branchStrategy: single` (default), Devin updates the existing PR on the docdrift branch when one is already open.
-3. **PR** — Devin updates `apps/docs-site/openapi/openapi.json` to match the current API, runs `docs:gen` to regenerate API reference MDX, and opens a pull request. You review and merge; the docsite builds and the docs are updated.
+1. **Evidence bundle** — Docdrift builds a tarball with the drift report, spec diff, and impacted doc snippets, and uploads it to the Devin API. When the trigger is **pull request**, base/head SHAs are the PR’s base and head (the PR branch is what Devin evaluates).
+2. **Devin session** — Devin is prompted to update only files under the allowlist, make minimal correct edits, and run verification. **Pull request (commit-to-branch):** Devin checks out the source PR branch, applies doc changes, commits and pushes; no new PR. **Push/manual or separate-pr:** Devin opens one PR or updates the existing docdrift branch PR.
+3. **Outcome** — **Commit-to-branch:** Doc commits appear on the developer’s PR. **Separate PR:** Devin opens a docdrift PR; you review and merge. Either way, the docsite builds after merge.
 
-So the "fix" is a **PR opened by Devin** that you merge; the repo's docs don't change until that PR is merged.
+So the "fix" is either **commits on the same PR** (commit-to-branch) or a **PR opened by Devin** (push/separate-pr); the repo’s docs don’t change until those commits or that PR is merged.

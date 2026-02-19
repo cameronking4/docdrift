@@ -9,7 +9,7 @@ Docdrift provides three GitHub Actions workflows. Use the published package (`np
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **devin-doc-drift** | Push to `main`, manual | Detect and remediate documentation drift (Devin sessions, PRs, issues) |
+| **devin-doc-drift** | Push to `main`, **pull request** (to `main`), manual | Detect and remediate documentation drift (Devin sessions, PRs, issues). On PR: runs on the PR branch; default: Devin commits to that branch (commit-to-branch). |
 | **docdrift-export** | Weekly cron (Sun 2am UTC), manual | Export DeepWiki to static MDX for your docs site |
 | **docdrift-sla-check** | Daily cron (9am UTC), manual | Open reminder issues for doc-drift PRs open 7+ days |
 
@@ -17,25 +17,27 @@ Docdrift provides three GitHub Actions workflows. Use the published package (`np
 
 ## devin-doc-drift
 
-Main drift detection and remediation. Runs on every push to `main` and on manual dispatch.
+Main drift detection and remediation. Runs on push to `main`, **pull request** (to `main`), and manual dispatch.
 
-**Triggers:** `push` to `main`, `workflow_dispatch`
+**Triggers:** `push` to `main`, `pull_request` to `main`, `workflow_dispatch`
+
+**Job condition:** When the event is `pull_request`, the job is skipped if the PR head branch starts with `docdrift/` (so docdrift does not run on its own branches).
 
 **Key steps:**
 
 1. Checkout with full history (`fetch-depth: 0`)
 2. Setup Node.js 20
-3. Determine base/head SHAs (previous vs current commit; fallback to `HEAD^` when `event.before` is missing)
+3. **Determine base/head SHAs** — On `pull_request`: use `github.event.pull_request.head.sha` and `base.sha` (the PR branch). On push: previous vs current commit (fallback to `HEAD^` when `event.before` is missing). Output `pr_number` and (for PR) the head ref for commit-to-branch.
 4. Restore docdrift state from cache (optional)
-5. Validate config: `npx tsx src/cli.ts validate` (from source) or `npx @devinnn/docdrift validate` (package)
-6. Run Doc Drift: `npx tsx src/cli.ts run --base $base --head $head` (or `npx @devinnn/docdrift run ...`)
+5. Validate config: `npx @devinnn/docdrift validate` (or `npx tsx src/cli.ts validate` from source)
+6. **Run Doc Drift** with env: `DEVIN_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPOSITORY`, `GITHUB_SHA`, `GITHUB_EVENT_NAME`, `GITHUB_PR_NUMBER`, `GITHUB_PR_HEAD_REF` (PR head branch name). When `GITHUB_PR_NUMBER` is set, the run step passes `--trigger pull_request --pr-number $GITHUB_PR_NUMBER` and, when `GITHUB_PR_HEAD_REF` is set, `--pr-head-ref $GITHUB_PR_HEAD_REF` for commit-to-branch.
 7. Show Devin session URLs (on success)
 8. Save docdrift state to cache
 9. Upload artifacts: `drift_report.json`, `metrics.json`, `run-output.json`, `evidence/**`, `state.json`
 
 **Secrets:** `DEVIN_API_KEY` (required for run). `GITHUB_TOKEN` is provided automatically.
 
-**Reference:** [.github/workflows/devin-doc-drift.yml](https://github.com/cameronking4/docdrift/blob/main/.github/workflows/devin-doc-drift.yml)
+**Reference:** [.github/workflows/devin-doc-drift.yml](https://github.com/cameronking4/docdrift/blob/main/.github/workflows/devin-doc-drift.yml). For a full copy-paste workflow including pull_request and PR head ref, see [.github/workflows/docdrift.example.yml](https://github.com/cameronking4/docdrift/blob/main/.github/workflows/docdrift.example.yml).
 
 ---
 
@@ -69,19 +71,22 @@ Checks for doc-drift PRs open longer than the configured SLA (e.g. 7 days) and o
 
 ## Consuming repo: ready-to-copy workflow
 
-For a repository that uses the **published package** (not the docdrift source), use this workflow. It uses `npx @devinnn/docdrift` and does not require cloning the docdrift repo.
+For a repository that uses the **published package** (not the docdrift source), use this workflow. It runs on push to `main`, **pull request** to `main`, and manual dispatch. On pull request, base/head SHAs come from the PR, and with default `devin.prStrategy: "commit-to-branch"`, Devin commits to the source PR branch.
 
 **Prerequisites:** `docdrift.yaml` at repo root, and repo secret `DEVIN_API_KEY`.
 
 ```yaml
-name: doc-drift
+name: docdrift
 on:
   push:
+    branches: ["main"]
+  pull_request:
     branches: ["main"]
   workflow_dispatch:
 
 jobs:
   docdrift:
+    if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -98,18 +103,24 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        # Omit if your repo has no package.json; then add: run: npm init -y && npm install @devinnn/docdrift
+        # Omit if no package.json; then: npm init -y && npm install @devinnn/docdrift
 
       - name: Determine SHAs
         id: shas
         run: |
-          HEAD_SHA="${GITHUB_SHA}"
-          BASE_SHA="${{ github.event.before }}"
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA="$(git rev-parse HEAD^)"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            HEAD_SHA="${{ github.sha }}"
+            BASE_SHA="${{ github.event.before }}"
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="$(git rev-parse HEAD^)"
+            fi
           fi
           echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
           echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
+          echo "pr_number=${{ github.event.pull_request.number || '' }}" >> $GITHUB_OUTPUT
 
       - name: Validate config
         run: npx @devinnn/docdrift validate
@@ -120,7 +131,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
-        run: npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_PR_NUMBER: ${{ steps.shas.outputs.pr_number }}
+          GITHUB_PR_HEAD_REF: ${{ github.event.pull_request.head.ref || '' }}
+        run: |
+          PR_ARGS=""
+          if [ -n "$GITHUB_PR_NUMBER" ]; then
+            PR_ARGS="--trigger pull_request --pr-number $GITHUB_PR_NUMBER"
+            if [ -n "$GITHUB_PR_HEAD_REF" ]; then
+              PR_ARGS="$PR_ARGS --pr-head-ref $GITHUB_PR_HEAD_REF"
+            fi
+          fi
+          npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} $PR_ARGS
 
       - name: Upload artifacts
         if: always()

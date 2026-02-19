@@ -302,7 +302,7 @@ For detailed information about the detection pipeline, see [Detection Pipeline](
 
 **Syntax:**
 ```bash
-docdrift run [--base <sha>] [--head <sha>] [--trigger <type>] [--pr-number <n>]
+docdrift run [--base <sha>] [--head <sha>] [--trigger <type>] [--pr-number <n>] [--pr-head-ref <branch>]
 ```
 
 **Arguments and Options:**
@@ -313,6 +313,7 @@ docdrift run [--base <sha>] [--head <sha>] [--trigger <type>] [--pr-number <n>]
 | `--head` | string | Auto-resolved | Head commit SHA for comparison |
 | `--trigger` | string | Auto-resolved | Trigger type: `push`, `pull_request`, `manual`, `schedule` |
 | `--pr-number` | number | Auto-resolved | Pull request number for PR-triggered runs |
+| `--pr-head-ref` | string | `GITHUB_PR_HEAD_REF` | Source PR head branch name; used when `prStrategy: "commit-to-branch"` so Devin commits to that branch |
 
 **Behavior:**
 
@@ -332,7 +333,8 @@ The command invokes `runDocDrift()` which:
 - `DEVIN_API_KEY` — Required for Devin session creation
 - `GITHUB_TOKEN` — Required for GitHub PR/issue operations
 - `GITHUB_EVENT_NAME` — Used to auto-resolve trigger type
-- `GITHUB_PR_NUMBER` — Used to auto-resolve PR number
+- `GITHUB_PR_NUMBER` — Used to auto-resolve PR number when trigger is `pull_request`
+- `GITHUB_PR_HEAD_REF` — Source PR head branch name (e.g. `feature/add-endpoint`); used for commit-to-branch so Devin knows which branch to commit to
 
 **Examples:**
 
@@ -343,8 +345,8 @@ docdrift run
 # Run with specific commit range
 docdrift run --base abc123 --head def456
 
-# Run for pull request trigger
-docdrift run --trigger pull_request --pr-number 42
+# Run for pull request trigger (commit-to-branch: pass head ref)
+docdrift run --trigger pull_request --pr-number 42 --pr-head-ref feature/add-endpoint
 
 # View output artifacts
 cat .docdrift/run-output.json

@@ -26,6 +26,7 @@ export async function buildDriftReport(input: {
   headSha: string;
   trigger: RunInfo["trigger"];
   prNumber?: number;
+  prHeadRef?: string;
 }): Promise<{
   report: DriftReport;
   aggregated: AggregatedDriftResult | null;
@@ -43,6 +44,7 @@ export async function buildDriftReport(input: {
     trigger: input.trigger,
     timestamp: new Date().toISOString(),
     prNumber: input.prNumber,
+    prHeadRef: input.prHeadRef,
   };
 
   const evidenceRoot = path.resolve(".docdrift", "evidence", runInfo.runId);
