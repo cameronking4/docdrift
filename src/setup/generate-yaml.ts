@@ -113,6 +113,7 @@ export function writeConfig(
   const yamlContent = [
     "# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json",
     yaml.dump(config, { lineWidth: 120, noRefs: true }),
+    "# lastKnownBaseline: optional commit SHA where docs were in sync. Blank = assume drift. Set via: docdrift baseline set",
   ].join("\n");
   fs.writeFileSync(outputPath, yamlContent, "utf8");
 }

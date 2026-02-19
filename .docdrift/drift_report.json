@@ -1,10 +1,30 @@
 {
   "run": {
     "repo": "local/docdrift",
-    "baseSha": "8d71d83ecbe54da77b0ab0bb396fd5161df715fa",
+    "baseSha": "9949e932786fce1dbe184382f00f2c5959012555",
     "headSha": "HEAD",
     "trigger": "manual",
-    "timestamp": "2026-02-16T00:49:23.975Z"
+    "timestamp": "2026-02-19T20:30:51.874Z"
   },
-  "items": []
+  "items": [
+    {
+      "docArea": "docsite",
+      "mode": "autogen",
+      "signals": [
+        {
+          "kind": "spec_export_incomplete",
+          "tier": 1,
+          "confidence": 0.9,
+          "evidence": [
+            "/Users/cameronking/Desktop/sideproject/docdrift/.docdrift/evidence/1771533051874/openapi3-validation.txt"
+          ]
+        }
+      ],
+      "impactedDocs": [
+        "apps/docs-site/openapi/openapi.json"
+      ],
+      "recommendedAction": "OPEN_PR",
+      "summary": "Spec export incomplete: POST /v1/sql/warehouses/{warehouseId}/start: POST /v1/sql/warehouses/{warehouseId}/start has requestBody but schema has no properties.; POST /v1/sql/warehouses/{warehouseId}/stop: POST /v1/sql/warehouses/{warehouseId}/stop has requestBody but schema has no properties.; POST /v1/pipelines/{pipelineId}/stop: POST /v1/pipelines/{pipelineId}/stop has requestBody but schema has no properties.; POST /v1/webhooks/{webhookId}/test: POST /v1/webhooks/{webhookId}/test has requestBody but schema has no properties."
+    }
+  ]
 }

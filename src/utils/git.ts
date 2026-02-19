@@ -55,3 +55,12 @@ export async function gitCommitList(baseSha: string, headSha: string): Promise<s
     .map((v) => v.trim())
     .filter(Boolean);
 }
+
+/** Read file content at a specific commit. */
+export async function gitShowFile(commit: string, filePath: string): Promise<string> {
+  const res = await execCommand(`git show ${commit}:${filePath}`);
+  if (res.exitCode !== 0) {
+    throw new Error(`Failed to read ${filePath} at ${commit}: ${res.stderr}`);
+  }
+  return res.stdout;
+}

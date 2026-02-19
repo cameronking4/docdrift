@@ -1,0 +1,42 @@
+# Updates lastKnownBaseline when a docdrift PR is merged.
+# Run after docdrift PRs land so future drift detection uses the merge commit as baseline.
+name: docdrift-baseline-update
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+jobs:
+  update-baseline:
+    if: github.event.pull_request.merged == true && (startsWith(github.event.pull_request.head.ref, 'docdrift') || github.event.pull_request.head.ref == 'docdrift')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install
+
+      - name: Update lastKnownBaseline
+        run: npx tsx src/cli.ts baseline set ${{ github.event.pull_request.merge_commit_sha }}
+        env:
+          GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet; then
+            echo "No config changes"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docdrift.yaml
+            git commit -m "chore(docdrift): update lastKnownBaseline after docdrift PR merge"
+            git push
+          fi

@@ -77,7 +77,14 @@ export function buildWholeDocsitePrompt(input: {
   aggregated: AggregatedDriftResult;
   config: NormalizedDocDriftConfig;
   attachmentUrls: string[];
-  runGate?: "spec_export_invalid" | "spec_drift" | "conceptual_only" | "infer" | "none";
+  runGate?:
+    | "spec_export_invalid"
+    | "spec_drift"
+    | "baseline_drift"
+    | "baseline_missing"
+    | "conceptual_only"
+    | "infer"
+    | "none";
   trigger?: "push" | "manual" | "schedule" | "pull_request";
   prNumber?: number;
   /** When set, Devin must UPDATE this existing PR instead of opening a new one */
@@ -138,6 +145,24 @@ export function buildWholeDocsitePrompt(input: {
           "INFER MODE: No API spec diff was available. These file changes may impact docs.",
           "Infer what documentation might need updates from the changed files. Update or create docs as needed.",
           "Do NOT invent APIs; only document what you can infer from the code changes.",
+          "",
+        ].join("\n")
+      : "";
+
+  const baselineMissingBlock =
+    input.runGate === "baseline_missing"
+      ? [
+          "BASELINE MISSING: No lastKnownBaseline is configured. Treat this as an initial sync.",
+          "Update docs to match the current API. After this PR is merged, the baseline will be updated.",
+          "",
+        ].join("\n")
+      : "";
+
+  const baselineDriftBlock =
+    input.runGate === "baseline_drift"
+      ? [
+          "BASELINE DRIFT: The API has changed since the last known sync (lastKnownBaseline commit).",
+          "Update the published spec and docs to match the current API. After this PR is merged, the baseline will be updated.",
           "",
         ].join("\n")
       : "";
@@ -211,6 +236,8 @@ export function buildWholeDocsitePrompt(input: {
     "You are Devin. Task: update the entire docsite to match the API and code changes.",
     "",
     specExportInvalidBlock,
+    baselineMissingBlock,
+    baselineDriftBlock,
     driftBlock ?? "",
     inferBlock,
     pathMappingsBlock,

@@ -1,14 +1,23 @@
+import fs from "node:fs";
 import path from "node:path";
 import type { NormalizedDocDriftConfig } from "../config/schema";
 import { AggregatedDriftResult, DriftItem, DriftReport, RunInfo, Signal } from "../model/types";
 import { ensureDir, writeJsonFile } from "../utils/fs";
-import { gitChangedPaths, gitCommitList, gitDiffSummary } from "../utils/git";
+import { gitChangedPaths, gitCommitList, gitDiffSummary, gitShowFile } from "../utils/git";
+import { stableStringify } from "../utils/json";
 import { matchesGlob } from "../utils/glob";
 import { detectHeuristicImpacts } from "./heuristics";
 import { getSpecDetector } from "../spec-providers/registry";
 import type { SpecProviderResult } from "../spec-providers/types";
 
-export type RunGate = "spec_export_invalid" | "spec_drift" | "conceptual_only" | "infer" | "none";
+export type RunGate =
+  | "spec_export_invalid"
+  | "spec_drift"
+  | "baseline_drift"
+  | "baseline_missing"
+  | "conceptual_only"
+  | "infer"
+  | "none";
 
 export async function buildDriftReport(input: {
   config: NormalizedDocDriftConfig;
@@ -104,13 +113,59 @@ export async function buildDriftReport(input: {
     pathMappings.length > 0 &&
     changedPaths.some((p) => pathMappings.some((m) => matchesGlob(m.match, p)));
 
-  // 3. Gate logic (precedence: spec_export_invalid > spec_drift > conceptual_only > infer > none)
+  // 2b. Baseline comparison (when lastKnownBaseline is set)
+  let anyBaselineDrift = false;
+  const lastKnownBaseline = config.lastKnownBaseline?.trim();
+  if (lastKnownBaseline && config.openapi?.published && config.openapi?.generated) {
+    try {
+      const generatedPath = config.openapi.generated;
+      if (fs.existsSync(generatedPath)) {
+        const currentRaw = fs.readFileSync(generatedPath, "utf8");
+        const baselineRaw = await gitShowFile(lastKnownBaseline, config.openapi.published);
+        let currentJson: unknown;
+        let baselineJson: unknown;
+        try {
+          currentJson = JSON.parse(currentRaw);
+          baselineJson = JSON.parse(baselineRaw);
+        } catch {
+          anyBaselineDrift = true;
+        }
+        if (!anyBaselineDrift && stableStringify(currentJson) !== stableStringify(baselineJson)) {
+          anyBaselineDrift = true;
+        }
+        if (anyBaselineDrift) {
+          signals.push({
+            kind: "baseline_drift",
+            tier: 1,
+            confidence: 0.9,
+            evidence: [path.join(evidenceRoot, "changeset.json")],
+          });
+          impactedDocs.add(config.openapi.published);
+          summaries.push("API spec diverged from last known baseline (docs were in sync at that commit).");
+        }
+      }
+    } catch {
+      anyBaselineDrift = true;
+      signals.push({
+        kind: "baseline_drift",
+        tier: 1,
+        confidence: 0.7,
+        evidence: [path.join(evidenceRoot, "changeset.json")],
+      });
+      impactedDocs.add(config.openapi.published);
+      summaries.push("Could not verify baseline; assuming drift.");
+    }
+  }
+
+  // 3. Gate logic (precedence: spec_export_invalid > spec_drift > baseline_drift > conceptual_only > infer > baseline_missing > none)
   const isAuto = config.mode === "auto";
   let runGate: RunGate = "none";
   if (anySpecExportInvalid) {
     runGate = "spec_export_invalid";
   } else if (anySpecDrift) {
     runGate = "spec_drift";
+  } else if (anyBaselineDrift) {
+    runGate = "baseline_drift";
   } else if (isAuto && hasHeuristicMatch) {
     runGate = "conceptual_only";
   } else if (
@@ -138,6 +193,19 @@ export async function buildDriftReport(input: {
       changedPaths.forEach((p) => impactedDocs.add(p));
       summaries.push("Infer mode: no spec drift; infer docs from file changes.");
     }
+  }
+
+  // Blank lastKnownBaseline = assume drift (first install / cold start)
+  if (runGate === "none" && !lastKnownBaseline) {
+    runGate = "baseline_missing";
+    signals.push({
+      kind: "baseline_missing",
+      tier: 1,
+      confidence: 0.5,
+      evidence: [path.join(evidenceRoot, "changeset.json")],
+    });
+    config.openapi?.published && impactedDocs.add(config.openapi.published);
+    summaries.push("No baseline established; assuming drift until first remediation and baseline update.");
   }
 
   if (runGate === "none") {
@@ -197,7 +265,7 @@ export async function buildDriftReport(input: {
     changedPaths,
     evidenceRoot,
     runInfo,
-    hasOpenApiDrift: anySpecDrift,
+    hasOpenApiDrift: anySpecDrift || anyBaselineDrift,
     runGate,
   };
 }
