@@ -428,16 +428,6 @@ const paths: Record<string, object> = {
       summary: "Start SQL warehouse",
       tags: ["SQL Warehouses"],
       parameters: [{ name: "warehouseId", in: "path", required: true, schema: { type: "string" } }],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {},
-            },
-          },
-        },
-      },
       responses: pathResp(buildSqlWarehouseSchema()),
     },
   },
@@ -446,16 +436,6 @@ const paths: Record<string, object> = {
       summary: "Stop SQL warehouse",
       tags: ["SQL Warehouses"],
       parameters: [{ name: "warehouseId", in: "path", required: true, schema: { type: "string" } }],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {},
-            },
-          },
-        },
-      },
       responses: pathResp(buildSqlWarehouseSchema()),
     },
   },
@@ -549,16 +529,6 @@ const paths: Record<string, object> = {
       summary: "Stop pipeline",
       tags: ["Pipelines"],
       parameters: [{ name: "pipelineId", in: "path", required: true, schema: { type: "string" } }],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {},
-            },
-          },
-        },
-      },
       responses: pathResp(buildPipelineSchema()),
     },
   },
@@ -655,16 +625,6 @@ const paths: Record<string, object> = {
       summary: "Test webhook",
       tags: ["Webhooks"],
       parameters: [{ name: "webhookId", in: "path", required: true, schema: { type: "string" } }],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {},
-            },
-          },
-        },
-      },
       responses: pathResp(buildWebhookDeliverySchema()),
     },
   },
