@@ -1,17 +1,17 @@
-name: devin-doc-drift
+# Example docdrift workflow — copy to docdrift.yml to use.
+# Runs on push to main and on pull_request (skips when PR head is docdrift/*).
+name: docdrift
 
 on:
   push:
     branches: ["main"]
-  # pull_request:
-  #   branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   docdrift:
-    # PR trigger is disabled. When re-enabling: uncomment pull_request in on:, add job if:
-    # if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
-    # and restore PR SHA/number logic in Determine SHAs + cache keys
+    if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -31,26 +31,31 @@ jobs:
       - name: Determine SHAs
         id: shas
         run: |
-          HEAD_SHA="${GITHUB_SHA}"
-          BASE_SHA="${{ github.event.before }}"
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            BASE_SHA="$(git rev-parse HEAD^)"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            HEAD_SHA="${{ github.sha }}"
+            BASE_SHA="${{ github.event.before }}"
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="$(git rev-parse HEAD^)"
+            fi
           fi
           echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
           echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
-          echo "pr_number=" >> $GITHUB_OUTPUT
+          echo "pr_number=${{ github.event.pull_request.number || '' }}" >> $GITHUB_OUTPUT
 
       - name: Restore docdrift state
         uses: actions/cache/restore@v4
         id: docdrift-cache
         with:
           path: .docdrift
-          key: docdrift-state-${{ github.event_name }}-main-${{ github.run_id }}
+          key: docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
           restore-keys: |
-            docdrift-state-${{ github.event_name }}-main-
+            docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-
 
       - name: Validate config
-        run: npx tsx src/cli.ts validate
+        run: npx @devinnn/docdrift validate
 
       - name: Run Doc Drift
         env:
@@ -69,22 +74,14 @@ jobs:
               PR_ARGS="$PR_ARGS --pr-head-ref $GITHUB_PR_HEAD_REF"
             fi
           fi
-          npx tsx src/cli.ts run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} $PR_ARGS
-
-      - name: Show Devin session URLs
-        if: success()
-        run: |
-          node -e "
-            const r = require('./.docdrift/run-output.json');
-            if (Array.isArray(r)) r.forEach((x, i) => console.log('Doc area:', x.docArea, '| Session:', x.sessionUrl || '(none)', '| Outcome:', x.outcome));
-          "
+          npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} $PR_ARGS
 
       - name: Save docdrift state
         if: always()
         uses: actions/cache/save@v4
         with:
           path: .docdrift
-          key: docdrift-state-${{ github.event_name }}-main-${{ github.run_id }}
+          key: docdrift-state-${{ github.event_name }}-${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
 
       - name: Upload artifacts
         if: always()

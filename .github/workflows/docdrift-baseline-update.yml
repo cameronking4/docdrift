@@ -1,5 +1,6 @@
-# Updates lastKnownBaseline when a docdrift PR is merged.
-# Run after docdrift PRs land so future drift detection uses the merge commit as baseline.
+# Updates lastKnownBaseline when a PR is merged to main.
+# With commit-to-branch, doc fixes land on feature PRs; with separate-pr, on docdrift PRs.
+# Running on every merge keeps baseline in sync so future drift detection uses the merge commit.
 name: docdrift-baseline-update
 
 on:
@@ -9,7 +10,7 @@ on:
 
 jobs:
   update-baseline:
-    if: github.event.pull_request.merged == true && (startsWith(github.event.pull_request.head.ref, 'docdrift') || github.event.pull_request.head.ref == 'docdrift')
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -37,6 +38,6 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add docdrift.yaml
-            git commit -m "chore(docdrift): update lastKnownBaseline after docdrift PR merge"
+            git commit -m "chore(docdrift): update lastKnownBaseline after merge"
             git push
           fi

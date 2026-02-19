@@ -128,6 +128,8 @@ export const docDriftConfigBaseSchema = z.object({
     tags: z.array(z.string().min(1)).default(["docdrift"]),
     customInstructions: z.array(z.string().min(1)).optional(),
     customInstructionContent: z.string().optional(),
+    /** When trigger is pull_request: "commit-to-branch" = commit to source PR branch (low noise); "separate-pr" = create docdrift/pr-N PR. Default "commit-to-branch". */
+    prStrategy: z.enum(["commit-to-branch", "separate-pr"]).optional().default("commit-to-branch"),
   }),
   policy: policySchema,
   docAreas: z.array(docAreaBaseSchema).optional().default([]),
@@ -156,6 +158,8 @@ const docDriftConfigObjectSchema = z.object({
     tags: z.array(z.string().min(1)).default(["docdrift"]),
     customInstructions: z.array(z.string().min(1)).optional(),
     customInstructionContent: z.string().optional(),
+    /** When trigger is pull_request: "commit-to-branch" = commit to source PR branch (low noise); "separate-pr" = create docdrift/pr-N PR. Default "commit-to-branch". */
+    prStrategy: z.enum(["commit-to-branch", "separate-pr"]).optional().default("commit-to-branch"),
   }),
   policy: policySchema,
   docAreas: z.array(docAreaSchema).optional().default([]),

@@ -89,10 +89,14 @@ export function buildWholeDocsitePrompt(input: {
     | "none";
   trigger?: "push" | "manual" | "schedule" | "pull_request";
   prNumber?: number;
+  /** Source PR head branch name when trigger is pull_request (commit-to-branch). */
+  prHeadRef?: string;
   /** When set, Devin must UPDATE this existing PR instead of opening a new one */
   existingDocdriftPr?: { number: number; url: string; headRef: string };
   branchPrefix: string;
   branchStrategy: "single" | "per-pr";
+  /** "commit-to-branch" = commit to source PR branch; "separate-pr" = create docdrift PR */
+  prStrategy?: "commit-to-branch" | "separate-pr";
 }): string {
   const excludeNote =
     input.config.exclude?.length > 0
@@ -169,7 +173,20 @@ export function buildWholeDocsitePrompt(input: {
         ].join("\n")
       : "";
 
+  const prStrategy = input.prStrategy ?? input.config.devin?.prStrategy ?? "commit-to-branch";
+
   const branchBlock = (() => {
+    // Commit-to-branch: commit directly to the source PR branch; do not open a new PR.
+    if (prStrategy === "commit-to-branch" && input.trigger === "pull_request" && input.prNumber && input.prHeadRef) {
+      return [
+        "",
+        `This run was triggered by PR #${input.prNumber}. Commit directly to the PR branch.`,
+        `- Branch to commit to: ${input.prHeadRef}`,
+        "Checkout that branch, apply your doc changes, commit, and push.",
+        "Do NOT open a new pull request. Your commits will appear on the existing PR.",
+        "",
+      ].join("\n");
+    }
     if (input.branchStrategy === "single") {
       // Single-branch strategy: always use branchPrefix, sync with main, update existing PR if it exists
       if (input.existingDocdriftPr) {

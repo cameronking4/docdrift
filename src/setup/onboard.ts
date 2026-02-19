@@ -77,10 +77,14 @@ jobs:
           GITHUB_SHA: \$\{\{ github.sha \}\}
           GITHUB_EVENT_NAME: \$\{\{ github.event_name \}\}
           GITHUB_PR_NUMBER: \$\{\{ steps.shas.outputs.pr_number \}\}
+          GITHUB_PR_HEAD_REF: \$\{\{ github.event.pull_request.head.ref || '' \}\}
         run: |
           PR_ARGS=""
           if [ -n "$GITHUB_PR_NUMBER" ]; then
             PR_ARGS="--trigger pull_request --pr-number $GITHUB_PR_NUMBER"
+            if [ -n "$GITHUB_PR_HEAD_REF" ]; then
+              PR_ARGS="$PR_ARGS --pr-head-ref $GITHUB_PR_HEAD_REF"
+            fi
           fi
           npx @devinnn/docdrift run --base \$\{\{ steps.shas.outputs.base \}\} --head \$\{\{ steps.shas.outputs.head \}\} $PR_ARGS
 
@@ -106,7 +110,7 @@ jobs:
 
 const BASELINE_UPDATE_WORKFLOW_CONTENT = `name: docdrift-baseline-update
 
-# Updates lastKnownBaseline when a docdrift PR is merged.
+# Updates lastKnownBaseline when a PR is merged to main (commit-to-branch or separate-pr).
 on:
   pull_request:
     types: [closed]
@@ -114,7 +118,7 @@ on:
 
 jobs:
   update-baseline:
-    if: github.event.pull_request.merged == true && (startsWith(github.event.pull_request.head.ref, 'docdrift') || github.event.pull_request.head.ref == 'docdrift')
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -142,7 +146,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add docdrift.yaml
-            git commit -m "chore(docdrift): update lastKnownBaseline after docdrift PR merge"
+            git commit -m "chore(docdrift): update lastKnownBaseline after merge"
             git push
           fi
 `;
