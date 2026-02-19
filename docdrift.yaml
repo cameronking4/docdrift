@@ -16,6 +16,8 @@ mode: strict
 pathMappings:
   - match: "apps/api/**"
     impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
+  - match: "src/mcp/**"
+    impacts: ["apps/docs-site/docs/guides/**", "apps/docs-site/docs/api/**"]
 
 exclude:
   - "apps/docs-site/blog/**"
