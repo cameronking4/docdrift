@@ -39,15 +39,37 @@ You can run `docdrift run` or `docdrift detect` with no arguments; base and head
 
 | Field               | Required | Type   | Description                                                                 |
 | ------------------- | -------- | ------ | --------------------------------------------------------------------------- |
-| `version`           | **Yes**  | number | Must be `1`. Reserved for future config schema versions.                     |
+| `version`           | **Yes**  | number | Must be `1` or `2`. Reserved for future config schema versions.            |
 | `devin`             | **Yes**  | object | Devin API and session settings.                                              |
 | `policy`            | **Yes**  | object | PR caps, confidence, allowlist, verification, slaDays, slaLabel.             |
 | `openapi` + `docsite` | **Yes*** | object + string | **Simple config**: API spec (gate) and docsite path. Required if no docAreas. |
 | `exclude`           | No       | array  | Glob paths we never touch. Default `[]`.                                    |
 | `requireHumanReview`| No       | array  | Glob paths that trigger a review issue when the PR touches them. Default `[]`. |
 | `docAreas`          | **Yes*** | array  | **Legacy**: One or more doc areas. Required if no openapi+docsite.           |
+| `mode`              | No       | string | `"strict"` \| `"auto"`. See [Configuration](/docs/guides/configuration).  |
+| `branchPrefix`      | No       | string | `"docdrift"`. Prefix for docdrift branches.                                  |
+| `branchStrategy`    | No       | string | `"single"` \| `"per-pr"`. See [Branch strategy](#branch-strategy-single-branch--low-noise). |
 
 \* Config must include either `(openapi + docsite)` or `docAreas` (at least one area).
+
+---
+
+## Branch strategy (single branch / low noise)
+
+Docdrift uses a **single branch** by default to minimize PR noise. All runs target one branch (e.g. `docdrift`); if an open PR already exists from that branch, Devin *updates* it instead of opening a new one.
+
+| Field              | Required | Type   | Default | Description                                                                                                                                 |
+| ------------------ | -------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branchStrategy`   | No       | string | `"single"` | **`single`** (default): One branch for all runs. Devin reuses the same branch and updates the existing PR when present. Low noise.       |
+|                    |          |        |         | **`per-pr`**: One branch per source PR. Each upstream PR gets its own docdrift branch and PR.                                               |
+| `branchPrefix`     | No       | string | `"docdrift"` | Prefix for docdrift branch names. With `single`, the branch is `{branchPrefix}`; with `per-pr`, branches are `{branchPrefix}-{shortSha}`. |
+
+**Example (explicit low-noise):**
+
+```yaml
+branchStrategy: single
+branchPrefix: docdrift
+```
 
 ---
 

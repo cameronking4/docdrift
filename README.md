@@ -92,6 +92,7 @@ Generated spec from code: `openapi/generated.json` (`npm run openapi:export`). D
 
 ## Why low-noise
 
+- **Single branch strategy** — One branch for all runs; Devin updates the existing PR when present (default `branchStrategy: single`)
 - **Single session, single PR** — One Devin session for the whole docsite
 - **Gate on spec diff** — No session when no drift (strict mode)
 - **requireHumanReview** — Issue when PR touches guides/prose
