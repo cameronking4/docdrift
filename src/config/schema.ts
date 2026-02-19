@@ -115,6 +115,10 @@ export const docDriftConfigBaseSchema = z.object({
   pathMappings: z.array(pathRuleSchema).optional().default([]),
   /** strict: only run on spec drift. auto: also run when pathMappings match (no spec drift). */
   mode: z.enum(["strict", "auto"]).optional().default("strict"),
+  /** Branch prefix for docdrift branches. Default "docdrift". */
+  branchPrefix: z.string().min(1).optional().default("docdrift"),
+  /** Branch strategy: "single" = one branch for all runs (lownoise), "per-pr" = one branch per source PR. Default "single". */
+  branchStrategy: z.enum(["single", "per-pr"]).optional().default("single"),
   devin: z.object({
     apiVersion: z.literal("v1"),
     unlisted: z.boolean().default(true),
@@ -137,6 +141,10 @@ const docDriftConfigObjectSchema = z.object({
   pathMappings: z.array(pathRuleSchema).optional().default([]),
   /** strict: only run on spec drift. auto: also run when pathMappings match (no spec drift). */
   mode: z.enum(["strict", "auto"]).optional().default("strict"),
+  /** Branch prefix for docdrift branches. Default "docdrift". */
+  branchPrefix: z.string().min(1).optional().default("docdrift"),
+  /** Branch strategy: "single" = one branch for all runs (lownoise), "per-pr" = one branch per source PR. Default "single". */
+  branchStrategy: z.enum(["single", "per-pr"]).optional().default("single"),
   devin: z.object({
     apiVersion: z.literal("v1"),
     unlisted: z.boolean().default(true),
@@ -173,4 +181,6 @@ export interface NormalizedDocDriftConfig extends Omit<DocDriftConfig, "openapi"
   exclude: string[];
   requireHumanReview: string[];
   mode: "strict" | "auto";
+  branchPrefix: string;
+  branchStrategy: "single" | "per-pr";
 }

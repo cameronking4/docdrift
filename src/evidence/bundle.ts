@@ -1,13 +1,11 @@
-import fs from "node:fs";
 import path from "node:path";
 import { DriftItem, RunInfo } from "../model/types";
-import { execCommand } from "../utils/exec";
 import { copyIfExists, ensureDir, writeJsonFile } from "../utils/fs";
 
 export interface EvidenceBundle {
   bundleDir: string;
-  archivePath: string;
   manifestPath: string;
+  /** Explicit file paths to upload to Devin (manifest first, then evidence, then impacted docs). Plain files for easy reading—no unzip or explore. */
   attachmentPaths: string[];
 }
 
@@ -76,22 +74,17 @@ export async function buildEvidenceBundle(input: {
     copiedDocs,
   });
 
-  const archivePath = `${bundleDir}.tar.gz`;
-  const parent = path.dirname(bundleDir);
-  const name = path.basename(bundleDir);
-
-  const tarResult = await execCommand(
-    `tar -czf ${JSON.stringify(archivePath)} -C ${JSON.stringify(parent)} ${JSON.stringify(name)}`
-  );
-  if (tarResult.exitCode !== 0) {
-    throw new Error(`Failed to create evidence archive: ${tarResult.stderr || tarResult.stdout}`);
-  }
+  // Declarative explicit files for Devin—no targz. Manifest first for context, then evidence, then impacted docs.
+  const attachmentPaths: string[] = [
+    manifestPath,
+    ...copiedEvidence.map((rel) => path.join(bundleDir, rel)),
+    ...copiedDocs.map((rel) => path.join(bundleDir, rel)),
+  ];
 
   return {
     bundleDir,
-    archivePath,
     manifestPath,
-    attachmentPaths: [archivePath, manifestPath],
+    attachmentPaths,
   };
 }
 

@@ -6,6 +6,7 @@ import { buildDriftReport, type RunGate } from "./detect";
 import { buildEvidenceBundle, writeMetrics } from "./evidence/bundle";
 import {
   createIssue,
+  findExistingDocdriftPrByBranch,
   findExistingDocdriftPrForSource,
   listOpenPrsWithLabel,
   postCommitComment,
@@ -91,6 +92,8 @@ async function executeSessionSingle(input: {
   trigger: import("./model/types").TriggerKind;
   prNumber?: number;
   existingDocdriftPr?: { number: number; url: string; headRef: string };
+  branchPrefix: string;
+  branchStrategy: "single" | "per-pr";
 }): Promise<SessionOutcome> {
   const attachmentUrls: string[] = [];
   for (const attachmentPath of input.attachmentPaths) {
@@ -106,6 +109,8 @@ async function executeSessionSingle(input: {
     trigger: input.trigger,
     prNumber: input.prNumber,
     existingDocdriftPr: input.existingDocdriftPr,
+    branchPrefix: input.branchPrefix,
+    branchStrategy: input.branchStrategy,
   });
 
   const session = await devinCreateSession(input.apiKey, {
@@ -337,16 +342,28 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
   }
 
   const bundle = await buildEvidenceBundle({ runInfo, item, evidenceRoot });
-  const attachmentPaths = [...new Set([bundle.archivePath, ...bundle.attachmentPaths])];
+  const attachmentPaths = bundle.attachmentPaths;
 
   let existingDocdriftPr: { number: number; url: string; headRef: string } | undefined;
-  if (githubToken && runInfo.trigger === "pull_request" && runInfo.prNumber) {
-    existingDocdriftPr = (await findExistingDocdriftPrForSource(githubToken, repo, runInfo.prNumber)) ?? undefined;
-    if (existingDocdriftPr) {
-      logInfo("Found existing docdrift PR for source PR; will instruct Devin to update it", {
-        existingPr: existingDocdriftPr.number,
-        headRef: existingDocdriftPr.headRef,
-      });
+  if (githubToken) {
+    if (normalized.branchStrategy === "single") {
+      // Single-branch strategy: look for PR from branchPrefix on every run
+      existingDocdriftPr = (await findExistingDocdriftPrByBranch(githubToken, repo, normalized.branchPrefix)) ?? undefined;
+      if (existingDocdriftPr) {
+        logInfo("Found existing docdrift PR for single branch; will instruct Devin to update it", {
+          existingPr: existingDocdriftPr.number,
+          headRef: existingDocdriftPr.headRef,
+        });
+      }
+    } else if (normalized.branchStrategy === "per-pr" && runInfo.trigger === "pull_request" && runInfo.prNumber) {
+      // Per-pr strategy: only look when triggered by pull_request
+      existingDocdriftPr = (await findExistingDocdriftPrForSource(githubToken, repo, runInfo.prNumber, normalized.branchPrefix)) ?? undefined;
+      if (existingDocdriftPr) {
+        logInfo("Found existing docdrift PR for source PR; will instruct Devin to update it", {
+          existingPr: existingDocdriftPr.number,
+          headRef: existingDocdriftPr.headRef,
+        });
+      }
     }
   }
 
@@ -372,6 +389,8 @@ export async function runDocDrift(options: DetectOptions): Promise<RunResult[]> 
       trigger: runInfo.trigger,
       prNumber: runInfo.prNumber,
       existingDocdriftPr,
+      branchPrefix: normalized.branchPrefix,
+      branchStrategy: normalized.branchStrategy,
     });
     metrics.timeToSessionTerminalMs.push(Date.now() - sessionStart);
   } else {
