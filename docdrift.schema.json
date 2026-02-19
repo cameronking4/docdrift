@@ -209,6 +209,19 @@
       ],
       "default": "strict"
     },
+    "branchPrefix": {
+      "type": "string",
+      "minLength": 1,
+      "default": "docdrift"
+    },
+    "branchStrategy": {
+      "type": "string",
+      "enum": [
+        "single",
+        "per-pr"
+      ],
+      "default": "single"
+    },
     "devin": {
       "type": "object",
       "properties": {

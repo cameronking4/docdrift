@@ -225,18 +225,45 @@ export async function listOpenPrsWithLabel(
   }));
 }
 
-/** Find an existing open docdrift PR for a given source PR number.
- * Looks for PRs from branch docdrift/pr-{sourcePrNumber} (Devin's convention).
+/** Find an existing open docdrift PR by branch name (for single-branch strategy).
+ * Looks for PRs from the specified branch name.
+ * Returns the first match so we can instruct Devin to update it instead of creating a new one.
+ */
+export async function findExistingDocdriftPrByBranch(
+  token: string,
+  repository: string,
+  branchName: string
+): Promise<{ number: number; url: string; headRef: string } | null> {
+  const octokit = new Octokit({ auth: token });
+  const { owner, repo } = parseRepo(repository);
+  const { data } = await octokit.pulls.list({
+    owner,
+    repo,
+    state: "open",
+    head: branchName,
+  });
+  const pr = data[0];
+  if (!pr) return null;
+  return {
+    number: pr.number,
+    url: pr.html_url ?? "",
+    headRef: pr.head?.ref ?? branchName,
+  };
+}
+
+/** Find an existing open docdrift PR for a given source PR number (for per-pr strategy).
+ * Looks for PRs from branch {branchPrefix}/pr-{sourcePrNumber}.
  * Returns the first match so we can instruct Devin to update it instead of creating a new one.
  */
 export async function findExistingDocdriftPrForSource(
   token: string,
   repository: string,
-  sourcePrNumber: number
+  sourcePrNumber: number,
+  branchPrefix: string = "docdrift"
 ): Promise<{ number: number; url: string; headRef: string } | null> {
   const octokit = new Octokit({ auth: token });
   const { owner, repo } = parseRepo(repository);
-  const branchName = `docdrift/pr-${sourcePrNumber}`;
+  const branchName = `${branchPrefix}/pr-${sourcePrNumber}`;
   const { data } = await octokit.pulls.list({
     owner,
     repo,

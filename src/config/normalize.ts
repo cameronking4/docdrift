@@ -140,5 +140,7 @@ export function normalizeConfig(config: DocDriftConfig): NormalizedDocDriftConfi
     requireHumanReview,
     docAreas,
     mode,
+    branchPrefix: config.branchPrefix ?? "docdrift",
+    branchStrategy: config.branchStrategy ?? "single",
   };
 }

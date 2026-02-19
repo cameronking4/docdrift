@@ -205,4 +205,50 @@ describe("docDriftConfigSchema", () => {
     expect(normalized.openapi.published).toBe("docs/reference/openapi.json");
     expect(normalized.docsite.length).toBeGreaterThan(0);
   });
+
+  it("accepts branchPrefix and branchStrategy and normalizes with defaults", () => {
+    const config = {
+      version: 2,
+      specProviders: [
+        {
+          format: "openapi3",
+          current: { type: "export", command: "npm run openapi:export", outputPath: "openapi/generated.json" },
+          published: "apps/docs-site/openapi/openapi.json",
+        },
+      ],
+      docsite: "apps/docs-site",
+      devin: { apiVersion: "v1" },
+      policy: {
+        allowlist: ["apps/docs-site/**"],
+        verification: { commands: ["npm run docs:build"] },
+      },
+    };
+    const normalized = normalizeConfig(config as any);
+    expect(normalized.branchPrefix).toBe("docdrift");
+    expect(normalized.branchStrategy).toBe("single");
+  });
+
+  it("preserves explicit branchPrefix and branchStrategy", () => {
+    const config = {
+      version: 2,
+      specProviders: [
+        {
+          format: "openapi3",
+          current: { type: "export", command: "npm run openapi:export", outputPath: "openapi/generated.json" },
+          published: "apps/docs-site/openapi/openapi.json",
+        },
+      ],
+      docsite: "apps/docs-site",
+      branchPrefix: "docs-bot",
+      branchStrategy: "per-pr" as const,
+      devin: { apiVersion: "v1" },
+      policy: {
+        allowlist: ["apps/docs-site/**"],
+        verification: { commands: ["npm run docs:build"] },
+      },
+    };
+    const normalized = normalizeConfig(config as any);
+    expect(normalized.branchPrefix).toBe("docs-bot");
+    expect(normalized.branchStrategy).toBe("per-pr");
+  });
 });

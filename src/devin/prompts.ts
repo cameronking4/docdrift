@@ -82,6 +82,8 @@ export function buildWholeDocsitePrompt(input: {
   prNumber?: number;
   /** When set, Devin must UPDATE this existing PR instead of opening a new one */
   existingDocdriftPr?: { number: number; url: string; headRef: string };
+  branchPrefix: string;
+  branchStrategy: "single" | "per-pr";
 }): string {
   const excludeNote =
     input.config.exclude?.length > 0
@@ -140,27 +142,51 @@ export function buildWholeDocsitePrompt(input: {
         ].join("\n")
       : "";
 
-  const draftPrBlock = (() => {
-    if (input.trigger !== "pull_request" || !input.prNumber) return "";
-    if (input.existingDocdriftPr) {
+  const branchBlock = (() => {
+    if (input.branchStrategy === "single") {
+      // Single-branch strategy: always use branchPrefix, sync with main, update existing PR if it exists
+      if (input.existingDocdriftPr) {
+        return [
+          "",
+          "CRITICAL: An existing doc-drift PR already exists.",
+          `You MUST UPDATE that PR — do NOT create a new one.`,
+          `- Existing PR: #${input.existingDocdriftPr.number} (${input.existingDocdriftPr.url})`,
+          `- Branch to update: ${input.existingDocdriftPr.headRef}`,
+          "Checkout that branch, pull latest main, apply your doc changes, push. The existing PR will update.",
+          "Do NOT open a new pull request.",
+          "",
+        ].join("\n");
+      }
       return [
         "",
-        "CRITICAL: An existing doc-drift PR already exists for this API PR.",
-        `You MUST UPDATE that PR — do NOT create a new one.`,
-        `- Existing PR: #${input.existingDocdriftPr.number} (${input.existingDocdriftPr.url})`,
-        `- Branch to update: ${input.existingDocdriftPr.headRef}`,
-        "Checkout that branch, pull latest main, apply your doc changes, push. The existing PR will update.",
-        "Do NOT open a new pull request.",
+        `Use branch name ${input.branchPrefix}. Create from main if it doesn't exist.`,
+        "Pull latest main, apply your doc changes, push.",
+        `If a PR from branch ${input.branchPrefix} exists, update it; otherwise create one.`,
+        "",
+      ].join("\n");
+    } else {
+      // Per-pr strategy: one branch per source PR
+      if (input.trigger !== "pull_request" || !input.prNumber) return "";
+      if (input.existingDocdriftPr) {
+        return [
+          "",
+          "CRITICAL: An existing doc-drift PR already exists for this API PR.",
+          `You MUST UPDATE that PR — do NOT create a new one.`,
+          `- Existing PR: #${input.existingDocdriftPr.number} (${input.existingDocdriftPr.url})`,
+          `- Branch to update: ${input.existingDocdriftPr.headRef}`,
+          "Checkout that branch, pull latest main, apply your doc changes, push. The existing PR will update.",
+          "Do NOT open a new pull request.",
+          "",
+        ].join("\n");
+      }
+      return [
+        "",
+        "This run was triggered by an open API PR. Open a **draft** pull request.",
+        `In the PR description, link to the API PR (#${input.prNumber}) and state: "Merge the API PR first, then review this doc PR."`,
+        `Use branch name ${input.branchPrefix}/pr-${input.prNumber} (required for future runs to update this PR).`,
         "",
       ].join("\n");
     }
-    return [
-      "",
-      "This run was triggered by an open API PR. Open a **draft** pull request.",
-      `In the PR description, link to the API PR (#${input.prNumber}) and state: "Merge the API PR first, then review this doc PR."`,
-      "Use branch name docdrift/pr-" + input.prNumber + " (required for future runs to update this PR).",
-      "",
-    ].join("\n");
   })();
 
   const pathMappings = input.config.pathMappings ?? [];
@@ -198,7 +224,7 @@ export function buildWholeDocsitePrompt(input: {
     "4) Run verification commands and record results:",
     ...input.config.policy.verification.commands.map((c) => `   - ${c}`),
     "5) Open exactly ONE pull request with a clear title and reviewer-friendly description." +
-      draftPrBlock,
+      branchBlock,
     `6) Docsite scope: ${input.config.docsite.join(", ")}` +
       excludeNote +
       requireReviewNote +
