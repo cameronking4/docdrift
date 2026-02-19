@@ -1,0 +1,45 @@
+# Example docdrift.yaml - adapt paths to your repo
+# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json
+version: 2
+
+# lastKnownBaseline: optional commit SHA where docs were in sync. Omit for first install.
+
+specProviders:
+  - format: openapi3
+    current:
+      type: export
+      command: "npm run openapi:export"
+      outputPath: "openapi/generated.json"
+    published: "docs/openapi/openapi.json"
+
+docsite: "docs"
+mode: strict
+
+pathMappings:
+  - match: "src/api/**"
+    impacts: ["docs/guides/**", "docs/api/**"]
+
+exclude: ["docs/blog/**"]
+requireHumanReview: ["docs/guides/**"]
+
+devin:
+  apiVersion: v1
+  unlisted: true
+  maxAcuLimit: 2
+  tags: [docdrift]
+
+policy:
+  prCaps:
+    maxPrsPerDay: 2
+    maxFilesTouched: 20
+  confidence:
+    autopatchThreshold: 0.8
+  allowlist:
+    - "docs/**"
+    - "openapi/**"
+  verification:
+    commands:
+      - "npm run docs:build"
+  slaDays: 7
+  slaLabel: docdrift
+  allowNewFiles: false

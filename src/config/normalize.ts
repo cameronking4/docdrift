@@ -142,5 +142,6 @@ export function normalizeConfig(config: DocDriftConfig): NormalizedDocDriftConfi
     mode,
     branchPrefix: config.branchPrefix ?? "docdrift",
     branchStrategy: config.branchStrategy ?? "single",
+    lastKnownBaseline: config.lastKnownBaseline,
   };
 }

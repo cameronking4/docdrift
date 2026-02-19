@@ -222,6 +222,10 @@
       ],
       "default": "single"
     },
+    "lastKnownBaseline": {
+      "type": "string",
+      "minLength": 1
+    },
     "devin": {
       "type": "object",
       "properties": {

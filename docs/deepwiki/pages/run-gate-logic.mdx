@@ -45,6 +45,8 @@ The run gate system defines five possible outcomes, each representing a differen
 |-----------|------------------|----------------------|------------------|
 | `spec_export_invalid` | Exported spec failed completeness validation (e.g. missing requestBody) | Fix spec source first, then re-export and update docs | Any mode |
 | `spec_drift` | Spec provider detected drift (tier ≤ 1) | Full remediation with high confidence | Any mode |
+| `baseline_drift` | Current export differs from published spec at `lastKnownBaseline` commit | Full remediation (API changed since last sync) | Any mode |
+| `baseline_missing` | `lastKnownBaseline` blank and no other drift | Assume drift; proceed (first install / cold start) | Any mode |
 | `conceptual_only` | Heuristic path matches, no spec drift | Conceptual docs update only | `auto` mode only |
 | `infer` | pathMappings match, spec failed or none | Infer docs from file changes | `auto` mode only |
 | `none` | No conditions met | Exit early, no remediation | Any mode |

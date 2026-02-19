@@ -20,6 +20,7 @@ Docs that never lie: detect drift between merged code and docs, then open low-no
   - `run --base <sha> --head <sha>` — Full run with Devin
   - `status --since 24h` — Show run status
   - `sla-check` — Check for doc-drift PRs open 7+ days and open a reminder issue
+  - `baseline set [SHA]` — Update `lastKnownBaseline` in docdrift.yaml (default: GITHUB_SHA or HEAD)
   - `setup` — Interactive setup (Devin analyzes repo, generates v2 docdrift.yaml)
   - `generate-yaml` — Generate config from repo fingerprint `[--output path] [--force]`
   - `export` — Export DeepWiki to static MDX `[--repo owner/name] [--out path] [--fail-on-secrets]`
@@ -95,6 +96,7 @@ Generated spec from code: `openapi/generated.json` (`npm run openapi:export`). D
 - **Single branch strategy** — One branch for all runs; Devin updates the existing PR when present (default `branchStrategy: single`)
 - **Single session, single PR** — One Devin session for the whole docsite
 - **Gate on spec diff** — No session when no drift (strict mode)
+- **Baseline drift** (`lastKnownBaseline`) — Compare to last known sync; no drift since then → no session
 - **requireHumanReview** — Issue when PR touches guides/prose
 - **7-day SLA** — Reminder issue for stale doc-drift PRs
 - **Confidence gating** — Allowlist, exclude, idempotency

@@ -11,18 +11,17 @@ import { buildRepoFingerprint } from "./repo-fingerprint";
 import { inferConfigFromFingerprint } from "./ai-infer";
 import { runInteractiveForm } from "./interactive-form";
 
-/** Resolve path to docdrift.schema.json in the package */
-function getSchemaPath(): string {
-  // dist/src/setup -> ../../../ ; src/setup (tsx) -> ../..
+/** Resolve path to a file in the package root (works from dist/ or src/) */
+function getPackageFilePath(filename: string): string {
   const candidates = [
-    path.join(__dirname, "../../../docdrift.schema.json"),
-    path.join(__dirname, "../../docdrift.schema.json"),
+    path.join(__dirname, "../../../", filename),
+    path.join(__dirname, "../../", filename),
   ];
-  const schemaPath = candidates.find((p) => fs.existsSync(p));
-  if (!schemaPath) {
-    throw new Error(`docdrift.schema.json not found. Tried: ${candidates.join(", ")}`);
+  const resolved = candidates.find((p) => fs.existsSync(p));
+  if (!resolved) {
+    throw new Error(`${filename} not found. Tried: ${candidates.join(", ")}`);
   }
-  return schemaPath;
+  return resolved;
 }
 
 export interface DevinSetupResult {
@@ -188,11 +187,19 @@ export async function runSetupDevin(options: {
     }
   }
 
-  process.stdout.write("Uploading schema…\n");
-  const schemaPath = getSchemaPath();
-  const attachmentUrl = await devinUploadAttachment(apiKey, schemaPath);
+  process.stdout.write("Uploading reference docs…\n");
+  const schemaPath = getPackageFilePath("docdrift.schema.json");
+  const referencePath = getPackageFilePath("docdrift-yml.md");
+  const examplePath = getPackageFilePath("docdrift.example.yaml");
 
-  const prompt = buildSetupPrompt([attachmentUrl], { openPr: options.openPr });
+  const [schemaUrl, referenceUrl, exampleUrl] = await Promise.all([
+    devinUploadAttachment(apiKey, schemaPath),
+    devinUploadAttachment(apiKey, referencePath),
+    devinUploadAttachment(apiKey, examplePath),
+  ]);
+
+  const attachmentUrls = [schemaUrl, referenceUrl, exampleUrl];
+  const prompt = buildSetupPrompt(attachmentUrls, { openPr: options.openPr });
 
   process.stdout.write("Creating Devin session…\n");
   const session = await devinCreateSession(apiKey, {
@@ -200,7 +207,7 @@ export async function runSetupDevin(options: {
     unlisted: true,
     max_acu_limit: 2,
     tags: ["docdrift", "setup"],
-    attachments: [attachmentUrl],
+    attachments: attachmentUrls,
     metadata: { purpose: "docdrift-setup" },
   });
 

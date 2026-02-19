@@ -6,6 +6,10 @@ Run docdrift in GitHub Actions and see it work on GitHub.
 
 - Add secret: `DEVIN_API_KEY`
 - Push to `main` or run `workflow_dispatch`
+- Setup adds three workflows:
+  - **docdrift.yml** — Main run: validate, detect, run Devin, save state
+  - **docdrift-sla-check.yml** — Daily cron: reminder issue for PRs open 7+ days
+  - **docdrift-baseline-update.yml** — On docdrift PR merge: updates `lastKnownBaseline` in docdrift.yaml to the merge commit
 - Action uploads:
   - `.docdrift/drift_report.json`
   - `.docdrift/evidence/**`

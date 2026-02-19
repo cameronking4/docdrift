@@ -10,6 +10,8 @@ import {
   runSlaCheck,
   runStatus,
   runValidate,
+  setBaseline,
+  resolveBaselineSha,
 } from "./index";
 
 function getArg(args: string[], flag: string): string | undefined {
@@ -25,12 +27,13 @@ async function main(): Promise<void> {
 
   if (!command) {
     throw new Error(
-      "Usage: docdrift <validate|detect|run|status|sla-check|setup|generate-yaml|export> [options]\n" +
+      "Usage: docdrift <validate|detect|run|status|sla-check|baseline|setup|generate-yaml|export> [options]\n" +
         "  validate          Validate docdrift.yaml (v2 config)\n" +
         "  detect            Check for drift [--base SHA] [--head SHA]\n" +
         "  run               Full run with Devin [--base SHA] [--head SHA]\n" +
         "  status            Show run status [--since 24h]\n" +
         "  sla-check         Check SLA for unmerged PRs\n" +
+        "  baseline set      Update lastKnownBaseline [SHA] (default: GITHUB_SHA or HEAD)\n" +
         "  setup             Interactive setup (generates v2 docdrift.yaml)\n" +
         "  generate-yaml     Generate config [--output path] [--force] [--open-pr]\n" +
         "  export            Export DeepWiki to MDX [--repo owner/name] [--out path] [--fail-on-secrets]\n" +
@@ -87,6 +90,20 @@ async function main(): Promise<void> {
 
     case "sla-check": {
       await runSlaCheck();
+      return;
+    }
+
+    case "baseline": {
+      const sub = args[0];
+      if (sub === "set") {
+        const shaArg = args[1];
+        const sha = await resolveBaselineSha(shaArg);
+        const configPath = getArg(args, "--config") ?? "docdrift.yaml";
+        await setBaseline(sha, configPath);
+        console.log(`[docdrift] Set lastKnownBaseline to ${sha}`);
+      } else {
+        throw new Error('Usage: docdrift baseline set [SHA] [--config path]');
+      }
       return;
     }
 

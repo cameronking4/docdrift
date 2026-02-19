@@ -119,6 +119,8 @@ export const docDriftConfigBaseSchema = z.object({
   branchPrefix: z.string().min(1).optional().default("docdrift"),
   /** Branch strategy: "single" = one branch for all runs (lownoise), "per-pr" = one branch per source PR. Default "single". */
   branchStrategy: z.enum(["single", "per-pr"]).optional().default("single"),
+  /** Last known commit where docs were in sync. Blank = assume drift. Updated after docdrift PR merges. */
+  lastKnownBaseline: z.string().min(1).optional(),
   devin: z.object({
     apiVersion: z.literal("v1"),
     unlisted: z.boolean().default(true),
@@ -145,6 +147,8 @@ const docDriftConfigObjectSchema = z.object({
   branchPrefix: z.string().min(1).optional().default("docdrift"),
   /** Branch strategy: "single" = one branch for all runs (lownoise), "per-pr" = one branch per source PR. Default "single". */
   branchStrategy: z.enum(["single", "per-pr"]).optional().default("single"),
+  /** Last known commit where docs were in sync. Blank = assume drift. Updated after docdrift PR merges. */
+  lastKnownBaseline: z.string().min(1).optional(),
   devin: z.object({
     apiVersion: z.literal("v1"),
     unlisted: z.boolean().default(true),
@@ -183,4 +187,6 @@ export interface NormalizedDocDriftConfig extends Omit<DocDriftConfig, "openapi"
   mode: "strict" | "auto";
   branchPrefix: string;
   branchStrategy: "single" | "per-pr";
+  /** Last known commit where docs were in sync. Blank = assume drift. */
+  lastKnownBaseline?: string;
 }

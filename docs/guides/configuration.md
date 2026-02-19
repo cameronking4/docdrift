@@ -57,6 +57,17 @@ specProviders:
     published: "apps/docs-site/openapi/openapi.json"
 ```
 
+## Baseline drift detection (`lastKnownBaseline`)
+
+When `lastKnownBaseline` is set to a commit SHA, docdrift compares the current exported spec to the **published OpenAPI spec at that commit**. If they differ, drift is detected (API changed since last sync). When blank, we assume drift (first install). The `docdrift-baseline-update` workflow updates it automatically when a docdrift PR is merged.
+
+```yaml
+# docdrift.yaml
+lastKnownBaseline: abc123   # optional; omit for first install
+```
+
+See [docdrift.yaml — lastKnownBaseline](../../docdrift-yml.md#lastknownbaseline-baseline-drift-detection) for full details.
+
 ## Full configuration reference
 
 For every field, schema, and validation rule, see [docdrift.yaml Reference](../../docdrift-yml.md).

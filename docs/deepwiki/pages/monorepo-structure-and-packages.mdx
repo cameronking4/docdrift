@@ -4,557 +4,119 @@ source: deepwiki
 repo: cameronking4/docdrift
 topic_id: "1.2"
 generated: true
-last_synced: "2026-02-16"
+last_synced: "2026-02-19"
 ---
 # Key Concepts
 
-<details>
-<summary>Relevant source files</summary>
-
-The following files were used as context for generating this wiki page:
-
-- [.gitignore](.gitignore)
-- [README.md](README.md)
-- [docdrift-yml.md](docdrift-yml.md)
-- [docdrift.schema.json](docdrift.schema.json)
-- [src/config/normalize.ts](src/config/normalize.ts)
-- [src/config/schema.ts](src/config/schema.ts)
-- [src/detect/index.ts](src/detect/index.ts)
-- [src/index.ts](src/index.ts)
-- [test/config.test.ts](test/config.test.ts)
-
-</details>
-
-
-
-This page defines the core terminology and conceptual framework used throughout DocDrift. Understanding these concepts is essential for configuring, operating, and extending the system. For architectural details on how these concepts are implemented, see [Architecture](#1.1). For practical configuration examples, see [Configuration](#2.2).
+This page defines core terminology and design principles for docdrift. For implementation details, see [Architecture](#1.1). For configuration, see [docdrift.yaml](../../docdrift-yml.md).
 
 ---
 
 ## Drift
 
-**Drift** is the divergence between code behavior and documentation. DocDrift detects two categories of drift:
+**Drift** is the gap between code behavior and documentation. Docdrift detects:
 
-| Drift Type | Description | Example |
-|------------|-------------|---------|
-| **Structural Drift** | API contracts change (endpoints, request/response schemas, parameters) | Field renamed from `name` to `fullName` in API response |
-| **Conceptual Drift** | Underlying behavior or logic changes that affect conceptual documentation | Authentication flow modified to add MFA support |
-
-Structural drift is typically machine-detectable and machine-fixable. Conceptual drift requires human judgment to determine what documentation updates are needed.
-
-**Sources:** [README.md:1-26](), [loom.md:12-23]()
+| Type | Description | Remediation |
+|------|-------------|-------------|
+| **Spec drift** | API spec (OpenAPI, GraphQL, etc.) in code ≠ published spec in docs | Devin updates spec and docs |
+| **Baseline drift** | API changed since last known sync (`lastKnownBaseline`) | Devin updates spec and docs |
+| **Conceptual drift** | Code paths changed that may affect guides (path heuristics) | Devin infers and updates, or escalate to issue |
 
 ---
 
-## Doc Areas
+## lastKnownBaseline
 
-A **doc area** is a logical grouping of related documentation files that share common characteristics and update policies. Each doc area is defined in `docdrift.yaml` under the `docAreas` array.
+A commit SHA where docs were last known to be in sync with the API. Used as a temporal anchor:
 
-### Doc Area Structure
+- **Blank** — Assume drift (first install). Proceed as if drift exists.
+- **Set** — Compare current export to published spec at that commit. Different → drift.
+- **Updated automatically** — `docdrift-baseline-update` workflow sets it when a docdrift PR is merged.
 
-```mermaid
-graph TD
-    DocArea["Doc Area Configuration"]
-    DocArea --> Name["name: string<br/>Unique identifier"]
-    DocArea --> Mode["mode: autogen | conceptual<br/>Update strategy"]
-    DocArea --> Owners["owners<br/>Reviewers list"]
-    DocArea --> Detect["detect<br/>Detection rules"]
-    DocArea --> Patch["patch<br/>Target files and constraints"]
-    
-    Detect --> OpenAPI["openapi<br/>Spec comparison"]
-    Detect --> Paths["paths<br/>Heuristic mappings"]
-    
-    Patch --> Targets["targets: string[]<br/>Files to update"]
-    Patch --> Human["requireHumanConfirmation: bool"]
-```
-
-**Sources:** [docdrift.yaml:23-47](), [README.md:44-52]()
-
-### Example: API Reference Doc Area
-
-```yaml
-name: api_reference
-mode: autogen
-owners:
-  reviewers: ["datastack/api-owners"]
-detect:
-  openapi:
-    exportCmd: "npm run openapi:export"
-    generatedPath: "openapi/generated.json"
-    publishedPath: "docs/reference/openapi.json"
-patch:
-  targets:
-    - "docs/reference/openapi.json"
-    - "docs/reference/api.md"
-```
-
-This configuration declares that `api_reference` uses OpenAPI drift detection (Tier 1) and targets two documentation files for automated updates.
-
-**Sources:** [docdrift.yaml:24-36]()
+Reduces noise by only remediating changes since the last attested sync.
 
 ---
 
-## Modes: Autogen vs Conceptual
+## Run Gate
 
-Doc areas operate in one of two modes, which determine their update policy:
+The **run gate** decides whether to start a Devin session:
 
-### Autogen Mode
-
-```mermaid
-graph LR
-    Code["Code Change"] --> Detect["Detect Structural<br/>Drift"]
-    Detect --> Policy["Policy Engine"]
-    Policy --> HighConf{High<br/>Confidence?}
-    HighConf -->|Yes| Devin["Automated PR<br/>via Devin"]
-    HighConf -->|No| Issue["GitHub Issue"]
-    Devin --> Merge["Human Review<br/>& Merge"]
-```
-
-**Characteristics:**
-- Documentation is **machine-generated** from code artifacts (e.g., OpenAPI specs)
-- High-confidence drift triggers automated PR creation via Devin
-- Updates are deterministic: correct API spec → correct documentation
-- Target files are typically structured formats (JSON, Markdown tables)
-
-**Use cases:** API references, CLI command lists, configuration schemas
-
-**Sources:** [README.md:54-60](), [docdrift.yaml:24-36]()
-
-### Conceptual Mode
-
-```mermaid
-graph LR
-    Code["Code Change"] --> Heuristic["Heuristic<br/>Detection"]
-    Heuristic --> Always["Always Low<br/>Confidence"]
-    Always --> Issue["GitHub Issue<br/>with Questions"]
-    Issue --> Human["Human Author<br/>Updates Docs"]
-```
-
-**Characteristics:**
-- Documentation explains **concepts, workflows, best practices**
-- All drift signals escalate to GitHub issues with targeted questions
-- No automated PR generation (flag: `requireHumanConfirmation: true`)
-- Human judgment required to translate code changes into prose
-
-**Use cases:** Guides, tutorials, architectural overviews, conceptual explanations
-
-**Sources:** [README.md:20](), [docdrift.yaml:38-47]()
+- `spec_drift`, `baseline_drift`, `baseline_missing`, `spec_export_invalid` — Proceed to session
+- `conceptual_only`, `infer` — Proceed (auto mode only)
+- `none` — Exit early; no session
 
 ---
 
-## Detection Tiers
+## Spec Providers
 
-DocDrift employs a **three-tier detection system** with increasing sophistication:
+Plugins that compare current vs published specs. Supported formats: `openapi3`, `swagger2`, `graphql`, `fern`, `postman`. Each defines:
 
-```mermaid
-graph TB
-    Input["Code Changes<br/>baseSHA → headSHA"]
-    
-    subgraph Tier0["Tier 0: Basic Checks"]
-        DocsCheck["npm run docs:check<br/>Validation command"]
-        T0Signal["Signal: tier=0<br/>confidence=1.0"]
-    end
-    
-    subgraph Tier1["Tier 1: OpenAPI Diff"]
-        Export["npm run openapi:export"]
-        Generated["openapi/generated.json"]
-        Published["docs/reference/openapi.json"]
-        Compare["jsonDiff()"]
-        T1Signal["Signal: tier=1<br/>confidence=0.9"]
-    end
-    
-    subgraph Tier2["Tier 2: Path Heuristics"]
-        PathMatch["apps/api/src/auth/**<br/>changed?"]
-        ImpactMap["impacts:<br/>docs/guides/auth.md"]
-        T2Signal["Signal: tier=2<br/>confidence=0.5"]
-    end
-    
-    Input --> DocsCheck
-    Input --> Export
-    Input --> PathMatch
-    
-    Export --> Generated
-    Generated --> Compare
-    Published --> Compare
-    Compare --> T1Signal
-    
-    PathMatch --> ImpactMap
-    ImpactMap --> T2Signal
-    
-    DocsCheck --> T0Signal
-    
-    T0Signal --> Report["drift_report.json"]
-    T1Signal --> Report
-    T2Signal --> Report
-```
+- **current** — Source (export command, local path, or URL)
+- **published** — Path in docs repo to update
+- **validation** — Optional completeness checks (e.g. requestBody on POST)
 
-### Tier 0: Basic Checks
+---
 
-Executes validation commands configured in `policy.verification.commands[]`. Typically runs documentation build/lint steps to verify that existing docs are valid.
+## Modes: strict vs auto
 
-- **Implementation:** [src/detect/index.ts:48-58]()
-- **Configuration:** `policy.verification.commands` in [docdrift.yaml:19-21]()
-- **Confidence:** 1.0 (definitive failures)
+| Mode | When it runs |
+|------|--------------|
+| **strict** (default) | Only spec-related gates (spec drift, baseline drift, baseline missing, spec export invalid) |
+| **auto** | Also runs when path mappings match, even with no spec drift (heuristic / infer) |
 
-### Tier 1: OpenAPI Diff
+---
 
-Compares a generated OpenAPI specification (from code) against the published specification (in docs). Detects structural API drift.
+## Branch Strategy
 
-- **Implementation:** [src/detect/index.ts:60-72]()
-- **Configuration:** `docAreas[].detect.openapi` in [docdrift.yaml:29-32]()
-- **Confidence:** 0.9 (high, based on structural diff)
-- **Generation:** [apps/api/scripts/export-openapi.ts:1-52]()
-
-### Tier 2: Path Heuristics
-
-Maps code file paths to documentation files using regex patterns. Detects when changes in specific code areas should trigger documentation review.
-
-- **Implementation:** [src/detect/index.ts:74-83]()
-- **Configuration:** `docAreas[].detect.paths` in [docdrift.yaml:43-45]()
-- **Confidence:** 0.5 (moderate, requires human review)
-
-**Sources:** [README.md:23-31](), [src/detect/index.ts:21-114]()
+| Strategy | Behavior |
+|----------|----------|
+| **single** (default) | One branch (e.g. `docdrift`). Devin updates the existing PR when present. Low noise. |
+| **per-pr** | One branch per source PR. Each upstream PR gets its own docdrift PR. |
 
 ---
 
 ## Signals
 
-A **signal** is a discrete drift detection result produced by one of the detection tiers. Signals are the atomic units of drift that flow through the policy engine.
-
-### Signal Schema
-
-```typescript
-interface DriftSignal {
-  tier: 0 | 1 | 2;                    // Detection tier
-  confidence: number;                  // Range: 0.0 - 1.0
-  type: 'docs_check_fail' | 'openapi_drift' | 'conceptual_drift';
-  docArea: string;                     // e.g., "api_reference"
-  summary: string;                     // Human-readable description
-  impactedDocs: string[];             // Affected file paths
-  evidence?: {                        // Tier-specific evidence
-    diff?: object;                    // OpenAPI diff
-    failedCommand?: string;           // Failed validation command
-    matchedPaths?: string[];          // Matched code paths
-  };
-}
-```
-
-### Signal Flow
-
-```mermaid
-graph LR
-    T0["Tier 0<br/>Detector"] --> S0["Signal<br/>tier=0"]
-    T1["Tier 1<br/>Detector"] --> S1["Signal<br/>tier=1"]
-    T2["Tier 2<br/>Detector"] --> S2["Signal<br/>tier=2"]
-    
-    S0 --> Report["drift_report.json"]
-    S1 --> Report
-    S2 --> Report
-    
-    Report --> Policy["Policy Engine<br/>decidePolicy()"]
-    Policy --> Action["Action Decision"]
-```
-
-Signals are serialized to `.docdrift/drift_report.json` and consumed by the policy engine to determine remediation actions.
-
-**Sources:** [src/detect/index.ts:10-19](), [.docdrift/drift_report.json:1-30]()
-
----
-
-## Confidence Scores
-
-**Confidence** is a floating-point value (0.0 - 1.0) indicating the certainty that detected drift is genuine and can be automatically remediated.
-
-### Confidence Levels by Tier
-
-| Tier | Typical Confidence | Rationale |
-|------|-------------------|-----------|
-| 0    | 1.0               | Failed validation commands are definitive |
-| 1    | 0.9               | Structural diffs are highly reliable |
-| 2    | 0.5               | Path heuristics may have false positives |
-
-### Confidence Gating
-
-The `policy.confidence.autopatchThreshold` in `docdrift.yaml` defines the minimum confidence required to trigger automated PR creation:
-
-```yaml
-policy:
-  confidence:
-    autopatchThreshold: 0.8
-```
-
-Signals with `confidence >= autopatchThreshold` are eligible for automated PRs (subject to other policy checks). Lower-confidence signals escalate to GitHub issues.
-
-**Sources:** [docdrift.yaml:14-15](), [README.md:19]()
+A **signal** is a drift detection result (tier, confidence, kind, evidence). Signals flow into the run gate and policy engine. Kinds include: `openapi_diff`, `baseline_drift`, `baseline_missing`, `heuristic_path_impact`, `infer_mode`, `spec_export_incomplete`.
 
 ---
 
 ## Policy Actions
 
-The policy engine evaluates each signal and determines one of four actions:
+The policy engine selects one action per run:
 
-### Action Types
+| Action | When |
+|--------|------|
+| `OPEN_PR` | High confidence, within caps, allowlist match → Devin opens/updates PR |
+| `UPDATE_EXISTING_PR` | Existing docdrift PR for this area → instruct Devin to update it |
+| `OPEN_ISSUE` | Low confidence, conceptual mode, or cap reached → GitHub issue |
+| `NOOP` | Idempotency key already seen → skip |
+| `BLOCKED` | Changes outside allowlist → block |
 
-```mermaid
-graph TD
-    Signal["Drift Signal"] --> Policy["Policy Engine<br/>decidePolicy()"]
-    
-    Policy --> Idempotent{Idempotency<br/>Key Exists?}
-    Idempotent -->|Yes| NOOP["NOOP<br/>Skip duplicate"]
-    
-    Idempotent -->|No| Mode{Doc Area<br/>Mode?}
-    Mode -->|conceptual| ISSUE["OPEN_ISSUE<br/>Human escalation"]
-    
-    Mode -->|autogen| Conf{Confidence >=<br/>threshold?}
-    Conf -->|No| ISSUE
-    
-    Conf -->|Yes| Cap{PR Cap<br/>Reached?}
-    Cap -->|No| OPEN["OPEN_PR<br/>Create new PR"]
-    
-    Cap -->|Yes| Existing{Existing PR<br/>Today?}
-    Existing -->|Yes| UPDATE["UPDATE_EXISTING_PR<br/>Bundle changes"]
-    Existing -->|No| ISSUE
-```
+---
 
-| Action | Description | Implementation |
-|--------|-------------|----------------|
-| `NOOP` | Duplicate signal already processed | [src/index.ts:170-177]() |
-| `OPEN_PR` | Create new Devin session for PR | [src/index.ts:50-128]() |
-| `UPDATE_EXISTING_PR` | Bundle into existing PR for doc area | [src/index.ts:178-190]() |
-| `OPEN_ISSUE` | Create GitHub issue with questions | [src/index.ts:200-220]() |
+## Evidence Bundle
 
-### Idempotency Keys
+A package of drift report, spec diffs, and impacted doc snippets uploaded to the Devin API as session attachments. Devin uses it to produce a remediation PR.
 
-Each action is associated with an idempotency key: `{repository}:{baseSHA}:{headSHA}:{docArea}:{action}`. This prevents duplicate actions when the same commit range is processed multiple times.
+---
 
-**Sources:** [README.md:34-42](), [src/index.ts:144-290]()
+## State
+
+Persistent data in `.docdrift/state.json`:
+
+- **Idempotency** — Prevents duplicate actions for same repo/SHAs
+- **Daily PR cap** — Limits PRs per day
+- **Area PRs** — Tracks existing docdrift PRs for bundling and SLA
 
 ---
 
 ## Low-Noise Mechanisms
 
-DocDrift implements several mechanisms to minimize notification noise and PR spam:
-
-### 1. PR Bundling
-
-Multiple drift signals for the same doc area on the same day are bundled into a single PR.
-
-```mermaid
-graph LR
-    S1["Signal 1<br/>10:00 AM"] --> Check1{Existing PR<br/>for doc area?}
-    S2["Signal 2<br/>2:00 PM"] --> Check2{Existing PR<br/>for doc area?}
-    
-    Check1 -->|No| PR1["Open PR #123"]
-    Check2 -->|Yes| Bundle["Update PR #123<br/>Bundle changes"]
-```
-
-**Configuration:** Implicit based on state tracking in `.docdrift/state.json`
-
-### 2. PR Caps
-
-Global and per-doc-area limits prevent excessive PR creation:
-
-```yaml
-policy:
-  prCaps:
-    maxPrsPerDay: 3           # Global daily cap
-    maxFilesTouched: 30       # Per-PR file limit
-```
-
-When caps are reached, low-priority signals escalate to issues instead.
-
-### 3. Confidence Gating
-
-Only high-confidence signals (`confidence >= autopatchThreshold`) trigger automated PRs. Lower-confidence signals require human review via issues.
-
-### 4. Idempotency
-
-Each signal is associated with an idempotency key based on repository, SHAs, doc area, and action type. Duplicate keys result in `NOOP` actions.
-
-### 5. Allowlists
-
-Only files matching `policy.allowlist[]` patterns can be modified by Devin sessions:
-
-```yaml
-policy:
-  allowlist:
-    - "docs/**"
-    - "openapi/**"
-```
-
-This prevents unintended modifications to source code or configuration files.
-
-**Sources:** [README.md:16-21](), [docdrift.yaml:10-21]()
-
----
-
-## Evidence Bundles
-
-An **evidence bundle** is a structured collection of artifacts packaged for upload to Devin sessions. Each bundle corresponds to one doc area and contains all information needed to remediate drift.
-
-### Bundle Structure
-
-```mermaid
-graph TB
-    Bundle["Evidence Bundle<br/>Tarball"]
-    
-    Bundle --> Manifest["manifest.json<br/>Metadata"]
-    Bundle --> Report["drift_report.json<br/>Full drift report"]
-    Bundle --> Evidence["evidence/<br/>Tier-specific files"]
-    Bundle --> Impacted["impacted_docs/<br/>Affected doc snippets"]
-    
-    Evidence --> Diff["openapi_diff.json"]
-    Evidence --> Failed["failed_commands.txt"]
-    
-    Impacted --> Doc1["docs/reference/api.md"]
-    Impacted --> Doc2["docs/reference/openapi.json"]
-    
-    Manifest --> Meta["runId, docArea,<br/>timestamp, signals[]"]
-```
-
-### File System Layout
-
-```
-.docdrift/
-  evidence/
-    {runId}/
-      {docArea}/
-        manifest.json
-        drift_report.json
-        evidence/
-          openapi_diff.json
-          failed_commands.txt
-        impacted_docs/
-          docs/reference/api.md
-          docs/reference/openapi.json
-        {docArea}.tar.gz
-```
-
-### Tarball Creation
-
-The bundle is compressed into `{docArea}.tar.gz` and uploaded to Devin as a session attachment:
-
-- **Implementation:** [src/evidence/bundle.ts:30-97]()
-- **Upload:** [src/index.ts:50-85]()
-
-**Sources:** [README.md:35-38](), [src/evidence/bundle.ts:1-97]()
-
----
-
-## State Management
-
-**State** is persistent data stored in `.docdrift/state.json` that tracks actions taken across multiple runs. This enables idempotency, PR cap enforcement, and bundling decisions.
-
-### State Schema
-
-```json
-{
-  "version": 1,
-  "lastRun": "2024-01-15T10:30:00Z",
-  "prCounts": {
-    "2024-01-15": 2
-  },
-  "docAreaPRs": {
-    "api_reference": {
-      "prNumber": 123,
-      "createdAt": "2024-01-15T09:00:00Z",
-      "url": "https://github.com/org/repo/pull/123"
-    }
-  },
-  "processedSignals": [
-    "org/repo:abc123:def456:api_reference:OPEN_PR"
-  ]
-}
-```
-
-### State Lifecycle
-
-```mermaid
-sequenceDiagram
-    participant CLI as docdrift CLI
-    participant State as State Manager
-    participant FS as .docdrift/state.json
-    
-    CLI->>State: loadState()
-    State->>FS: Read existing state
-    FS-->>State: Current state
-    
-    loop For each signal
-        CLI->>State: checkIdempotency(key)
-        State-->>CLI: exists? true/false
-        
-        CLI->>State: checkPRCap(date)
-        State-->>CLI: count < maxPrsPerDay?
-        
-        CLI->>State: getDocAreaPR(docArea)
-        State-->>CLI: existing PR or null
-    end
-    
-    CLI->>State: recordAction(signal, action, result)
-    State->>State: Update in-memory state
-    
-    CLI->>State: saveState()
-    State->>FS: Write updated state
-```
-
-### State Operations
-
-| Operation | Purpose | Implementation |
-|-----------|---------|----------------|
-| `loadState()` | Initialize from disk | [src/state/index.ts:10-25]() |
-| `checkIdempotency()` | Detect duplicate signals | [src/state/index.ts:30-40]() |
-| `checkPRCap()` | Enforce daily PR limit | [src/state/index.ts:45-55]() |
-| `getDocAreaPR()` | Find existing PR for bundling | [src/state/index.ts:60-70]() |
-| `recordAction()` | Log completed action | [src/state/index.ts:75-90]() |
-| `saveState()` | Persist to disk | [src/state/index.ts:95-105]() |
-
-**Sources:** [README.md:42](), [src/index.ts:240-250]()
-
----
-
-## Concept Relationships
-
-The following diagram illustrates how these concepts relate to each other in a typical workflow:
-
-```mermaid
-graph TB
-    Config["docdrift.yaml<br/>Configuration"]
-    
-    Config --> DocArea1["Doc Area: api_reference<br/>mode: autogen"]
-    Config --> DocArea2["Doc Area: auth_guide<br/>mode: conceptual"]
-    
-    DocArea1 --> Detect1["Detection:<br/>Tier 1 OpenAPI"]
-    DocArea2 --> Detect2["Detection:<br/>Tier 2 Paths"]
-    
-    Detect1 --> Signal1["Signal<br/>tier=1, conf=0.9"]
-    Detect2 --> Signal2["Signal<br/>tier=2, conf=0.5"]
-    
-    Signal1 --> Policy["Policy Engine"]
-    Signal2 --> Policy
-    
-    Policy --> State["State Manager<br/>.docdrift/state.json"]
-    State --> Idempotent["Check Idempotency"]
-    State --> Caps["Check PR Caps"]
-    State --> Existing["Check Existing PRs"]
-    
-    Idempotent --> Decision{Decision}
-    Caps --> Decision
-    Existing --> Decision
-    
-    Decision -->|High conf + cap OK| OpenPR["OPEN_PR"]
-    Decision -->|Existing PR| UpdatePR["UPDATE_EXISTING_PR"]
-    Decision -->|Low conf or cap hit| OpenIssue["OPEN_ISSUE"]
-    Decision -->|Duplicate| Noop["NOOP"]
-    
-    OpenPR --> Evidence["Evidence Bundle<br/>Tarball + Manifest"]
-    UpdatePR --> Evidence
-    
-    Evidence --> Devin["Devin Session"]
-    Devin --> PR["Pull Request"]
-    
-    OpenIssue --> Issue["GitHub Issue"]
-```
-
-**Sources:** [README.md:34-42](), [docdrift.yaml:1-47](), [src/index.ts:144-290]()
-
----
+- **Single branch** — One branch; update existing PR instead of opening many
+- **Single session** — One Devin session for the whole docsite per run
+- **Baseline drift** — Compare to last sync; no drift since then → no session
+- **Run gate** — Exit when `none`; no session for docs-check-only
+- **Confidence gating** — Low confidence → issue, not PR
+- **PR caps** — Daily limit; bundle or escalate when reached
+- **Idempotency** — No duplicate actions for same inputs
+- **Allowlist** — Devin may only edit files under allowed paths
