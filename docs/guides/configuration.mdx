@@ -19,6 +19,23 @@ mode: strict   # only on spec drift
 mode: auto     # also on pathMapping matches
 ```
 
+## Branch strategy (single branch / low noise)
+
+By default, docdrift uses a **single branch** for all runs to minimize PR noise:
+
+| Strategy | Default | Behavior |
+| -------- | ------- | -------- |
+| **`single`** | Yes | One branch (e.g. `docdrift`) for all runs. If an open PR from that branch exists, Devin updates it instead of opening a new one. |
+| **`per-pr`** | No | One branch per source PR (e.g. `docdrift-abc1234`). Each upstream PR gets its own docdrift PR. |
+
+```yaml
+# docdrift.yaml — explicit low-noise (default)
+branchStrategy: single
+branchPrefix: docdrift
+```
+
+See [docdrift.yaml reference](https://github.com/cameronking4/docdrift/blob/main/docdrift-yml.md#branch-strategy-single-branch--low-noise) for details.
+
 ## Spec providers
 
 Docdrift supports several API spec formats. Configure via `specProviders`:

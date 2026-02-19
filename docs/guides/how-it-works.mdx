@@ -7,6 +7,7 @@ Detection, gating, core flow, and why it stays low-noise.
 
 ## Why this is low-noise
 
+- **Single branch strategy** (default) — One branch for all runs (e.g. `docdrift`). Devin updates the existing PR when present instead of opening a new one per run. Configurable via `branchStrategy: single` in `docdrift.yaml`.
 - **Single session, single PR** — One Devin session handles the whole docsite (API reference + guides).
 - **Gate on API spec diff** — We only run when spec drift is detected (strict mode); no session for docs-check-only failures.
 - **requireHumanReview** — When the PR touches guides/prose, we open an issue after the PR to direct attention.
@@ -38,7 +39,7 @@ When you run docdrift as a package (e.g. `npx docdrift` or from another repo), a
 
 1. Validate config and command availability.
 2. Build drift report. **Gate:** If no drift (strict mode: spec only; auto mode: spec or pathMappings), exit (no session).
-3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`).
+3. Policy decision (`OPEN_PR | UPDATE_EXISTING_PR | OPEN_ISSUE | NOOP`). With `branchStrategy: single`, we look for an existing open PR from the docdrift branch; if found, we instruct Devin to update it (`UPDATE_EXISTING_PR`) instead of opening a new one.
 4. Build one aggregated evidence bundle for the whole docsite.
 5. One Devin session with whole-docsite prompt; poll to terminal status.
 6. If PR opened and touches `requireHumanReview` paths → create issue to direct attention.
@@ -58,7 +59,7 @@ The docsite is a Docusaurus app with `docusaurus-plugin-openapi-docs`. The **gen
 ## How Devin updates them
 
 1. **Evidence bundle** — Docdrift builds a tarball with the drift report, spec diff, and impacted doc snippets, and uploads it to the Devin API as session attachments.
-2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`openapi/**`, `apps/docs-site/**`), make minimal correct edits, run verification (`npm run docs:gen`, `npm run docs:build`), and open **one PR** per doc area with a clear description.
+2. **Devin session** — Devin is prompted (see `src/devin/prompts.ts`) to update only files under the allowlist (`openapi/**`, `apps/docs-site/**`), make minimal correct edits, run verification (`npm run docs:gen`, `npm run docs:build`), and open **one PR** per doc area with a clear description. With `branchStrategy: single` (default), Devin updates the existing PR on the docdrift branch when one is already open.
 3. **PR** — Devin updates `apps/docs-site/openapi/openapi.json` to match the current API, runs `docs:gen` to regenerate API reference MDX, and opens a pull request. You review and merge; the docsite builds and the docs are updated.
 
 So the "fix" is a **PR opened by Devin** that you merge; the repo's docs don't change until that PR is merged.

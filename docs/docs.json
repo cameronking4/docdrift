@@ -27,6 +27,10 @@
             "group": "Detection & Remediation",
             "pages": [
               "getting-started",
+              {
+                "group": "Setup & Configuration",
+                "pages": ["guides/setup", "guides/configuration"]
+              },
               "github-actions",
               "real-world-scenarios"
             ]
@@ -116,10 +120,6 @@
           {
             "group": "Guides",
             "pages": [
-              {
-                "group": "Setup & Configuration",
-                "pages": ["guides/setup", "guides/configuration"]
-              },
               {
                 "group": "How It Works",
                 "pages": ["guides/how-it-works", "guides/consuming-repo"]
