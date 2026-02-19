@@ -49,8 +49,41 @@ You can run `docdrift run` or `docdrift detect` with no arguments; base and head
 | `mode`              | No       | string | `"strict"` \| `"auto"`. See [Configuration](/docs/guides/configuration).  |
 | `branchPrefix`      | No       | string | `"docdrift"`. Prefix for docdrift branches.                                  |
 | `branchStrategy`    | No       | string | `"single"` \| `"per-pr"`. See [Branch strategy](#branch-strategy-single-branch--low-noise). |
+| `lastKnownBaseline` | No       | string | Commit SHA where docs were last in sync. Blank = assume drift. See [lastKnownBaseline](#lastknownbaseline-baseline-drift-detection). |
 
 \* Config must include either `(openapi + docsite)` or `docAreas` (at least one area).
+
+---
+
+## lastKnownBaseline (baseline drift detection)
+
+| Field               | Required | Type   | Description                                                                 |
+| ------------------- | -------- | ------ | --------------------------------------------------------------------------- |
+| `lastKnownBaseline` | No       | string | Commit SHA where docs and API spec were last known to be in sync.           |
+
+**Purpose:** Provides a temporal anchor for drift detection. Without it, docdrift compares the current exported spec to the published spec at HEAD. With `lastKnownBaseline`, we also compare the current export to the **published OpenAPI spec at that commit** — so we detect API changes since the last attested sync.
+
+**Behavior:**
+
+| State                      | Behavior                                                                 |
+| -------------------------- | ------------------------------------------------------------------------ |
+| **Blank** (omitted)        | Assume drift. Proceed as if drift exists (first install / cold start).    |
+| **Set**                    | Compare current export vs published spec at that commit. Different → drift. |
+| **File missing at commit** | Cannot verify → assume drift (e.g. published path didn't exist yet).     |
+
+**How it works:**
+- **Baseline =** the contents of `config.openapi.published` (e.g. `apps/docs-site/openapi/openapi.json`) as of the `lastKnownBaseline` commit.
+- **Current =** the spec exported from code at HEAD.
+- If they differ, the API has changed since the last known sync → drift.
+
+**When to set:**
+- Omit on first install. After merging the first docdrift PR, run `docdrift baseline set` or use the `docdrift-baseline-update` workflow, which updates `lastKnownBaseline` to the merge commit when a docdrift PR is merged.
+
+**CLI:**
+```bash
+docdrift baseline set [SHA]   # SHA = GITHUB_SHA or HEAD if omitted
+docdrift baseline set --config path/to/docdrift.yaml
+```
 
 ---
 

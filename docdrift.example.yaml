@@ -2,6 +2,8 @@
 # yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json
 version: 2
 
+# lastKnownBaseline: optional commit SHA where docs were in sync. Omit for first install.
+
 specProviders:
   - format: openapi3
     current:

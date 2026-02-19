@@ -7,6 +7,7 @@ Detection, gating, core flow, and why it stays low-noise.
 - **Single branch strategy** (default) — One branch for all runs (e.g. `docdrift`). Devin updates the existing PR when present instead of opening a new one per run. Configurable via `branchStrategy: single` in `docdrift.yaml`.
 - **Single session, single PR** — One Devin session handles the whole docsite (API reference + guides).
 - **Gate on API spec diff** — We only run when spec drift is detected (strict mode); no session for docs-check-only failures.
+- **Baseline drift detection** (`lastKnownBaseline`) — When set, we compare current export to the published spec at that commit. No drift since last sync → no session. Avoids surfacing months of accumulated changes; we only remediate what changed since the last attested sync.
 - **requireHumanReview** — When the PR touches guides/prose, we open an issue after the PR to direct attention.
 - **7-day SLA** — If a doc-drift PR is open 7+ days, we open a reminder issue (configurable `slaDays`; use `sla-check` CLI or cron workflow).
 - Confidence gating and allowlist/exclude enforcement.
@@ -14,9 +15,13 @@ Detection, gating, core flow, and why it stays low-noise.
 
 ## Detection and gate
 
-- **Gate:** We only run a Devin session when **spec drift** is detected (strict mode). No drift → no session. In auto mode, pathMapping matches also trigger a run.
-- **Tier 1:** Spec drift (generated vs published)
+- **Gate:** We only run a Devin session when **spec drift**, **baseline drift**, or **baseline missing** is detected. No drift → no session. In auto mode, pathMapping matches also trigger a run.
+- **Tier 1:** Spec drift (generated vs published at HEAD)
+- **Tier 1:** Baseline drift (generated vs published spec at `lastKnownBaseline` commit)
+- **Tier 1:** Baseline missing (no `lastKnownBaseline` set → assume drift for first install)
 - **Tier 2:** Heuristic path impacts from pathMappings (e.g. `apps/api/src/auth/**` → guides)
+
+**lastKnownBaseline:** When set, drift = current export differs from the published OpenAPI spec at that commit. When blank, we assume drift (cold start). Updated automatically by the `docdrift-baseline-update` workflow when a docdrift PR is merged. See [docdrift.yaml](docdrift-yml.md#lastknownbaseline-baseline-drift-detection).
 
 ### Output artifacts (under `.docdrift/`)
 

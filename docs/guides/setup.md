@@ -39,6 +39,16 @@ npx @devinnn/docdrift generate-yaml --open-pr
 
 Parsing uses a strict output block (`<docdrift_setup_output>...</docdrift_setup_output>`) from the Devin session transcript, with a fallback to markdown blocks (`**docdriftYaml:**` + code fences) when needed.
 
+## Workflows added by setup
+
+When you choose to add the GitHub workflow, setup creates:
+
+- **docdrift.yml** — Main run (validate → detect → run Devin)
+- **docdrift-sla-check.yml** — Daily cron for PRs open 7+ days
+- **docdrift-baseline-update.yml** — When a docdrift PR is merged, updates `lastKnownBaseline` in docdrift.yaml so future drift detection uses the merge commit as reference
+
+`lastKnownBaseline` is omitted by default (first install). After merging the first docdrift PR, the baseline-update workflow sets it automatically.
+
 ## Next steps
 
 - See [Configuration](configuration.md) for modes and spec providers
