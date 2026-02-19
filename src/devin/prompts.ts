@@ -74,6 +74,8 @@ export function buildConceptualPrompt(input: PromptInput): string {
 
 /** Whole-docsite prompt for single-session runs */
 export function buildWholeDocsitePrompt(input: {
+  /** GitHub repository (owner/name). Devin must work in this repo. */
+  repository: string;
   aggregated: AggregatedDriftResult;
   config: NormalizedDocDriftConfig;
   attachmentUrls: string[];
@@ -232,9 +234,15 @@ export function buildWholeDocsitePrompt(input: {
       ? [...new Set([...input.config.policy.allowlist, ...pathMappings.map((p) => p.match)])]
       : input.config.policy.allowlist;
 
+  const repoBlock =
+    input.repository && input.repository !== "local/docdrift"
+      ? [`REPOSITORY: Work in GitHub repo ${input.repository}. All edits and PRs must target this repo.`, ""].join("\n")
+      : "";
+
   const base = [
     "You are Devin. Task: update the entire docsite to match the API and code changes.",
     "",
+    repoBlock,
     specExportInvalidBlock,
     baselineMissingBlock,
     baselineDriftBlock,

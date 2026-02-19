@@ -102,6 +102,7 @@ async function executeSessionSingle(input: {
   }
 
   const prompt = buildWholeDocsitePrompt({
+    repository: input.repository,
     aggregated: input.aggregated,
     config: input.config,
     attachmentUrls,
