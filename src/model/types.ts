@@ -27,7 +27,9 @@ export type SignalKind =
   | "postman_diff"
   | "infer_mode"
   | "heuristic_path_impact"
-  | "weak_evidence";
+  | "weak_evidence"
+  | "baseline_missing"
+  | "baseline_drift";
 
 export interface Signal {
   kind: SignalKind;

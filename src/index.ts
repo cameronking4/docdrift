@@ -180,6 +180,10 @@ function runGateLabel(gate: RunGate): string {
       return "spec export incomplete";
     case "spec_drift":
       return "API spec drift";
+    case "baseline_drift":
+      return "baseline drift (API changed since last sync)";
+    case "baseline_missing":
+      return "baseline missing (assuming drift)";
     case "conceptual_only":
       return "path heuristics (no spec changes)";
     case "infer":
@@ -202,6 +206,8 @@ function signalKindLabel(kind: string): string {
     postman_diff: "Postman",
     heuristic_path_impact: "Path heuristics",
     infer_mode: "Inferred",
+    baseline_missing: "Baseline missing",
+    baseline_drift: "Baseline drift",
   };
   return labels[kind] ?? kind;
 }
@@ -683,3 +689,4 @@ export async function resolveBaseHead(
 
 export const STATE_PATH = path.resolve(".docdrift", "state.json");
 export { runSetup } from "./setup";
+export { setBaseline, resolveBaselineSha } from "./config/baseline";

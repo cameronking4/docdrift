@@ -104,6 +104,49 @@ jobs:
             .docdrift/state.json
 `;
 
+const BASELINE_UPDATE_WORKFLOW_CONTENT = `name: docdrift-baseline-update
+
+# Updates lastKnownBaseline when a docdrift PR is merged.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+jobs:
+  update-baseline:
+    if: github.event.pull_request.merged == true && (startsWith(github.event.pull_request.head.ref, 'docdrift') || github.event.pull_request.head.ref == 'docdrift')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: \$\{\{ github.event.repository.default_branch \}\}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm install
+
+      - name: Update lastKnownBaseline
+        run: npx @devinnn/docdrift baseline set \$\{\{ github.event.pull_request.merge_commit_sha \}\}
+        env:
+          GITHUB_SHA: \$\{\{ github.event.pull_request.merge_commit_sha \}\}
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet; then
+            echo "No config changes"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docdrift.yaml
+            git commit -m "chore(docdrift): update lastKnownBaseline after docdrift PR merge"
+            git push
+          fi
+`;
+
 const SLA_CHECK_WORKFLOW_CONTENT = `name: docdrift-sla-check
 
 on:
@@ -182,11 +225,18 @@ export function addSlaCheckWorkflow(cwd: string): void {
   fs.writeFileSync(path.join(workflowsDir, "docdrift-sla-check.yml"), SLA_CHECK_WORKFLOW_CONTENT, "utf8");
 }
 
+export function addBaselineUpdateWorkflow(cwd: string): void {
+  const workflowsDir = path.resolve(cwd, ".github", "workflows");
+  fs.mkdirSync(workflowsDir, { recursive: true });
+  fs.writeFileSync(path.join(workflowsDir, "docdrift-baseline-update.yml"), BASELINE_UPDATE_WORKFLOW_CONTENT, "utf8");
+}
+
 export function addGitHubWorkflow(cwd: string): void {
   const workflowsDir = path.resolve(cwd, ".github", "workflows");
   fs.mkdirSync(workflowsDir, { recursive: true });
   fs.writeFileSync(path.join(workflowsDir, "docdrift.yml"), WORKFLOW_CONTENT, "utf8");
   addSlaCheckWorkflow(cwd);
+  addBaselineUpdateWorkflow(cwd);
 }
 
 export function runOnboarding(cwd: string, choices: OnboardingChoices): { created: string[] } {
@@ -208,6 +258,7 @@ export function runOnboarding(cwd: string, choices: OnboardingChoices): { create
     addGitHubWorkflow(cwd);
     created.push(".github/workflows/docdrift.yml");
     created.push(".github/workflows/docdrift-sla-check.yml");
+    created.push(".github/workflows/docdrift-baseline-update.yml");
   }
 
   return { created };

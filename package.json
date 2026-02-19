@@ -1,6 +1,6 @@
 {
   "name": "@devinnn/docdrift",
-  "version": "0.1.18",
+  "version": "0.2.1",
   "private": false,
   "description": "Detect and remediate documentation drift with Devin sessions",
   "main": "dist/src/index.js",
@@ -13,7 +13,7 @@
   },
   "files": [
     "dist/src",
-    "docdrift.schema.json"
+    "docdrift.schema.json","docdrift-yml.md","docdrift.example.yaml"
   ],
   "repository": {
     "type": "git",
