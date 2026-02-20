@@ -1,6 +1,3 @@
-# Updates lastKnownBaseline when a PR is merged to main.
-# With commit-to-branch, doc fixes land on feature PRs; with separate-pr, on docdrift PRs.
-# Running on every merge keeps baseline in sync so future drift detection uses the merge commit.
 name: docdrift-baseline-update
 
 on:
@@ -23,10 +20,8 @@ jobs:
         with:
           node-version: "20"
 
-      - run: npm install
-
       - name: Update lastKnownBaseline
-        run: npx tsx src/cli.ts baseline set ${{ github.event.pull_request.merge_commit_sha }}
+        run: npx @devinnn/docdrift baseline set ${{ github.event.pull_request.merge_commit_sha }}
         env:
           GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
 
