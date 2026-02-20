@@ -2,6 +2,11 @@
 
 Docs that never lie: detect drift between merged code and docs, then open low-noise, evidence-grounded remediation via Devin sessions.
 
+## Loom Videos
+
+About DocDrift (5 min): https://www.loom.com/share/d30fde48cc704081b59ad52aa4208f4c
+DocDrift Deep Dive (5 min): https://www.loom.com/share/880afd2bae364618badf195c7453d7e9
+
 ## Table of contents
 
 - [Deliverables](#deliverables)
