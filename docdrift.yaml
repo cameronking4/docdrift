@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=./docdrift.schema.json
+# yaml-language-server: $schema=https://unpkg.com/@devinnn/docdrift@latest/docdrift.schema.json
 version: 2
 
 specProviders:
@@ -9,20 +9,22 @@ specProviders:
       outputPath: "openapi/generated.json"
     published: "apps/docs-site/openapi/openapi.json"
 
-docsite: "apps/docs-site"
+docsite: "docs"
 
 mode: strict
 
 pathMappings:
+  - match: "src/**"
+    impacts: ["docs/guides/**", "docs/getting-started.mdx"]
   - match: "apps/api/**"
-    impacts: ["apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
+    impacts: ["docs/guides/**", "apps/docs-site/docs/**", "apps/docs-site/openapi/**"]
 
 exclude:
-  - "apps/docs-site/blog/**"
   - "**/CHANGELOG*"
+  - "docs/deepwiki/**"
 
 requireHumanReview:
-  - "apps/docs-site/docs/guides/**"
+  - "docs/guides/**"
 
 devin:
   apiVersion: v1
@@ -31,23 +33,21 @@ devin:
   tags:
     - docdrift
   customInstructions:
-    - "DocDrift.md"
+    - ".docdrift/DocDrift.md"
 
 policy:
   prCaps:
-    maxPrsPerDay: 5
-    maxFilesTouched: 30
+    maxPrsPerDay: 1
+    maxFilesTouched: 12
   confidence:
     autopatchThreshold: 0.8
   allowlist:
+    - "docs/**"
+    - "apps/docs-site/**"
     - "openapi/**"
-    - "apps/**"
   verification:
     commands:
-      - "npm run docs:gen"
       - "npm run docs:build"
   slaDays: 7
   slaLabel: docdrift
-  # If false (default): Devin may only edit existing files; no new articles or folders.
-  # If true: Devin may add articles, create folders, change IA (conceptual scenarios).
   allowNewFiles: false

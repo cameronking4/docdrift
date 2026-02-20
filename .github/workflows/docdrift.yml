@@ -1,0 +1,76 @@
+name: docdrift
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  docdrift:
+    if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'docdrift/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Determine SHAs
+        id: shas
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            HEAD_SHA="${{ github.sha }}"
+            BASE_SHA="${{ github.event.before }}"
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="$(git rev-parse HEAD^)"
+            fi
+          fi
+          echo "head=${HEAD_SHA}" >> $GITHUB_OUTPUT
+          echo "base=${BASE_SHA}" >> $GITHUB_OUTPUT
+          echo "pr_number=${{ github.event.pull_request.number || '' }}" >> $GITHUB_OUTPUT
+
+      - name: Validate config
+        run: npx @devinnn/docdrift validate
+
+      - name: Run Doc Drift
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_PR_NUMBER: ${{ steps.shas.outputs.pr_number }}
+          GITHUB_PR_HEAD_REF: ${{ github.event.pull_request.head.ref || '' }}
+        run: |
+          PR_ARGS=""
+          if [ -n "$GITHUB_PR_NUMBER" ]; then
+            PR_ARGS="--trigger pull_request --pr-number $GITHUB_PR_NUMBER"
+            if [ -n "$GITHUB_PR_HEAD_REF" ]; then
+              PR_ARGS="$PR_ARGS --pr-head-ref $GITHUB_PR_HEAD_REF"
+            fi
+          fi
+          npx @devinnn/docdrift run --base ${{ steps.shas.outputs.base }} --head ${{ steps.shas.outputs.head }} $PR_ARGS
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docdrift-artifacts
+          path: |
+            .docdrift/drift_report.json
+            .docdrift/metrics.json
+            .docdrift/run-output.json
+            .docdrift/evidence/**
+            .docdrift/state.json
